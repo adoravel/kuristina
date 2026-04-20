@@ -4,8 +4,8 @@
  * SPDX-License-Identifier: AGPL-3.0-or-later
  */
 
-import { assertEquals, assertThrows } from "@std/assert";
-import { StringStream } from "~combinators/stream.ts";
+import { StringStream } from "~/lib/combinators/stream.ts";
+import { assertEquals, assertThrows } from "~/test/mod.ts";
 
 Deno.test("StringStream: initial state", () => {
 	const s = new StringStream("hello");

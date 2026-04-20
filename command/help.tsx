@@ -4,11 +4,11 @@
  * SPDX-License-Identifier: AGPL-3.0-or-later
  */
 
-import { optional } from "~combinators/constructions.ts";
-import { commandRegistry, defineCommand } from "~command/registry.tsx";
-import { identifier } from "~combinators/primitives.ts";
-import { Card, ErrorMessage, Heading, List, Section, Subtext } from "~jsx/components";
-import { TextDisplay } from "~jsx/TextDisplay.tsx";
+import { optional } from "~/lib/combinators/constructions.ts";
+import { commandRegistry, defineCommand } from "~/lib/command/registry.tsx";
+import { identifier } from "~/lib/combinators/primitives.ts";
+import { Card, ErrorMessage, Heading, List, Section, Subtext } from "~/jsx/components";
+import { TextDisplay } from "~/jsx/TextDisplay.tsx";
 import { getConfig } from "~/config/mod.ts";
 
 interface HelpCardProps {

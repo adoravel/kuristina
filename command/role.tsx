@@ -4,13 +4,13 @@
  * SPDX-License-Identifier: AGPL-3.0-or-later
  */
 
-import { optional } from "~combinators/constructions.ts";
-import { number } from "~combinators/primitives.ts";
-import { Card, Heading, Section, Subtext } from "~jsx/components";
-import { TextDisplay } from "~jsx/TextDisplay.tsx";
-import { ActionRow } from "~jsx/ActionRow.tsx";
-import { StringSelect } from "~jsx/StringSelect.tsx";
-import { defineCommand } from "~command/registry.tsx";
+import { optional } from "~/lib/combinators/constructions.ts";
+import { number } from "~/lib/combinators/primitives.ts";
+import { Card, Heading, Section, Subtext } from "~/jsx/components";
+import { TextDisplay } from "~/jsx/TextDisplay.tsx";
+import { ActionRow } from "~/jsx/ActionRow.tsx";
+import { StringSelect } from "~/jsx/StringSelect.tsx";
+import { defineCommand } from "~/lib/command/registry.tsx";
 
 import { MessageComponentTypes, Role } from "discord/types";
 import { setupInteractionHandler } from "~/discord/events/interactionCreate.ts";

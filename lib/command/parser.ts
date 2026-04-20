@@ -13,9 +13,15 @@ import {
 	pick,
 	skipWhitespace as skip,
 	unordered,
-} from "~combinators/constructions.ts";
-import { Lexer, Parser, toParser as construct, unexpectedSymbol, yay } from "~combinators/mod.ts";
-import { greedyString, word } from "~combinators/primitives.ts";
+} from "~/lib/combinators/constructions.ts";
+import {
+	Lexer,
+	Parser,
+	toParser as construct,
+	unexpectedSymbol,
+	yay,
+} from "~/lib/combinators/mod.ts";
+import { greedyString, word } from "~/lib/combinators/primitives.ts";
 
 export const escape = few(literal("\\"), pick('"', "\\", "n", "t", "r")).map(
 	"escape",

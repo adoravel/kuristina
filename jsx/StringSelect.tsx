@@ -1,6 +1,6 @@
 import { MessageComponentTypes, SelectOption, StringSelectComponent } from "@discordeno/types";
 import { childrenToArray } from "./utils.ts";
-import { Flatten } from "~util/types.ts";
+import { Flatten } from "~/util/types.ts";
 
 export type StringSelectProps = Omit<StringSelectComponent, "type" | "options"> & {
 	children: Flatten<StringSelectComponent["options"]> | StringSelectComponent["options"];

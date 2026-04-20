@@ -12,9 +12,9 @@ import {
 	pick,
 	sequence,
 	skipWhitespace,
-} from "~combinators/constructions.ts";
-import { error, yay } from "~combinators/mod.ts";
-import { digit, identifier } from "~combinators/primitives.ts";
+} from "~/lib/combinators/constructions.ts";
+import { error, yay } from "~/lib/combinators/mod.ts";
+import { digit, identifier } from "~/lib/combinators/primitives.ts";
 import { getConfig } from "~/config/mod.ts";
 
 export const snowflake = sequence(digit).map(

@@ -8,7 +8,7 @@ import { parse as parseToml } from "@std/toml";
 import { Fail, Ok, type Result } from "~/lib/result.ts";
 import { config$Errors, ConfigError } from "~/config/errors.ts";
 
-const Errors = config$Errors.config;
+const Errors = config$Errors;
 
 export const DEFAULT_CONFIG_PATH = "config.toml";
 
@@ -20,6 +20,9 @@ export interface KuristinaConfig {
 	};
 	readonly owner: {
 		readonly id: bigint;
+	};
+	readonly sqlite: {
+		path: string;
 	};
 	readonly emojis: {
 		readonly success: string;
@@ -48,6 +51,9 @@ const defaults: Partial<KuristinaConfig> = {
 	cache: {
 		contextTtlMs: 450_00,
 	},
+	sqlite: {
+		path: "./data/kuristina.sqlite",
+	},
 } as const;
 
 interface RawConfig {
@@ -58,6 +64,9 @@ interface RawConfig {
 	};
 	owner?: {
 		id?: unknown;
+	};
+	sqlite?: {
+		path: string;
 	};
 	emojis?: {
 		success?: unknown;
@@ -218,6 +227,9 @@ export function loadConfig(path = DEFAULT_CONFIG_PATH): Result<KuristinaConfig, 
 			error: optionalString(raw.emojis?.error, defaults.emojis!.error),
 			loading: optionalString(raw.emojis?.loading, defaults.emojis!.loading),
 		},
+		sqlite: {
+			path: optionalString(raw.sqlite?.path, defaults.sqlite!.path),
+		},
 		commands: {
 			defaultCooldownMs,
 			maxMentions,
@@ -231,7 +243,7 @@ export function loadConfig(path = DEFAULT_CONFIG_PATH): Result<KuristinaConfig, 
 export function requireConfig(path = DEFAULT_CONFIG_PATH): KuristinaConfig {
 	const result = loadConfig(path);
 	if (!result.ok) {
-		console.error(`\nFailed to load config:\n  ${result.error.message}\n`);
+		console.error(`\nfailed to load config:\n  ${result.error.message}\n`);
 		Deno.exit(1);
 	}
 	return result.value;

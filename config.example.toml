@@ -20,3 +20,6 @@ max_mentions = 3 # maximum users a single command can mention
 
 [cache]
 context_ttl_ms = 450000 # how long to keep command context cached, in ms (7.5 min)
+
+[sqlite]
+path = "./data/kuristina.sqlite"

@@ -6,12 +6,16 @@
 
 import { lastfm$describe, lastfm$Errors, LastFmError } from "~/lastfm/errors.ts";
 import { config$describe, config$Errors, ConfigError } from "~/config/errors.ts";
+import { tidal$describe, tidal$Errors, TidalError } from "~/tidal/errors.ts";
+import { sql$Errors, SqlError } from "~/sql/errors.ts";
 
 export type AppError =
-	| LastFmError
 	| ConfigError
+	| LastFmError
+	| TidalError
 	| RateLimitError
-	| NetworkError;
+	| NetworkError
+	| SqlError;
 
 export interface BaseError<Kind> {
 	readonly kind: Kind;
@@ -41,8 +45,10 @@ export const Errors = {
 		tag: status,
 	}),
 
-	...config$Errors,
-	...lastfm$Errors,
+	config: config$Errors,
+	lastfm: lastfm$Errors,
+	tidal: tidal$Errors,
+	sql: sql$Errors,
 } as const;
 
 export function describe(e: AppError): string {
@@ -56,6 +62,13 @@ export function describe(e: AppError): string {
 		case "lastfm":
 		case "lastfm/auth":
 			return lastfm$describe(e);
+		case "tidal":
+		case "tidal/auth":
+		case "tidal/link":
+		case "tidal/download":
+			return tidal$describe(e);
+		case "sql":
+			return e.message;
 		default:
 			return `Unknown error: ${e}`;
 	}

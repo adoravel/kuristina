@@ -4,8 +4,7 @@
  * SPDX-License-Identifier: AGPL-3.0-or-later
  */
 
-import { assertEquals } from "@std/assert";
-import { $, StringStream } from "~combinators/stream.ts";
+import { $, StringStream } from "~/lib/combinators/stream.ts";
 import {
 	alpha,
 	alphanumeric,
@@ -22,8 +21,8 @@ import {
 	octal,
 	uppercase,
 	word,
-} from "~combinators/primitives.ts";
-import { assertFail, assertSuccess, compare } from "./mod.ts";
+} from "~/lib/combinators/primitives.ts";
+import { assertEquals, assertFail, assertSuccess, compare } from "./mod.ts";
 
 Deno.test("digit parser", () => {
 	for (const d of "0123456789") {

@@ -1,8 +1,8 @@
 import discord from "discord/bot";
-import { StringStream } from "~combinators/stream.ts";
-import { prefix } from "~command/primitives.ts";
-import { infer } from "~combinators/mod.ts";
-import { commandRegistry, contextCache } from "~command/registry.tsx";
+import { StringStream } from "~/lib/combinators/stream.ts";
+import { prefix } from "~/lib/command/primitives.ts";
+import { infer } from "~/lib/combinators/mod.ts";
+import { commandRegistry, contextCache } from "~/lib/command/registry.tsx";
 
 export const messageCreate: typeof discord.events.messageCreate = async (message) => {
 	if (message.author.bot || !message.guildId) return;

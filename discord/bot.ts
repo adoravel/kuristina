@@ -4,7 +4,7 @@
  * SPDX-License-Identifier: AGPL-3.0-or-later
  */
 
-import { commandRegistry } from "~command/registry.tsx";
+import { commandRegistry } from "~/lib/command/registry.tsx";
 
 import { createProxyCache } from "dd-cache-proxy";
 import { createBot, createDesiredPropertiesObject, GatewayIntents } from "@discordeno/bot";

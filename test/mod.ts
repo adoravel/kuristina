@@ -4,8 +4,11 @@
  * SPDX-License-Identifier: AGPL-3.0-or-later
  */
 
-import { assertEquals } from "@std/assert/equals";
-import { ParsingError, ParsingResult, prettify } from "~combinators/mod.ts";
+// deno-lint-ignore no-import-prefix
+import { assertEquals } from "jsr:@std/assert@1.0.19";
+import { ParsingError, ParsingResult, prettify } from "~/lib/combinators/mod.ts";
+
+export * from "jsr:@std/assert@1.0.19";
 
 /**
  * assert a parse succeeded and return the parsed data.

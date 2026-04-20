@@ -4,8 +4,8 @@
  * SPDX-License-Identifier: AGPL-3.0-or-later
  */
 
-import { defineCommand } from "~command/registry.tsx";
-import { memberIds } from "~command/primitives.ts";
+import { defineCommand } from "~/lib/command/registry.tsx";
+import { memberIds } from "~/lib/command/primitives.ts";
 import { resolveMembers } from "discord/resolve";
 
 export default defineCommand("ping", {

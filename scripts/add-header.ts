@@ -56,4 +56,5 @@ await walk("./util");
 await walk("./config");
 await walk("./lastfm");
 await walk("./command");
+await walk("./tidal");
 await walk("./test");

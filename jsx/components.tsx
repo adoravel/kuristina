@@ -4,10 +4,10 @@
  * SPDX-License-Identifier: AGPL-3.0-or-later
  */
 
-import { Separator } from "~jsx/Separator.tsx";
-import { ComponentMessage } from "~jsx/ComponentMessage.tsx";
-import { Container } from "~jsx/Container.tsx";
-import { TextDisplay } from "~jsx/TextDisplay.tsx";
+import { Separator } from "~/jsx/Separator.tsx";
+import { ComponentMessage } from "~/jsx/ComponentMessage.tsx";
+import { Container } from "~/jsx/Container.tsx";
+import { TextDisplay } from "~/jsx/TextDisplay.tsx";
 import { getConfig } from "~/config/mod.ts";
 
 export const Theme = {

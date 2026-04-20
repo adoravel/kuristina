@@ -4,8 +4,7 @@
  * SPDX-License-Identifier: AGPL-3.0-or-later
  */
 
-import { assertEquals, assertThrows } from "@std/assert";
-import { StringStream } from "~combinators/stream.ts";
+import { StringStream } from "~/lib/combinators/stream.ts";
 import {
 	buildDefaultMessage,
 	getContext,
@@ -13,9 +12,9 @@ import {
 	mergeErrors,
 	ParsingError,
 	prettify,
-} from "~combinators/error.ts";
-import { literal, pick } from "~combinators/constructions.ts";
-import { assertFail } from "./mod.ts";
+} from "~/lib/combinators/error.ts";
+import { literal, pick } from "~/lib/combinators/constructions.ts";
+import { assertEquals, assertFail, assertThrows } from "./mod.ts";
 
 Deno.test("buildDefaultMessage", () => {
 	assertEquals(

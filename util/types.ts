@@ -13,3 +13,12 @@ export type Mutable<T> = {
 export type DeepMutable<T> = {
 	-readonly [P in keyof T]: T[P] extends object ? DeepMutable<T[P]> : T[P];
 };
+
+type CamelToSnake<S extends string> = S extends `${infer T}${infer U}`
+	? U extends Uncapitalize<U> ? `${Lowercase<T>}${CamelToSnake<U>}`
+	: `${Lowercase<T>}_${CamelToSnake<Uncapitalize<U>>}`
+	: S;
+
+export type SnakeCase<T> = {
+	[K in keyof T as CamelToSnake<string & K>]: T[K];
+};

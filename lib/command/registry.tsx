@@ -4,12 +4,12 @@
  * SPDX-License-Identifier: AGPL-3.0-or-later
  */
 
-import { command, CommandArgs, CommandParser, CommandRemaining } from "~command/parser.ts";
-import { StringStream } from "~combinators/stream.ts";
-import { infer, prettify } from "~combinators/mod.ts";
-import { TimedMap } from "~util/map.ts";
-import { ErrorMessage, SuccessMessage } from "~jsx/components";
-import { word } from "~combinators/primitives.ts";
+import { command, CommandArgs, CommandParser, CommandRemaining } from "~/lib/command/parser.ts";
+import { StringStream } from "~/lib/combinators/stream.ts";
+import { infer, prettify } from "~/lib/combinators/mod.ts";
+import { TimedMap } from "~/util/map.ts";
+import { ErrorMessage, SuccessMessage } from "~/jsx/components";
+import { word } from "~/lib/combinators/primitives.ts";
 
 import {
 	CreateMessageOptions,
