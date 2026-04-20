@@ -8,7 +8,7 @@ import { Separator } from "~jsx/Separator.tsx";
 import { ComponentMessage } from "~jsx/ComponentMessage.tsx";
 import { Container } from "~jsx/Container.tsx";
 import { TextDisplay } from "~jsx/TextDisplay.tsx";
-import config from "~/config.ts";
+import { getConfig } from "~/config/mod.ts";
 
 export const Theme = {
 	colors: {
@@ -128,7 +128,7 @@ export function Link({ children, url }: LinkTextProps) {
 export function InfoMessage({
 	title,
 	children,
-	emoji = config.emojis.success,
+	emoji = getConfig().emojis.success,
 	color = Theme.colors.info,
 	footer,
 }: InfoMessageProps) {
@@ -150,7 +150,7 @@ export function ErrorMessage({
 	title = "An error occurred",
 	children,
 	suggestion,
-	emoji = config.emojis.error,
+	emoji = getConfig().emojis.error,
 }: ErrorMessageProps) {
 	return (
 		<Card color={Theme.colors.danger}>
@@ -159,7 +159,7 @@ export function ErrorMessage({
 			<TextDisplay>{children}</TextDisplay>
 			{suggestion && (
 				<Section spacing={2}>
-					<TextDisplay>{config.emojis.error} {suggestion}</TextDisplay>
+					<TextDisplay>{getConfig().emojis.error} {suggestion}</TextDisplay>
 				</Section>
 			)}
 		</Card>
@@ -172,7 +172,7 @@ export function SuccessMessage({
 }: SuccessMessageProps) {
 	return (
 		<Card color={Theme.colors.success}>
-			<Heading emoji={config.emojis.success}>{title}</Heading>
+			<Heading emoji={getConfig().emojis.success}>{title}</Heading>
 			<Separator spacing={2} />
 			<TextDisplay>{children}</TextDisplay>
 		</Card>

@@ -8,7 +8,6 @@ import { command, CommandArgs, CommandParser, CommandRemaining } from "~command/
 import { StringStream } from "~combinators/stream.ts";
 import { infer, prettify } from "~combinators/mod.ts";
 import { TimedMap } from "~util/map.ts";
-import config from "~/config.ts";
 import { ErrorMessage, SuccessMessage } from "~jsx/components";
 import { word } from "~combinators/primitives.ts";
 
@@ -23,6 +22,7 @@ import {
 } from "discord/types";
 import discord from "discord/bot";
 import { ResolutionError, resolveGuild, resolveMember } from "discord/resolve";
+import { getConfig } from "~/config/mod.ts";
 
 type BaseArgs = Record<string, any>;
 
@@ -302,7 +302,7 @@ class CommandRegistry {
 					guildId: message.guildId,
 				},
 				...(
-					<ErrorMessage title="Cooldown" emoji={config.emojis.loading}>
+					<ErrorMessage title="Cooldown" emoji={getConfig().emojis.loading}>
 						Please wait before using this command again.
 					</ErrorMessage>
 				),
@@ -325,7 +325,9 @@ class CommandRegistry {
 				},
 				...(
 					<ErrorMessage>
-						{`${config.emojis.error} **Command Parse Error**\n\`\`\`\n${prettify(error)}\n\`\`\``}
+						{`${getConfig().emojis.error} **Command Parse Error**\n\`\`\`\n${
+							prettify(error)
+						}\n\`\`\``}
 					</ErrorMessage>
 				),
 			});
@@ -370,7 +372,7 @@ class CommandRegistry {
 				},
 				...(
 					<ErrorMessage>
-						{`${config.emojis.error} **Command Execution Error**\n\`\`\`\n${errorMsg}\n\`\`\``}
+						{`${getConfig().emojis.error} **Command Execution Error**\n\`\`\`\n${errorMsg}\n\`\`\``}
 					</ErrorMessage>
 				),
 			});
@@ -399,12 +401,12 @@ export const ownerOnly: Middleware = {
 		if (!author) {
 			return { type: "stop", reason: "No author data" };
 		}
-		if (author.id !== config.owner.id) {
+		if (author.id !== getConfig().owner.id) {
 			try {
 				await ctx.platform.helpers.sendMessage(
 					ctx.message.channelId,
 					{
-						content: `${config.emojis.error} Give up.`,
+						content: `${getConfig().emojis.error} Give up.`,
 						messageReference: {
 							messageId: ctx.message.id,
 							channelId: ctx.message.channelId,
@@ -431,7 +433,7 @@ export const guildOnly: Middleware = {
 				await ctx.platform.helpers.sendMessage(
 					ctx.message.channelId,
 					{
-						content: `${config.emojis.error} This command only works in servers.`,
+						content: `${getConfig().emojis.error} This command only works in servers.`,
 					},
 				);
 			} catch (error) {
@@ -462,9 +464,10 @@ export const permissions = (
 				await ctx.platform.helpers.sendMessage(
 					ctx.message.channelId,
 					{
-						content: `${config.emojis.error} You're not allowed to use this command.\nRequired: ${
-							permissions.join(", ")
-						}`,
+						content:
+							`${getConfig().emojis.error} You're not allowed to use this command.\nRequired: ${
+								permissions.join(", ")
+							}`,
 						messageReference: {
 							messageId: ctx.message.id,
 							channelId: ctx.message.channelId,

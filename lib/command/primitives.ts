@@ -15,7 +15,7 @@ import {
 } from "~combinators/constructions.ts";
 import { error, yay } from "~combinators/mod.ts";
 import { digit, identifier } from "~combinators/primitives.ts";
-import config from "~/config.ts";
+import { getConfig } from "~/config/mod.ts";
 
 export const snowflake = sequence(digit).map(
 	"snowflake",
@@ -100,7 +100,7 @@ export const timestamp = few(
 );
 
 export const prefix = pick(
-	...["/", "$", "kuristina", `<@${config.discord.applicationId}>`].map((
+	...["/", "$", "kuristina", `<@${getConfig().discord.applicationId}>`].map((
 		prefix,
 	) =>
 		few(literal(prefix), optional(skipWhitespace)).map(

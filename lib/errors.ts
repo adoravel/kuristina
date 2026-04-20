@@ -5,9 +5,11 @@
  */
 
 import { lastfm$describe, lastfm$Errors, LastFmError } from "~/lastfm/errors.ts";
+import { config$describe, config$Errors, ConfigError } from "~/config/errors.ts";
 
 export type AppError =
 	| LastFmError
+	| ConfigError
 	| RateLimitError
 	| NetworkError;
 
@@ -39,6 +41,7 @@ export const Errors = {
 		tag: status,
 	}),
 
+	...config$Errors,
 	...lastfm$Errors,
 } as const;
 
@@ -46,12 +49,14 @@ export function describe(e: AppError): string {
 	switch (e.kind) {
 		case "rate_limit":
 			return e.retryAfterMs ? `Rate limited. Retry after ${e.retryAfterMs}ms` : "Rate limited";
+		case "config":
+			return config$describe(e);
 		case "network":
 			return e.tag ? `Network error ${e.tag}: ${e.message}` : `Network error: ${e.message}`;
-		default: {
-			const value = lastfm$describe(e);
-			if (!value) return `Unknown error: ${e}`;
-			return value;
-		}
+		case "lastfm":
+		case "lastfm/auth":
+			return lastfm$describe(e);
+		default:
+			return `Unknown error: ${e}`;
 	}
 }

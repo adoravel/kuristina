@@ -8,8 +8,8 @@ import { optional } from "~combinators/constructions.ts";
 import { commandRegistry, defineCommand } from "~command/registry.tsx";
 import { identifier } from "~combinators/primitives.ts";
 import { Card, ErrorMessage, Heading, List, Section, Subtext } from "~jsx/components";
-import config from "~/config.ts";
 import { TextDisplay } from "~jsx/TextDisplay.tsx";
+import { getConfig } from "~/config/mod.ts";
 
 interface HelpCardProps {
 	commands: Array<{ name: string; description: string }>;
@@ -27,7 +27,7 @@ function HelpCard({
 
 	return (
 		<Card>
-			<Heading level={3} emoji={config.emojis.success}>
+			<Heading level={3} emoji={getConfig().emojis.success}>
 				List of commands
 			</Heading>
 			<Section>
@@ -68,7 +68,7 @@ function CommandDetail({
 	return (
 		<Card>
 			<TextDisplay>
-				### {config.emojis.success} **`{name}`**
+				### {getConfig().emojis.success} **`{name}`**
 			</TextDisplay>
 			<Section>
 				<TextDisplay>{description}</TextDisplay>

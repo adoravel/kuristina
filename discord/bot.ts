@@ -4,7 +4,6 @@
  * SPDX-License-Identifier: AGPL-3.0-or-later
  */
 
-import config from "~/config.ts";
 import { commandRegistry } from "~command/registry.tsx";
 
 import { createProxyCache } from "dd-cache-proxy";
@@ -12,6 +11,9 @@ import { createBot, createDesiredPropertiesObject, GatewayIntents } from "@disco
 
 import interactionCreate from "~/discord/events/interactionCreate.ts";
 import { messageCreate, messageDelete, messageUpdate } from "~/discord/events/messageHandling.ts";
+import { getConfig } from "~/config/mod.ts";
+
+const config = getConfig();
 
 const desiredProperties = createDesiredPropertiesObject({
 	user: {

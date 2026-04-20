@@ -11,10 +11,10 @@ import { TextDisplay } from "~jsx/TextDisplay.tsx";
 import { ActionRow } from "~jsx/ActionRow.tsx";
 import { StringSelect } from "~jsx/StringSelect.tsx";
 import { defineCommand } from "~command/registry.tsx";
-import config from "~/config.ts";
 
 import { MessageComponentTypes, Role } from "discord/types";
 import { setupInteractionHandler } from "~/discord/events/interactionCreate.ts";
+import { getConfig } from "~/config/mod.ts";
 
 const ROLE_MARKER = ".ᐟ〃" as const;
 const CUSTOM_ID_PREFIX = "kuristina_role_colour:" as const;
@@ -39,7 +39,7 @@ function RoleCard({ roles, userId }: RoleCardProps) {
 
 	return (
 		<Card>
-			<Heading level={3} emoji={config.emojis.loading}>
+			<Heading level={3} emoji={getConfig().emojis.loading}>
 				Role colours
 			</Heading>
 			<Section>

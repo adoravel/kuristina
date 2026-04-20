@@ -60,7 +60,7 @@ export function isTransient(e: LastFmError): boolean {
 	return false;
 }
 
-export function lastfm$describe(e: LastFmError): string | null {
+export function lastfm$describe(e: LastFmError): string {
 	switch (e.kind) {
 		case "lastfm":
 			switch (e.tag) {
@@ -96,9 +96,9 @@ export function lastfm$describe(e: LastFmError): string | null {
 				case "token_unauthorised":
 					return "You haven't approved the login yet — click the link and try again.";
 				default:
-					return null;
+					return "Authentication error";
 			}
 		default:
-			return null;
+			return "Unknown Last.fm error";
 	}
 }

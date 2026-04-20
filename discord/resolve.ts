@@ -1,6 +1,6 @@
 import discord from "discord/bot";
 import { Channel, Guild, Member, Role, User } from "discord/types";
-import config from "~/config.ts";
+import { getConfig } from "~/config/mod.ts";
 
 export class ResolutionError extends Error {
 	constructor(
@@ -23,7 +23,7 @@ export async function resolveUser(
 
 export async function resolveMember(
 	id: bigint,
-	guildId = config.discord.guildId,
+	guildId = getConfig().discord.guildId,
 ): Promise<Member | undefined> {
 	const member = await discord.cache.members.get(id, guildId);
 	if (member) {
@@ -36,7 +36,7 @@ export async function resolveMember(
 
 export async function resolveMembers(
 	ids: bigint[],
-	guildId = config.discord.guildId,
+	guildId = getConfig().discord.guildId,
 ): Promise<Member[]> {
 	if (ids.length === 1) {
 		const member = await resolveMember(ids[0], guildId);
@@ -80,7 +80,7 @@ export async function resolveMembers(
 
 export async function resolveRole(
 	id: bigint,
-	guildId = config.discord.guildId,
+	guildId = getConfig().discord.guildId,
 ): Promise<Role | undefined> {
 	const role = await discord.cache.roles.get(id);
 	if (role) return role;
@@ -98,7 +98,7 @@ export async function resolveChannel(
 }
 
 export async function resolveGuild(
-	id: bigint = config.discord.guildId,
+	id: bigint = getConfig().discord.guildId,
 ): Promise<Guild> {
 	const guild = await discord.cache.guilds.get(id);
 	if (guild) return guild as any;
