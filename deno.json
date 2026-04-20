@@ -1,0 +1,51 @@
+{
+	"permissions": {
+		"default": {
+			"read": ["/usr/bin/ldd", "."],
+			"env": true,
+			"net": true,
+			"ffi": true
+		}
+	},
+	"tasks": {
+		"dev": "deno run --env-file=.env --watch -P=default main.ts",
+		"start": "deno run --env-file=.env -P=default main.ts",
+		"add-header": "deno fmt && deno run --allow-read --allow-write scripts/add-header.ts"
+	},
+	"imports": {
+		"@discordeno/bot": "npm:@discordeno/bot@^22.0.1-next.a699c3d",
+		"@discordeno/types": "npm:@discordeno/types@^22.0.1-next.a699c3d",
+		"@std/assert": "jsr:@std/assert@^1.0.19",
+		"@std/crypto": "jsr:@std/crypto@^1.0.5",
+		"dd-cache-proxy": "npm:dd-cache-proxy@^2.7.0",
+		"~/": "./",
+		"~combinators/": "./lib/combinators/",
+		"~sandbox/": "./lib/sandbox/",
+		"~command/": "./lib/command/",
+		"~util/": "./util/",
+		"~jsx/": "./jsx/",
+		"~jsx/jsx-runtime": "./jsx/runtime.ts",
+		"~jsx/components": "./jsx/components.tsx",
+		"discord/bot": "./discord/bot.ts",
+		"discord/resolve": "./discord/resolve.ts",
+		"discord/types": "./discord/types.ts"
+	},
+	"compilerOptions": {
+		"jsx": "react-jsx",
+		"jsxImportSource": "~jsx"
+	},
+	"lint": {
+		"rules": {
+			"exclude": ["no-explicit-any"]
+		}
+	},
+	"fmt": {
+		"useTabs": true,
+		"semiColons": true,
+		"lineWidth": 100,
+		"exclude": ["./third-party"]
+	},
+	"test": {
+		"include": ["test/*.ts"]
+	}
+}
