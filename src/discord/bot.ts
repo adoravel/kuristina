@@ -9,14 +9,11 @@ import { commandRegistry } from "~/lib/command/registry.tsx";
 import { createProxyCache } from "dd-cache-proxy";
 import { createBot, createDesiredPropertiesObject, GatewayIntents } from "@discordeno/bot";
 
-import interactionCreate from "~/discord/events/interactionCreate.ts";
-import { messageCreate, messageDelete, messageUpdate } from "~/discord/events/messageHandling.ts";
-import { getConfig } from "~/config/mod.ts";
+import events from "~/discord/events/mod.ts";
+import { cfg, getConfig } from "~/config/mod.ts";
 import { initialiseDatabase } from "~/database/mod.ts";
 import { AppError } from "~/lib/errors.ts";
 import { Ok, Result } from "~/lib/result.ts";
-
-const config = getConfig();
 
 const desiredProperties = createDesiredPropertiesObject({
 	user: {
@@ -122,7 +119,7 @@ const desiredProperties = createDesiredPropertiesObject({
 interface BotDesiredProperties extends Required<typeof desiredProperties> {}
 
 const bot = createBot({
-	token: config.discord.token,
+	token: getConfig().discord.token,
 	desiredProperties: desiredProperties as BotDesiredProperties,
 	intents: GatewayIntents.Guilds |
 		GatewayIntents.GuildMembers |
@@ -135,10 +132,7 @@ bot.events = {
 	ready: ({ user }) => {
 		console.log(`meowing as ${user.tag} :3`);
 	},
-	interactionCreate: interactionCreate,
-	messageCreate: messageCreate,
-	messageUpdate: messageUpdate,
-	messageDelete: messageDelete,
+	...events,
 };
 
 const discord = createProxyCache(bot, {
@@ -148,22 +142,24 @@ const discord = createProxyCache(bot, {
 });
 
 export async function initialise(): Promise<Result<void, AppError>> {
-	await discord.start();
-
 	const result = initialiseDatabase();
 	if (!result.ok) return result;
 
-	const importCommand = async (name: string) => {
-		const isStar = name.charCodeAt(0) === 42; // '*'
-		const cleanName = isStar ? name.slice(1) : name;
-		const ext = isStar ? "ts" : "tsx";
+	await discord.start();
 
-		const command = (await import(`~/command/${cleanName}.${ext}`)).default;
-		commandRegistry.register(command);
-	};
+	const commandManifest = [
+		{ filename: "help.tsx", module: "commands.help" },
+		{ filename: "role.tsx", module: "commands.role" },
+		{ filename: "ping.ts", module: "commands.ping" },
+	] as const;
 
 	await Promise.all(
-		["help", "role", "*ping"].map(importCommand),
+		commandManifest
+			.filter(({ module }) => cfg(module))
+			.map(({ filename }) =>
+				import(`~/command/${filename}`)
+					.then((m) => commandRegistry.register(m.default))
+			),
 	);
 
 	return Ok(undefined);

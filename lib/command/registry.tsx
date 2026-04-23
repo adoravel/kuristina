@@ -21,7 +21,7 @@ import {
 	User,
 } from "~/discord/types";
 import discord from "~/discord/bot";
-import { ResolutionError, resolveGuild, resolveMember } from "~/discord/resolve";
+import { resolveGuild, resolveMember } from "~/discord/resolve";
 import { getConfig } from "~/config/mod.ts";
 
 type BaseArgs = Record<string, any>;
@@ -242,12 +242,8 @@ class CommandRegistry {
 				this.setCooldown(message.author.id, cmd.aliases[0], cmd.cooldownMs);
 			}
 		} catch (error) {
-			if (error instanceof ResolutionError) {
-				await this.sendResolutionError(message, error);
-			} else {
-				console.error(`Command execution error (${cmd.aliases[0]}):`, error);
-				await this.sendExecutionError(message, error);
-			}
+			console.error(`Command execution error (${cmd.aliases[0]}):`, error);
+			await this.sendExecutionError(message, error);
 		}
 	}
 
@@ -333,28 +329,6 @@ class CommandRegistry {
 			});
 		} catch (err) {
 			console.error("failed to send parse error:", err);
-		}
-	}
-
-	private async sendResolutionError(
-		message: Message,
-		error: ResolutionError,
-	): Promise<void> {
-		try {
-			await this.platform.helpers.sendMessage(message.channelId, {
-				messageReference: {
-					messageId: message.id,
-					channelId: message.channelId,
-					guildId: message.guildId!,
-				},
-				...(
-					<ErrorMessage title="Not Found">
-						{error.message}
-					</ErrorMessage>
-				),
-			});
-		} catch (err) {
-			console.error("failed to send resolution error:", err);
 		}
 	}
 

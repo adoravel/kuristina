@@ -24,6 +24,8 @@ export type Interaction = typeof discord.transformers.$inferredTypes.interaction
 
 export type MessageInteraction = typeof discord.transformers.$inferredTypes.messageInteraction;
 
+export type Events = typeof discord.events;
+
 export type {
 	CreateMessageOptions,
 	EditMessage,
