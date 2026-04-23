@@ -52,9 +52,4 @@ async function walk(loc: string) {
 
 await walk("./src");
 await walk("./lib");
-await walk("./util");
-await walk("./config");
-await walk("./lastfm");
-await walk("./command");
-await walk("./tidal");
 await walk("./test");

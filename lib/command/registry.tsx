@@ -7,8 +7,8 @@
 import { command, CommandArgs, CommandParser, CommandRemaining } from "~/lib/command/parser.ts";
 import { StringStream } from "~/lib/combinators/stream.ts";
 import { infer, prettify } from "~/lib/combinators/mod.ts";
-import { TimedMap } from "~/util/map.ts";
-import { ErrorMessage, SuccessMessage } from "~/jsx/components";
+import { TimedMap } from "~/lib/util/map.ts";
+import { ErrorMessage, SuccessMessage } from "~/lib/ui";
 import { word } from "~/lib/combinators/primitives.ts";
 
 import {
@@ -19,9 +19,9 @@ import {
 	Message,
 	PermissionStrings,
 	User,
-} from "discord/types";
-import discord from "discord/bot";
-import { ResolutionError, resolveGuild, resolveMember } from "discord/resolve";
+} from "~/discord/types";
+import discord from "~/discord/bot";
+import { ResolutionError, resolveGuild, resolveMember } from "~/discord/resolve";
 import { getConfig } from "~/config/mod.ts";
 
 type BaseArgs = Record<string, any>;

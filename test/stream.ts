@@ -5,7 +5,7 @@
  */
 
 import { StringStream } from "~/lib/combinators/stream.ts";
-import { assertEquals, assertThrows } from "~/test/mod.ts";
+import { assertEquals, assertThrows } from "./mod.ts";
 
 Deno.test("StringStream: initial state", () => {
 	const s = new StringStream("hello");

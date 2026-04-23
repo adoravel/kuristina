@@ -4,10 +4,10 @@
  * SPDX-License-Identifier: AGPL-3.0-or-later
  */
 
-import { lastfm$describe, lastfm$Errors, LastFmError } from "~/lastfm/errors.ts";
+import { lastfm$describe, lastfm$Errors, LastFmError } from "~/services/lastfm/errors.ts";
 import { config$describe, config$Errors, ConfigError } from "~/config/errors.ts";
-import { tidal$describe, tidal$Errors, TidalError } from "~/tidal/errors.ts";
-import { sql$Errors, SqlError } from "~/sql/errors.ts";
+import { tidal$describe, tidal$Errors, TidalError } from "~/services/tidal/errors.ts";
+import { sql$Errors, SqlError } from "~/database/errors.ts";
 
 export type AppError =
 	| ConfigError

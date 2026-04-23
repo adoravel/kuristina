@@ -14,24 +14,24 @@
 		"add-header": "deno fmt && deno run --allow-read --allow-write scripts/add-header.ts"
 	},
 	"imports": {
+		"~/": "./src/",
+		"~/lib/": "./lib/",
+		"~/lib/ui": "./lib/ui/mod.ts",
+		"~/lib/ui/jsx-runtime": "./lib/ui/runtime.ts",
+		"~/discord/bot": "./src/discord/bot.ts",
+		"~/discord/resolve": "./src/discord/resolve.ts",
+		"~/discord/types": "./src/discord/types.ts",
 		"@std/path": "jsr:@std/path@^1.1.4",
-		"~/": "./",
-		"~/jsx/": "./jsx/",
-		"~/jsx/jsx-runtime": "./jsx/runtime.ts",
-		"~/jsx/components": "./jsx/components.tsx",
-		"discord/bot": "./discord/bot.ts",
-		"discord/resolve": "./discord/resolve.ts",
-		"discord/types": "./discord/types.ts",
+		"@std/crypto": "jsr:@std/crypto@^1.0.5",
+		"@std/toml": "jsr:@std/toml@^1.0.11",
 		"@db/sqlite": "jsr:@db/sqlite@^0.13.0",
 		"@discordeno/bot": "npm:@discordeno/bot@^22.0.1-next.ff7c51d",
 		"@discordeno/types": "npm:@discordeno/types@^22.0.1-next.ff7c51d",
-		"@std/crypto": "jsr:@std/crypto@^1.0.5",
-		"@std/toml": "jsr:@std/toml@^1.0.11",
 		"dd-cache-proxy": "npm:dd-cache-proxy@^2.7.0"
 	},
 	"compilerOptions": {
 		"jsx": "react-jsx",
-		"jsxImportSource": "~/jsx"
+		"jsxImportSource": "~/lib/ui"
 	},
 	"lint": {
 		"rules": {
@@ -41,8 +41,7 @@
 	"fmt": {
 		"useTabs": true,
 		"semiColons": true,
-		"lineWidth": 100,
-		"exclude": ["./third-party"]
+		"lineWidth": 100
 	},
 	"test": {
 		"include": ["test/*.ts"]
