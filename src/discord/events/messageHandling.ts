@@ -5,19 +5,26 @@
  */
 
 import discord from "~/discord/bot";
+import { Message } from "~/discord/types";
 import { StringStream } from "~/lib/combinators/stream.ts";
 import { prefix } from "~/lib/command/primitives.ts";
 import { infer } from "~/lib/combinators/mod.ts";
 import { commandRegistry, contextCache } from "~/lib/command/registry.tsx";
+import { cfg, getConfig } from "~/config/mod.ts";
+
+const predicate: (message: Message) => boolean = cfg("client")
+	? (message) => message.channelId === getConfig().discord.applicationId
+	: (message) => !message.author.bot && !!message.guildId;
 
 export const messageCreate: typeof discord.events.messageCreate = async (message) => {
-	if (message.author.bot || !message.guildId) return;
+	if (!predicate(message)) return;
 
 	const stream = new StringStream(message.content);
 	const prefixResult = prefix(stream);
 
 	if (!infer("success")(prefixResult)) return;
 
+	console.log("meow");
 	await commandRegistry.execute(message, stream);
 };
 

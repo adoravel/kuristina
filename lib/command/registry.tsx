@@ -23,7 +23,7 @@ import {
 } from "~/discord/types";
 import discord from "~/discord/bot";
 import { resolveChannel, resolveGuild, resolveMember } from "~/discord/resolve";
-import { getConfig } from "~/config/mod.ts";
+import { cfg, getConfig } from "~/config/mod.ts";
 
 type BaseArgs = Record<string, any>;
 
@@ -119,6 +119,13 @@ export class CommandExecutionContext<
 	private async sendOrEdit(opts: CreateMessageOptions): Promise<Message> {
 		this.ensureMessageReference(opts);
 
+		if (cfg("client")) {
+			(opts as any).mobileNetworkType ??= "unknown";
+			opts.flags ??= 0;
+			opts.tts ??= false;
+			opts.nonce ??= Math.floor(Date.now() / 1000);
+		}
+
 		if (!this._responseId) {
 			const response = await this.platform.helpers.sendMessage(
 				this.message.channelId,
@@ -148,9 +155,11 @@ export class CommandExecutionContext<
 			opts.messageReference = {
 				messageId: this.message.id,
 				channelId: this.message.channelId,
-				guildId: this.message.guildId,
 				failIfNotExists: false,
 			};
+			if (this.message.guildId) {
+				opts.messageReference.guildId = this.message.guildId;
+			}
 		}
 	}
 }
