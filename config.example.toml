@@ -25,6 +25,8 @@ context_ttl_ms = 450_000 # how long to keep command context cached, in ms (7.5 m
 path = "./data/kuristina.sqlite"
 
 [modules]
+# permit user accounts to be used
+client = false
 
 [modules.commands]
 role = true

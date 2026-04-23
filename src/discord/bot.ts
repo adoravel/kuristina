@@ -7,13 +7,22 @@
 import { commandRegistry } from "~/lib/command/registry.tsx";
 
 import { createProxyCache } from "dd-cache-proxy";
-import { createBot, createDesiredPropertiesObject, GatewayIntents } from "@discordeno/bot";
+import {
+	Camelize,
+	createBot,
+	createDesiredPropertiesObject,
+	createLogger,
+	DiscordGetGatewayBot,
+	GatewayIntents,
+	LogLevels,
+} from "@discordeno/bot";
 
 import events from "~/discord/events/mod.ts";
 import { cfg, getConfig } from "~/config/mod.ts";
 import { initialiseDatabase } from "~/database/mod.ts";
 import { AppError } from "~/lib/errors.ts";
 import { Ok, Result } from "~/lib/result.ts";
+import { monkeyPatchUserAppSupport } from "~/discord/client.ts";
 
 const desiredProperties = createDesiredPropertiesObject({
 	user: {
@@ -126,7 +135,14 @@ const bot = createBot({
 		GatewayIntents.GuildMessageReactions |
 		GatewayIntents.GuildMessages |
 		GatewayIntents.MessageContent,
+	loggerFactory: (name) => createLogger({ logLevel: LogLevels.Debug, name }),
 });
+
+export type Bot = typeof bot;
+
+if (cfg("client")) {
+	monkeyPatchUserAppSupport(bot);
+}
 
 bot.events = {
 	ready: ({ user }) => {
