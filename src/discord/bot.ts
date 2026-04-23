@@ -8,11 +8,9 @@ import { commandRegistry } from "~/lib/command/registry.tsx";
 
 import { createProxyCache } from "dd-cache-proxy";
 import {
-	Camelize,
 	createBot,
 	createDesiredPropertiesObject,
 	createLogger,
-	DiscordGetGatewayBot,
 	GatewayIntents,
 	LogLevels,
 } from "@discordeno/bot";
