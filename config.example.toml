@@ -15,11 +15,18 @@ error   = "<:bibooThink:1439478804501237850>"
 loading = "<:bibooZzz:1439478767960588351>"
 
 [commands]
-default_cooldown_ms = 3000 # cooldown between command uses per user, in ms
+default_cooldown_ms = 3_000 # cooldown between command uses per user, in ms
 max_mentions = 3 # maximum users a single command can mention
 
 [cache]
-context_ttl_ms = 450000 # how long to keep command context cached, in ms (7.5 min)
+context_ttl_ms = 450_000 # how long to keep command context cached, in ms (7.5 min)
 
 [sqlite]
 path = "./data/kuristina.sqlite"
+
+[modules]
+
+[modules.commands]
+role = true
+ping = true
+help = true

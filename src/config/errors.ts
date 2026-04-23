@@ -45,7 +45,7 @@ export const config$Errors = {
 	invalid: (fields: readonly FieldError[]): ConfigError => ({
 		kind: "config",
 		tag: "invalid",
-		message: `Config validation failed (${fields.length} error${fields.length > 1 ? "s" : ""})`,
+		message: `config validation failed (${fields.length} error${fields.length > 1 ? "s" : ""})`,
 		invalidFields: fields,
 	}),
 } as const;
@@ -57,8 +57,8 @@ export function config$describe(e: ConfigError): string {
 		case "parse_failed":
 			return e.message;
 		case "invalid": {
-			const lines = e.invalidFields?.map((f) => `  · ${f.path}: ${f.message}`) ?? [];
-			return `${e.message}:\n${lines.join("\n")}`;
+			const summary = e.invalidFields?.map((e) => `  • ${e.path}: ${e.message}`) ?? [];
+			return `${e.message}:\n${summary.join("\n")}`;
 		}
 	}
 }

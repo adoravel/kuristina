@@ -6,7 +6,7 @@
 
 import { parse as parseToml } from "@std/toml";
 import { Fail, Ok, type Result } from "~/lib/result.ts";
-import { config$Errors, ConfigError } from "~/config/errors.ts";
+import { config$Errors, ConfigError, FieldError } from "~/config/errors.ts";
 
 const Errors = config$Errors;
 
@@ -36,6 +36,9 @@ export interface KuristinaConfig {
 	readonly cache: {
 		readonly contextTtlMs: number;
 	};
+	readonly modules: {
+		commands: Record<string, boolean>;
+	} & Record<string, boolean>;
 }
 
 const defaults: Partial<KuristinaConfig> = {
@@ -49,7 +52,7 @@ const defaults: Partial<KuristinaConfig> = {
 		maxMentions: 5,
 	},
 	cache: {
-		contextTtlMs: 450_00,
+		contextTtlMs: 45_000,
 	},
 	sqlite: {
 		path: "./data/kuristina.sqlite",
@@ -80,11 +83,9 @@ interface RawConfig {
 	cache?: {
 		context_ttl_ms?: unknown;
 	};
-}
-
-interface FieldError {
-	readonly path: string;
-	readonly message: string;
+	modules: {
+		commands: Record<string, boolean>;
+	} & Record<string, boolean>;
 }
 
 function requireString(value: unknown, path: string, errors: FieldError[]): string | undefined {
@@ -110,17 +111,17 @@ function requireSnowflake(value: unknown, path: string, errors: FieldError[]): b
 		return undefined;
 	}
 
-	if (Number.isSafeInteger(str)) {
-		errors.push({ path, message: `not a valid snowflake: ${JSON.stringify(str)}` });
-		return undefined;
-	}
-
 	try {
-		return BigInt(str);
+		const n = BigInt(str);
+		if (n <= BigInt(Number.MAX_SAFE_INTEGER)) {
+			errors.push({ path, message: `suspiciously small snowflake: ${str}` });
+		} else {
+			return BigInt(str);
+		}
 	} catch {
 		errors.push({ path, message: `could not parse as bigint: ${JSON.stringify(str)}` });
-		return undefined;
 	}
+	return undefined;
 }
 
 function optionalString(value: unknown, fallback: string = ""): string {
@@ -159,7 +160,7 @@ export function loadConfig(path = DEFAULT_CONFIG_PATH): Result<KuristinaConfig, 
 
 	let raw: RawConfig;
 	try {
-		raw = parseToml(text) as RawConfig;
+		raw = parseToml(text) as any as RawConfig;
 	} catch (e) {
 		return Fail(
 			Errors.parseFailed(
@@ -199,18 +200,8 @@ export function loadConfig(path = DEFAULT_CONFIG_PATH): Result<KuristinaConfig, 
 		errors,
 	);
 
-	if (errors.length > 0) {
-		const summary = errors
-			.map((e) => `  • ${e.path}: ${e.message}`)
-			.join("\n");
-		return Fail(
-			Errors.parseFailed(
-				path,
-				`config validation failed (${errors.length} error${
-					errors.length > 1 ? "s" : ""
-				}):\n${summary}`,
-			),
-		);
+	if (errors.length) {
+		return Fail(Errors.invalid(errors));
 	}
 
 	return Ok({
@@ -237,6 +228,10 @@ export function loadConfig(path = DEFAULT_CONFIG_PATH): Result<KuristinaConfig, 
 		cache: {
 			contextTtlMs,
 		},
+		modules: {
+			...(raw.modules ?? {}),
+			commands: raw.modules?.commands,
+		} as KuristinaConfig["modules"],
 	});
 }
 
@@ -253,4 +248,16 @@ let config: KuristinaConfig;
 
 export function getConfig() {
 	return config ??= requireConfig();
+}
+
+export function cfg(path: string): boolean {
+	const keys = path.split(".");
+	let node: unknown = getConfig().modules;
+
+	for (const key of keys) {
+		if (node === null || typeof node !== "object") return false;
+		node = (node as Record<string, unknown>)[key];
+	}
+
+	return node === true;
 }
