@@ -68,7 +68,7 @@ export function describe(e: AppError): string {
 		case "tidal/download":
 			return tidal$describe(e);
 		case "sql":
-			return e.message;
+			return e.cause ? `${e.message} (${e.cause})` : e.message;
 		default:
 			return `Unknown error: ${e}`;
 	}

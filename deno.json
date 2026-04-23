@@ -1,7 +1,8 @@
 {
 	"permissions": {
 		"default": {
-			"read": ["/usr/bin/ldd", "."],
+			"read": true,
+			"write": true,
 			"env": true,
 			"net": true,
 			"ffi": true
