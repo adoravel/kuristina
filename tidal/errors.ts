@@ -4,7 +4,7 @@
  * SPDX-License-Identifier: AGPL-3.0-or-later
  */
 
-import { NetworkError, TaggedError } from "~/lib/errors.ts";
+import { NetworkError, RateLimitError, TaggedError } from "~/lib/errors.ts";
 
 export type TidalApiErrorKind =
 	| 401 // unauthorised, session expired or invalid
@@ -54,7 +54,8 @@ export type TidalError =
 	| TidalAuthError
 	| TidalDownloadError
 	| TidalLinkError
-	| NetworkError;
+	| NetworkError
+	| RateLimitError;
 
 export const tidal$Errors = {
 	api: (code: TidalApiErrorKind, message: string): TidalApiError => ({
