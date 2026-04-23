@@ -14,7 +14,7 @@ import { Errors } from "~/lib/errors.ts";
 const MIGRATIONS_TABLE = "schema_migrations";
 
 export function migrate(
-	directory: string = resolve("./sql/migrations/"),
+	directory: string = resolve("./src/database/migrations/"),
 ): Result<void, SqlError> {
 	const create = sql(`
         CREATE TABLE IF NOT EXISTS ${MIGRATIONS_TABLE} (

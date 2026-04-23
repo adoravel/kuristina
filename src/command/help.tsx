@@ -110,7 +110,7 @@ export default defineCommand("help", {
 		);
 
 		if (!cmd) {
-			return await ctx.reply(
+			return void await ctx.reply(
 				<ErrorMessage title="uh oh :(">
 					Command **`{needle}`** not found. Pwease, contact a developer if you firmly believe this
 					is a mistake.
@@ -118,7 +118,7 @@ export default defineCommand("help", {
 			);
 		}
 
-		return await ctx.reply(
+		return void await ctx.reply(
 			<CommandDetail
 				name={cmd.aliases[0]}
 				description={cmd.description || "No description available"}

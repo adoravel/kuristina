@@ -38,6 +38,10 @@ export interface KuristinaConfig {
 	};
 	readonly modules: {
 		commands: Record<string, boolean>;
+		markov: {
+			readonly enabled: boolean;
+			readonly channelId: bigint;
+		};
 	} & Record<string, boolean>;
 }
 
@@ -85,6 +89,10 @@ interface RawConfig {
 	};
 	modules: {
 		commands: Record<string, boolean>;
+		markov: {
+			enabled: boolean;
+			channel_id: bigint;
+		};
 	} & Record<string, boolean>;
 }
 
@@ -231,6 +239,10 @@ export function loadConfig(path = DEFAULT_CONFIG_PATH): Result<KuristinaConfig, 
 		modules: {
 			...(raw.modules ?? {}),
 			commands: raw.modules?.commands,
+			markov: {
+				enabled: raw.modules?.markov.enabled ?? false,
+				channelId: BigInt(raw.modules?.markov?.channel_id ?? 0),
+			},
 		} as KuristinaConfig["modules"],
 	});
 }
@@ -259,5 +271,8 @@ export function cfg(path: string): boolean {
 		node = (node as Record<string, unknown>)[key];
 	}
 
+	if (typeof node === "object") {
+		node = (node as any)["enabled"];
+	}
 	return node === true;
 }

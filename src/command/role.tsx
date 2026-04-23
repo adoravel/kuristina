@@ -111,7 +111,7 @@ export default defineCommand([
 	$: optional(number),
 }, async (ctx) => {
 	const guild = await ctx.getGuild();
-	if (!guild) return await ctx.error("guild context is uninitialised");
+	if (!guild) return void await ctx.error("guild context is uninitialised");
 
 	const name = encode(ctx.message.author.id);
 	let role = guild.roles.find((r) => r.name === name);

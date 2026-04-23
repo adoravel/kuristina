@@ -1,8 +1,8 @@
 # https://discord.dev
 [discord]
 token = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxMjM0NTY3ODkwIiwibmFtZSI6IkpvaG4gRG9lIiwiYWRtaW4iOnRydWUsImlhdCI6MTUxNjIzOTAyMn0.KMUFsIDTnFmyG3nMiGM6H9FNFUROf3wh7SmqJp-QV30"
-application_id = 1459789077221081304
-guild_id = 1479796024909500568
+application_id = "1459789077221081304"
+guild_id = "1479796024909500568"
 
 # personal user discord id
 [owner]
@@ -32,3 +32,7 @@ client = false
 role = true
 ping = true
 help = true
+
+[modules.markov]
+enabled = false
+channel_id = "111111111111111111" 

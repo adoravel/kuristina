@@ -12,6 +12,8 @@ import { infer } from "~/lib/combinators/mod.ts";
 import { commandRegistry, contextCache } from "~/lib/command/registry.tsx";
 import { cfg, getConfig } from "~/config/mod.ts";
 
+import * as markov from "~/services/markov/event.ts";
+
 const predicate: (message: Message) => boolean = cfg("client")
 	? (message) => message.channelId === getConfig().discord.applicationId
 	: (message) => !message.author.bot && !!message.guildId;
@@ -22,10 +24,14 @@ export const messageCreate: typeof discord.events.messageCreate = async (message
 	const stream = new StringStream(message.content);
 	const prefixResult = prefix(stream);
 
-	if (!infer("success")(prefixResult)) return;
+	if (infer("success")(prefixResult)) {
+		await commandRegistry.execute(message, stream);
+	}
 
-	console.log("meow");
-	await commandRegistry.execute(message, stream);
+	if (cfg("markov")) {
+		const result = await markov.messageCreate(message);
+		if (!result.ok) throw result.error;
+	}
 };
 
 export const messageDelete: typeof discord.events.messageDelete = async (message) => {
