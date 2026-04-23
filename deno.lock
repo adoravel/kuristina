@@ -144,6 +144,7 @@
     "dependencies": [
       "jsr:@db/sqlite@0.13",
       "jsr:@std/crypto@^1.0.5",
+      "jsr:@std/path@^1.1.4",
       "jsr:@std/toml@^1.0.11",
       "npm:@discordeno/bot@^22.0.1-next.ff7c51d",
       "npm:@discordeno/types@^22.0.1-next.ff7c51d",
