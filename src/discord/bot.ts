@@ -133,7 +133,7 @@ const bot = createBot({
 		GatewayIntents.GuildMessageReactions |
 		GatewayIntents.GuildMessages |
 		GatewayIntents.MessageContent,
-	loggerFactory: (name) => createLogger({ logLevel: LogLevels.Debug, name }),
+	loggerFactory: (name) => createLogger({ logLevel: LogLevels.Info, name }),
 });
 
 export type Bot = typeof bot;
@@ -162,14 +162,14 @@ export async function initialise(): Promise<Result<void, AppError>> {
 	await discord.start();
 
 	const commandManifest = [
-		{ filename: "help.tsx", module: "commands.help" },
-		{ filename: "role.tsx", module: "commands.role" },
-		{ filename: "ping.ts", module: "commands.ping" },
+		{ filename: "help.tsx", module: "commands.help", allowUserApp: false },
+		{ filename: "role.tsx", module: "commands.role", allowUserApp: false },
+		{ filename: "ping.ts", module: "commands.ping", allowUserApp: true },
 	] as const;
 
 	await Promise.all(
 		commandManifest
-			.filter(({ module }) => cfg(module))
+			.filter(({ module, allowUserApp }) => cfg(module) && allowUserApp === cfg("client"))
 			.map(({ filename }) =>
 				import(`~/command/${filename}`)
 					.then((m) => commandRegistry.register(m.default))

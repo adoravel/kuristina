@@ -5,13 +5,11 @@
  */
 
 import { defineCommand } from "~/lib/command/registry.tsx";
-import { memberIds } from "~/lib/command/primitives.ts";
-import { resolveMembers } from "~/discord/resolve";
 
-export default defineCommand("ping", {
-	users: memberIds,
-}, async (ctx) => {
-	const members = await resolveMembers(ctx.args.users);
-	console.log(members);
-	await ctx.success(`Pong! ${members.map((u) => u.id)}`);
+export default defineCommand("ping", {}, async (ctx) => {
+	const sent = await ctx.reply({ content: `Pong! 🏓` });
+
+	await ctx.reply({
+		content: `Pong! 🏓\n-# ${sent.timestamp - ctx.message.timestamp}ms`,
+	});
 });
