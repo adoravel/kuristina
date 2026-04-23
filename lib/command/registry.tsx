@@ -12,6 +12,7 @@ import { ErrorMessage, SuccessMessage } from "~/lib/ui";
 import { word } from "~/lib/combinators/primitives.ts";
 
 import {
+	Channel,
 	CreateMessageOptions,
 	DiscordPlatform,
 	Guild,
@@ -21,7 +22,7 @@ import {
 	User,
 } from "~/discord/types";
 import discord from "~/discord/bot";
-import { resolveGuild, resolveMember } from "~/discord/resolve";
+import { resolveChannel, resolveGuild, resolveMember } from "~/discord/resolve";
 import { getConfig } from "~/config/mod.ts";
 
 type BaseArgs = Record<string, any>;
@@ -78,6 +79,10 @@ export class CommandExecutionContext<
 	async getGuild(): Promise<Guild | undefined> {
 		if (!this.message.guildId) return undefined;
 		return await resolveGuild(this.message.guildId);
+	}
+
+	async getChannel(): Promise<Channel> {
+		return await resolveChannel(this.message.channelId) as Channel;
 	}
 
 	async getMember(): Promise<Member | undefined> {
