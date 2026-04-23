@@ -9,46 +9,94 @@ import { Fail, Ok, type Result } from "~/lib/result.ts";
 import { getConfig } from "~/config/mod.ts";
 import { SqlError } from "~/sql/errors.ts";
 import { Errors } from "~/lib/errors.ts";
-import { importTidalSchema } from "~/tidal/schema.ts";
+import { dirname, resolve } from "@std/path";
+import { migrate } from "~/sql/migrate.ts";
 
-let db: Database | null = null;
-
-export function getDatabasePath(): string {
-	return getConfig().sqlite.path;
+interface SqlConfig {
+	readonly path: string;
+	readonly pragmas: readonly string[];
 }
 
-export function getDatabase(): Database {
-	if (!db) {
-		const path = getDatabasePath();
+export const config: SqlConfig = {
+	path: resolve(getConfig().sqlite.path),
+	pragmas: [
+		"journal_mode = WAL",
+		"wal_autocheckpoint = 10000",
+		"cache_size = -64000",
+	],
+};
 
-		const dir = path.substring(0, path.lastIndexOf("/"));
-		Deno.mkdirSync(dir, { recursive: true });
+export let database: Database;
 
-		db = new Database(path);
+export function initialiseDatabase(): Result<void, SqlError> {
+	const dir = dirname(config.path);
+	Deno.mkdirSync(dir, { recursive: true });
 
-		db.exec("PRAGMA journal_mode = WAL;");
-		db.exec("PRAGMA wal_autocheckpoint = 10000;");
-		db.exec("PRAGMA cache_size = -64000;");
+	database = new Database(config.path);
+	try {
+		database.exec(config.pragmas.map((p) => `PRAGMA ${p};`).join("\n"));
+		return migrate();
+	} catch (e) {
+		return Fail(Errors.sql.queryFailed("initialiseDatabase()", String(e)));
 	}
-	return db;
 }
 
-export function initialiseSchema() {
-	sql(`
-        CREATE TABLE IF NOT EXISTS users (
-            user_id BLOB PRIMARY KEY,
-            created_at INTEGER DEFAULT (strftime('%s', 'now'))
-        );
-    `);
-	importTidalSchema();
+export function closeSqlConnection() {
+	database?.close();
+	database = null as any;
 }
 
-export function query<T extends unknown[] = any[]>(
+export type BindParams = RestBindParameters;
+export type SqlValue = string | number | bigint | boolean | Date | Uint8Array | null;
+
+export interface LimitOffset {
+	readonly limit?: number;
+	readonly offset?: number;
+}
+
+export type SortDirection = "ASC" | "DESC";
+
+export interface SortOption {
+	readonly column: string;
+	readonly direction?: SortDirection;
+}
+
+export function paginated(sql: string, opts?: LimitOffset): string {
+	if (!opts) return sql;
+	let final = sql;
+	if (opts.limit) final += ` LIMIT ${opts.limit}`;
+	if (opts.offset) final += ` OFFSET ${opts.offset}`;
+	return final;
+}
+
+export function orderBy(sql: string, sorts?: readonly SortOption[]): string {
+	if (!sorts || sorts.length === 0) return sql;
+
+	const clause = sorts
+		.map((s) => `${s.column} ${s.direction ?? "ASC"}`)
+		.join(", ");
+
+	return `${sql} ORDER BY ${clause}`;
+}
+
+export function query(sql: string, opts?: LimitOffset & { sorts?: readonly SortOption[] }) {
+	return paginated(orderBy(sql, opts?.sorts), opts);
+}
+
+export function prepare(sql: string) {
+	try {
+		return Ok(database.prepare(sql));
+	} catch (e) {
+		return Fail(Errors.sql.queryFailed(sql, String(e)));
+	}
+}
+
+export function searchV<T extends unknown[] = any[]>(
 	sql: string,
-	...params: RestBindParameters
+	...params: BindParams
 ): Result<T[], SqlError> {
 	try {
-		return Ok(getDatabase().prepare(sql).values(params));
+		return Ok(database.prepare(sql).values(params));
 	} catch (e) {
 		return Fail(Errors.sql.queryFailed(sql, String(e)));
 	}
@@ -56,10 +104,10 @@ export function query<T extends unknown[] = any[]>(
 
 export function distinct<T extends Array<unknown>>(
 	sql: string,
-	...params: RestBindParameters
+	...params: BindParams
 ): Result<T | undefined, SqlError> {
 	try {
-		return Ok(getDatabase().prepare(sql).value(params));
+		return Ok(database.prepare(sql).value(params));
 	} catch (e) {
 		return Fail(Errors.sql.queryFailed(sql, String(e)));
 	}
@@ -67,10 +115,10 @@ export function distinct<T extends Array<unknown>>(
 
 export function search<T extends object = Record<string, any>>(
 	sql: string,
-	...params: RestBindParameters
+	...params: BindParams
 ): Result<T[], SqlError> {
 	try {
-		return Ok(getDatabase().prepare(sql).all(params));
+		return Ok(database.prepare(sql).all(params));
 	} catch (e) {
 		return Fail(Errors.sql.queryFailed(sql, String(e)));
 	}
@@ -78,16 +126,15 @@ export function search<T extends object = Record<string, any>>(
 
 export function sql(
 	sql: string,
-	...params: RestBindParameters
+	...params: BindParams
 ): Result<number, SqlError> {
 	try {
-		return Ok(getDatabase().prepare(sql).run(params));
+		return Ok(params?.length ? database.prepare(sql).run(params) : database.exec(sql));
 	} catch (e) {
 		return Fail(Errors.sql.queryFailed(sql, String(e)));
 	}
 }
 
-export function close() {
-	db?.close();
-	db = null;
+export function transaction<T>(fn: () => T): T {
+	return database.transaction(fn)();
 }
