@@ -7,5 +7,9 @@
 import { initialise } from "discord/bot";
 
 if (import.meta.main) {
-	await initialise();
+	const res = await initialise();
+
+	if (!res.ok) {
+		throw res.error;
+	}
 }

@@ -12,7 +12,9 @@ import { createBot, createDesiredPropertiesObject, GatewayIntents } from "@disco
 import interactionCreate from "~/discord/events/interactionCreate.ts";
 import { messageCreate, messageDelete, messageUpdate } from "~/discord/events/messageHandling.ts";
 import { getConfig } from "~/config/mod.ts";
-import { initialiseSchema } from "~/sql/mod.ts";
+import { initialiseDatabase } from "~/sql/mod.ts";
+import { AppError } from "~/lib/errors.ts";
+import { Ok, Result } from "~/lib/result.ts";
 
 const config = getConfig();
 
@@ -145,9 +147,11 @@ const discord = createProxyCache(bot, {
 	},
 });
 
-export async function initialise() {
+export async function initialise(): Promise<Result<void, AppError>> {
 	await discord.start();
-	initialiseSchema();
+
+	const result = initialiseDatabase();
+	if (!result.ok) return result;
 
 	const importCommand = async (name: string) => {
 		const isStar = name.charCodeAt(0) === 42; // '*'
@@ -161,6 +165,8 @@ export async function initialise() {
 	await Promise.all(
 		["help", "role", "*ping"].map(importCommand),
 	);
+
+	return Ok(undefined);
 }
 
 export default discord;
