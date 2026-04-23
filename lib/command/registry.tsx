@@ -99,24 +99,24 @@ export class CommandExecutionContext<
 		return this._responseId;
 	}
 
-	async reply(opts: CreateMessageOptions): Promise<void> {
-		await this.sendOrEdit(opts);
+	async reply(opts: CreateMessageOptions): Promise<Message> {
+		return await this.sendOrEdit(opts);
 	}
 
-	async error(content: string): Promise<void> {
-		await this.reply({
+	async error(content: string): Promise<Message> {
+		return await this.reply({
 			...<ErrorMessage>{content}</ErrorMessage>,
 		});
 	}
 
-	async success(content: string): Promise<void> {
-		await this.reply({
+	async success(content: string): Promise<Message> {
+		return await this.reply({
 			allowedMentions: { repliedUser: true },
 			...<SuccessMessage>{content}</SuccessMessage>,
 		});
 	}
 
-	private async sendOrEdit(opts: CreateMessageOptions): Promise<void> {
+	private async sendOrEdit(opts: CreateMessageOptions): Promise<Message> {
 		this.ensureMessageReference(opts);
 
 		if (!this._responseId) {
@@ -125,11 +125,12 @@ export class CommandExecutionContext<
 				opts,
 			);
 			this._responseId = response.id;
-			return void contextCache.set(response.id, this);
+			void contextCache.set(response.id, this);
+			return response;
 		}
 
 		try {
-			await this.platform.helpers.editMessage(
+			return await this.platform.helpers.editMessage(
 				this.message.channelId,
 				this._responseId,
 				opts,
