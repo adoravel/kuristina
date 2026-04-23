@@ -1,4 +1,10 @@
 /**
+ * kuristina, a ~~kitchen~~ bathroom sink Discord bot
+ * Copyright (c) 2025 adoravel
+ * SPDX-License-Identifier: AGPL-3.0-or-later
+ */
+
+/**
  * encodes a BigInt Snowflake into an 8-byte Uint8Array for SQLite `BLOB` storage
  */
 export function encodeSnowflake(snowflake: bigint): Uint8Array {
