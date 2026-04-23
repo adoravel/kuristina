@@ -25,7 +25,10 @@ export function getDatabase(): Database {
 		Deno.mkdirSync(dir, { recursive: true });
 
 		db = new Database(path);
+
 		db.exec("PRAGMA journal_mode = WAL;");
+		db.exec("PRAGMA wal_autocheckpoint = 10000;");
+		db.exec("PRAGMA cache_size = -64000;");
 	}
 	return db;
 }
