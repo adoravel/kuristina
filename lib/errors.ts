@@ -8,6 +8,7 @@ import { lastfm$describe, lastfm$Errors, LastFmError } from "~/services/lastfm/e
 import { config$describe, config$Errors, ConfigError } from "~/config/errors.ts";
 import { tidal$describe, tidal$Errors, TidalError } from "~/services/tidal/errors.ts";
 import { sql$Errors, SqlError } from "~/database/errors.ts";
+import { deepl$Errors } from "~/services/deepl/errors.ts";
 
 export type AppError =
 	| ConfigError
@@ -49,6 +50,7 @@ export const Errors = {
 	lastfm: lastfm$Errors,
 	tidal: tidal$Errors,
 	sql: sql$Errors,
+	deepl: deepl$Errors,
 } as const;
 
 export function describe(e: AppError): string {

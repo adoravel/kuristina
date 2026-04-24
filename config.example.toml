@@ -33,6 +33,11 @@ role = true
 ping = true
 help = true
 
+[modules.deepl]
+enabled = false
+base_url = "https://api-free.deepl.com/v2"
+api_key = "asdnasjfhijarsfewhurbnafweyu:fx"
+
 [modules.markov]
 enabled = false
 channel_id = "111111111111111111" 

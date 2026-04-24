@@ -1,3 +1,9 @@
+/**
+ * kuristina, a ~~kitchen~~ bathroom sink Discord bot
+ * Copyright (c) 2025 adoravel
+ * SPDX-License-Identifier: AGPL-3.0-or-later
+ */
+
 import { parse as parseToml } from "@std/toml";
 import { Fail, Ok, type Result } from "~/lib/result.ts";
 import { config$Errors, type ConfigError, type FieldError } from "~/config/errors.ts";
@@ -32,6 +38,11 @@ const configSchema = {
 		markov: {
 			enabled: field.boolean(false),
 			channelId: field.snowflakeOr(0n),
+		},
+		deepl: {
+			enabled: field.boolean(false),
+			baseUrl: field.stringOr("https://api-free.deepl.com/v2"),
+			apiKey: field.stringOr(""),
 		},
 	},
 } as const;
