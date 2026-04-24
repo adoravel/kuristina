@@ -17,7 +17,7 @@ import {
 
 import events from "~/discord/events/mod.ts";
 import { cfg, getConfig } from "~/config/mod.ts";
-import { initialiseDatabase } from "~/database/mod.ts";
+import { closeSqlConnection, initialiseDatabase } from "~/database/mod.ts";
 import { AppError } from "~/lib/errors.ts";
 import { Ok, Result } from "~/lib/result.ts";
 import { monkeyPatchUserAppSupport } from "~/discord/client.ts";
@@ -148,11 +148,11 @@ const bot = createBot({
 	loggerFactory: (name) => createLogger({ logLevel: LogLevels.Info, name }),
 });
 
-export type Bot = typeof bot;
-
 if (cfg("client")) {
 	monkeyPatchUserAppSupport(bot);
 }
+
+export type Bot = typeof bot;
 
 bot.events = {
 	ready: ({ user }) => {
@@ -189,6 +189,12 @@ export async function initialise(): Promise<Result<void, AppError>> {
 	);
 
 	return Ok(undefined);
+}
+
+export async function shutdown(): Promise<void> {
+	closeSqlConnection();
+	await discord.shutdown();
+	console.log("goodbye :3");
 }
 
 export default discord;
