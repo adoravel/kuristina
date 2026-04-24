@@ -21,7 +21,7 @@ function apiKey(): string {
 }
 
 function assertConfigured(): DeepLError | null {
-	if (!cfg("modules.deepl")) return Errors.deepl.notConfigured();
+	if (!cfg("deepl")) return Errors.deepl.notConfigured();
 	if (!apiKey()) return Errors.deepl.notConfigured();
 	return null;
 }

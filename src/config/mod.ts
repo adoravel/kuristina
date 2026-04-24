@@ -34,6 +34,7 @@ const configSchema = {
 		contextTtlMs: field.positiveInt(45_000),
 	},
 	modules: {
+		client: field.boolean(false),
 		commands: field.record(field.boolean(false)),
 		markov: {
 			enabled: field.boolean(false),
@@ -91,7 +92,7 @@ export const getConfig = () => config ??= requireConfig();
 
 export function cfg(path: string): boolean {
 	const keys = path.split(".");
-	let node: unknown = getConfig();
+	let node: unknown = getConfig().modules;
 
 	for (const key of keys) {
 		if (node === null || typeof node !== "object") return false;
