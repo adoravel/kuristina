@@ -19,7 +19,7 @@ import { TranslateOptions } from "~/services/deepl/types.ts";
 let chatMessageCount = 0, chatTriggerThreshold = 0;
 
 let lastReplyTimestamp = 0;
-const REPLY_COOLDOWN_MS = 2500;
+const REPLY_COOLDOWN_MS = 5_000;
 
 const memory = new TimedMap<bigint, Message>(9e5); // 15 min
 
@@ -31,7 +31,6 @@ function resetMarkovTrigger() {
 
 export async function messageCreate(message: Message): Promise<Result<void, SqlError>> {
 	if (
-		message.author.id === getConfig().discord.applicationId ||
 		message.channelId !== getConfig().modules.markov.channelId
 	) return Ok(undefined);
 
@@ -42,7 +41,8 @@ export async function messageCreate(message: Message): Promise<Result<void, SqlE
 	const learnt = learn(message.content);
 	if (!learnt.ok) return learnt;
 
-	const isReplyToBot = !!message.mentions?.find((x) => x.id === 1399158285621395516n);
+	const isReplyToBot = !!message.mentions?.find((x) => x.id === 1399158285621395516n) ||
+		/bian(c|quinh)a/i.test(message.content);
 
 	const now = Date.now();
 	let shouldTrigger = ++chatMessageCount >= chatTriggerThreshold;
@@ -61,23 +61,37 @@ export async function messageCreate(message: Message): Promise<Result<void, SqlE
 	let result = generate();
 	if (!result.ok) return result;
 
+	console.log(`  · markov: triggering generation...`);
 	console.log(
-		"  · markov: learnt, sample gen.:",
+		"  · markov:",
 		`"${result.value}" -${chatTriggerThreshold - chatMessageCount}`,
 	);
 
-	if (++chatMessageCount < chatTriggerThreshold && !shouldTrigger) {
+	if (!shouldTrigger) {
 		return Ok(undefined);
 	}
 
-	console.log(`  · markov: triggering generation...`);
+	let { value } = result;
 
-	result = generate();
+	const roll = Math.random();
+	if (roll < 0.165) {
+		console.log(`  · markov: triggering url concat...`);
+		result = generate("https://");
+		if (result.ok) value += " " + result.value;
+	} else if (roll < 0.33) {
+		console.log(`  · markov: triggering url only...`);
+		result = generate("https://");
+		if (result.ok) value = result.value;
+	} else {
+		result = generate();
+		if (result.ok) value = result.value;
+	}
+
 	if (!result.ok) return result;
 
 	try {
 		const sent = await discord.helpers.sendMessage(message.channelId, {
-			content: result.value,
+			content: value,
 			messageReference: isReplyToBot
 				? {
 					messageId: message.id,
@@ -90,7 +104,7 @@ export async function messageCreate(message: Message): Promise<Result<void, SqlE
 
 		memory.set(sent.id, sent);
 
-		console.log(`  · markov: sent "${result.value}"`);
+		console.log(`  · markov: sent "${value}"`);
 	} catch (err) {
 		console.error("    · markov error:", err);
 	}
@@ -127,11 +141,13 @@ export async function reactionAdd(reaction: Reaction): Promise<Result<void, AppE
 	let { text, detectedSourceLang } = result.value;
 
 	if (detectedSourceLang.startsWith("EN")) {
-		result = await translateOne(message.content, "PT", params);
+		result = await translateOne(message.content, "PT-BR", params);
 		if (!result.ok) return result;
 		text = result.value.text;
 		detectedSourceLang = result.value.detectedSourceLang;
 	}
+
+	memory.set(message.id, { ...message, content: text });
 
 	let requester = `snowflake(${reaction.userId})`;
 	if (reaction.user?.username) {
@@ -141,6 +157,8 @@ export async function reactionAdd(reaction: Reaction): Promise<Result<void, AppE
 	console.log(
 		`  · markov(translate): "${message.content}" → "${text}", requested by ${requester}`,
 	);
-	await discord.helpers.editMessage(reaction.channelId, reaction.messageId, { content: text });
+	await discord.helpers.editMessage(reaction.channelId, reaction.messageId, {
+		content: text.toLowerCase(),
+	});
 	return Ok(undefined);
 }
