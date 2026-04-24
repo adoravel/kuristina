@@ -1,3 +1,9 @@
+/**
+ * kuristina, a ~~kitchen~~ bathroom sink Discord bot
+ * Copyright (c) 2025 adoravel
+ * SPDX-License-Identifier: AGPL-3.0-or-later
+ */
+
 import { Fail, Ok, type Result } from "~/lib/result.ts";
 import { withRetry } from "~/lib/util/retry.ts";
 import { cfg, getConfig } from "~/config/mod.ts";
