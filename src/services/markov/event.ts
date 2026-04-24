@@ -25,7 +25,7 @@ const memory = new TimedMap<bigint, Message>(9e5); // 15 min
 
 function resetMarkovTrigger() {
 	chatMessageCount = 0;
-	chatTriggerThreshold = Math.floor(Math.random() * (24 - 12 + 1)) + 12;
+	chatTriggerThreshold = Math.floor(Math.random() * (12 - 6 + 1)) + 6;
 	console.log(`  · markov: next message in ${chatTriggerThreshold} messages.`);
 }
 
@@ -42,7 +42,7 @@ export async function messageCreate(message: Message): Promise<Result<void, SqlE
 	if (!learnt.ok) return learnt;
 
 	const isReplyToBot = !!message.mentions?.find((x) => x.id === 1399158285621395516n) ||
-		/bian(c|quinh)a/i.test(message.content);
+		/b(e|i)(nh)?a(n|m)(c|k|kenh|quenh|queñ|keñ|kinh|quinh|kiñ|quiñ)a/i.test(message.content);
 
 	const now = Date.now();
 	let shouldTrigger = ++chatMessageCount >= chatTriggerThreshold;
