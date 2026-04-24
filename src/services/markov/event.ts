@@ -25,7 +25,7 @@ const memory = new TimedMap<bigint, Message>(9e5); // 15 min
 
 function resetMarkovTrigger() {
 	chatMessageCount = 0;
-	chatTriggerThreshold = Math.floor(Math.random() * (12 - 6 + 1)) + 6;
+	chatTriggerThreshold = Math.floor(Math.random() * (15 - 2 + 1)) + 2;
 	console.log(`  · markov: next message in ${chatTriggerThreshold} messages.`);
 }
 

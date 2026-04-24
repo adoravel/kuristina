@@ -36,7 +36,7 @@ export function learn(text: string): Result<void, SqlError> {
 	}
 
 	const chain: MarkovLink[] = [];
-	for (let i = 0; i < Math.min(tokens.length - 2, 2); i++) {
+	for (let i = 0; i < Math.max(tokens.length - 2, 2); i++) {
 		chain.push({
 			prefix: `${tokens[i] || tokens[0]} ${tokens[i + 1] || [tokens[0]]}`,
 			suffix: tokens[i + 2] || tokens[0],
