@@ -13,7 +13,7 @@ const sessionInfo: Camelize<DiscordGetGatewayBot> = {
 	},
 };
 
-export function handleUserReady(bot: Bot, data: DiscordGatewayPayload) {
+function handleUserReady(bot: Bot, data: DiscordGatewayPayload) {
 	if (!bot.events.ready) return;
 
 	const payload = data.d as DiscordReady;
@@ -31,23 +31,26 @@ export function handleUserReady(bot: Bot, data: DiscordGatewayPayload) {
 	);
 }
 
-export function patchAuthorisationHeader(bot: Bot) {
+function patchAuthorisationHeader(bot: Bot) {
 	const original = bot.rest.createRequestBody;
 	bot.rest.createRequestBody = (method, options) => {
 		const body = original.call(bot.rest, method, options);
 		body.headers.authorization = body.headers.authorization.slice(4);
 		return body;
 	};
+}
 
-	const original2 = bot.rest.processRequest;
-	bot.rest.processRequest = async (opts) => {
+function patchOutgoingRequestProcessing(bot: Bot) {
+	const original = bot.rest.processRequest;
+	bot.rest.processRequest = (opts) => {
 		opts.runThroughQueue = false;
-		return await original2.call(bot.rest, opts) as any;
+		return original.call(bot.rest, opts);
 	};
 }
 
 export function monkeyPatchUserAppSupport(bot: Bot) {
 	patchAuthorisationHeader(bot);
+	patchOutgoingRequestProcessing(bot);
 	bot.rest.getSessionInfo = (): Promise<typeof sessionInfo> => {
 		return Promise.resolve(sessionInfo);
 	};
