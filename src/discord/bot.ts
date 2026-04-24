@@ -92,6 +92,16 @@ const desiredProperties = createDesiredPropertiesObject({
 		memberCount: true,
 		type: true,
 	},
+	defaultReactionEmoji: {
+		emojiId: true,
+		emojiName: true,
+	},
+	emoji: {
+		id: true,
+		name: true,
+		roles: true,
+		user: true,
+	},
 	role: {
 		id: true,
 		guildId: true,
@@ -132,7 +142,9 @@ const bot = createBot({
 		GatewayIntents.GuildMembers |
 		GatewayIntents.GuildMessageReactions |
 		GatewayIntents.GuildMessages |
-		GatewayIntents.MessageContent,
+		GatewayIntents.MessageContent |
+		GatewayIntents.DirectMessageReactions |
+		GatewayIntents.GuildMessageReactions,
 	loggerFactory: (name) => createLogger({ logLevel: LogLevels.Info, name }),
 });
 

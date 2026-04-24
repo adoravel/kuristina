@@ -119,13 +119,6 @@ export class CommandExecutionContext<
 	private async sendOrEdit(opts: CreateMessageOptions): Promise<Message> {
 		this.ensureMessageReference(opts);
 
-		if (cfg("client")) {
-			(opts as any).mobileNetworkType ??= "unknown";
-			opts.flags ??= 0;
-			opts.tts ??= false;
-			opts.nonce ??= Math.floor(Date.now() / 1000);
-		}
-
 		if (!this._responseId) {
 			const response = await this.platform.helpers.sendMessage(
 				this.message.channelId,

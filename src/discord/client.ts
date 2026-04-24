@@ -1,6 +1,7 @@
 import { Bot } from "~/discord/bot";
 import { Camelize, DiscordGatewayPayload, DiscordGetGatewayBot } from "@discordeno/types";
 import { DiscordReady } from "@discordeno/bot";
+import { CreateMessageOptions, EditMessage } from "~/discord/types";
 
 const sessionInfo: Camelize<DiscordGetGatewayBot> = {
 	url: "wss://gateway.discord.gg",
@@ -48,6 +49,25 @@ function patchOutgoingRequestProcessing(bot: Bot) {
 	};
 }
 
+function patchMessageOperations(bot: Bot) {
+	const applyCommonProperties = (opts: CreateMessageOptions | EditMessage) => {
+		(opts as any).mobileNetworkType ??= "unknown";
+		opts.flags ??= 0;
+	};
+
+	const send = bot.rest.sendMessage, edit = bot.rest.editMessage;
+
+	bot.rest.sendMessage = (channelId, opts) => {
+		opts.tts ??= false;
+		opts.nonce ??= Math.floor(Date.now() / 1000);
+		return applyCommonProperties(opts), send.call(bot.rest, channelId, opts);
+	};
+
+	bot.rest.editMessage = (channelId, messageId, opts) => {
+		return applyCommonProperties(opts), edit.call(bot.rest, channelId, messageId, opts);
+	};
+}
+
 export function monkeyPatchUserAppSupport(bot: Bot) {
 	patchAuthorisationHeader(bot);
 	patchOutgoingRequestProcessing(bot);
@@ -55,4 +75,5 @@ export function monkeyPatchUserAppSupport(bot: Bot) {
 		return Promise.resolve(sessionInfo);
 	};
 	bot.handlers.READY = (bot, data) => handleUserReady(bot, data);
+	patchMessageOperations(bot);
 }
