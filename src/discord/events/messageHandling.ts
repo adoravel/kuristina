@@ -15,7 +15,7 @@ import { cfg, getConfig } from "~/config/mod.ts";
 import * as markov from "~/services/markov/event.ts";
 
 const predicate: (message: Message) => boolean = cfg("client")
-	? (message) => message.channelId === getConfig().discord.applicationId
+	? (message) => message.channelId === getConfig().modules.markov.channelId
 	: (message) => !message.author.bot && !!message.guildId;
 
 export const messageCreate: typeof discord.events.messageCreate = async (message) => {

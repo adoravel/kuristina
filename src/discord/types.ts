@@ -22,6 +22,8 @@ export type Role = typeof discord.transformers.$inferredTypes.role;
 
 export type Interaction = typeof discord.transformers.$inferredTypes.interaction;
 
+export type Reaction = Parameters<NonNullable<typeof discord.events.reactionAdd>>[0];
+
 export type MessageInteraction = typeof discord.transformers.$inferredTypes.messageInteraction;
 
 export type Events = typeof discord.events;

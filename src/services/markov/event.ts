@@ -4,18 +4,24 @@
  * SPDX-License-Identifier: AGPL-3.0-or-later
  */
 
-import { getConfig } from "~/config/mod.ts";
+import { cfg, getConfig } from "~/config/mod.ts";
 import { generate, learn } from "~/services/markov/mod.ts";
 import { SqlError } from "~/database/errors.ts";
 import { Ok, Result } from "~/lib/result.ts";
 
-import { Message } from "~/discord/types";
+import { Message, Reaction } from "~/discord/types";
 import discord from "~/discord/bot";
+import { AppError } from "~/lib/errors.ts";
+import { translateOne } from "~/services/deepl/mod.ts";
+import { TimedMap } from "~/lib/util/map.ts";
+import { TranslateOptions } from "~/services/deepl/types.ts";
 
 let chatMessageCount = 0, chatTriggerThreshold = 0;
 
 let lastReplyTimestamp = 0;
 const REPLY_COOLDOWN_MS = 2500;
+
+const memory = new TimedMap<bigint, Message>(9e5); // 15 min
 
 function resetMarkovTrigger() {
 	chatMessageCount = 0;
@@ -70,7 +76,7 @@ export async function messageCreate(message: Message): Promise<Result<void, SqlE
 	if (!result.ok) return result;
 
 	try {
-		await discord.helpers.sendMessage(message.channelId, {
+		const sent = await discord.helpers.sendMessage(message.channelId, {
 			content: result.value,
 			messageReference: isReplyToBot
 				? {
@@ -81,11 +87,60 @@ export async function messageCreate(message: Message): Promise<Result<void, SqlE
 				}
 				: undefined,
 		});
+
+		memory.set(sent.id, sent);
+
 		console.log(`  · markov: sent "${result.value}"`);
 	} catch (err) {
 		console.error("    · markov error:", err);
 	}
 
 	resetMarkovTrigger();
+	return Ok(undefined);
+}
+
+export async function reactionAdd(reaction: Reaction): Promise<Result<void, AppError>> {
+	if (!cfg("deepl")) return Ok(undefined);
+
+	if (
+		reaction.messageAuthorId !== getConfig().discord.applicationId ||
+		reaction.channelId !== getConfig().modules.markov.channelId
+	) return Ok(undefined);
+
+	if (reaction.emoji.name !== "❔") return Ok(undefined);
+
+	const message = memory.get(reaction.messageId);
+	if (!message?.content) {
+		console.error("  · markov(translate): failed to retrieve:", reaction);
+		return Ok(undefined);
+	}
+
+	const params: TranslateOptions = {
+		formality: "prefer_less",
+		modelType: "prefer_quality_optimized",
+		preserveFormatting: true,
+		splitSentences: "1",
+	};
+	let result = await translateOne(message.content, "EN", params);
+	if (!result.ok) return result;
+
+	let { text, detectedSourceLang } = result.value;
+
+	if (detectedSourceLang.startsWith("EN")) {
+		result = await translateOne(message.content, "PT", params);
+		if (!result.ok) return result;
+		text = result.value.text;
+		detectedSourceLang = result.value.detectedSourceLang;
+	}
+
+	let requester = `snowflake(${reaction.userId})`;
+	if (reaction.user?.username) {
+		requester = `@${reaction.user.username}, ${requester}`;
+	}
+
+	console.log(
+		`  · markov(translate): "${message.content}" → "${text}", requested by ${requester}`,
+	);
+	await discord.helpers.editMessage(reaction.channelId, reaction.messageId, { content: text });
 	return Ok(undefined);
 }
