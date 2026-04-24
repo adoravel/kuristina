@@ -18,9 +18,12 @@ function resetMarkovTrigger() {
 }
 
 export async function messageCreate(message: Message): Promise<Result<void, SqlError>> {
-	if (!chatTriggerThreshold) resetMarkovTrigger();
+	if (
+		message.author.id === getConfig().discord.applicationId ||
+		message.channelId !== getConfig().modules.markov.channelId
+	) return Ok(undefined);
 
-	if (message.channelId !== getConfig().modules.markov.channelId) return Ok(undefined);
+	if (!chatTriggerThreshold) resetMarkovTrigger();
 
 	// if (message.content.match(/^[^\p{L}]/u)) return Ok(undefined);
 
