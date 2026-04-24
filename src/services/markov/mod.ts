@@ -65,7 +65,7 @@ export function bulkLearn(messages: string[]): Result<void, SqlError> {
 		const clean = sanitize(msg);
 		const tokens = tokenize(clean);
 
-		if (tokens.length < 3) continue;
+		if (tokens.length < 2) continue;
 
 		for (let i = 0; i < tokens.length - 2; i++) {
 			const prefix = `${tokens[i]} ${tokens[i + 1]}`;

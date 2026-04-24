@@ -3,3 +3,4 @@ config.toml
 !config.example.toml
 dist/
 data/
+src/services/markov/data.ts
