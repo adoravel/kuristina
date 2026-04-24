@@ -23,7 +23,7 @@ import {
 } from "~/discord/types";
 import discord from "~/discord/bot";
 import { resolveChannel, resolveGuild, resolveMember } from "~/discord/resolve";
-import { cfg, getConfig } from "~/config/mod.ts";
+import { getConfig } from "~/config/mod.ts";
 
 type BaseArgs = Record<string, any>;
 
