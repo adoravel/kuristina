@@ -8,7 +8,7 @@ import { lastfm$describe, lastfm$Errors, LastFmError } from "~/services/lastfm/e
 import { config$describe, config$Errors, ConfigError } from "~/config/errors.ts";
 import { tidal$describe, tidal$Errors, TidalError } from "~/services/tidal/errors.ts";
 import { sql$Errors, SqlError } from "~/database/errors.ts";
-import { deepl$Errors } from "~/services/deepl/errors.ts";
+import { deepl$Errors, DeepLError } from "~/services/deepl/errors.ts";
 
 export type AppError =
 	| ConfigError
@@ -16,7 +16,8 @@ export type AppError =
 	| TidalError
 	| RateLimitError
 	| NetworkError
-	| SqlError;
+	| SqlError
+	| DeepLError;
 
 export interface BaseError<Kind> {
 	readonly kind: Kind;

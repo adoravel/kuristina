@@ -124,7 +124,6 @@ export async function translate(
 	})));
 }
 
-/** Convenience wrapper for single-string translation. */
 export async function translateOne(
 	text: string,
 	targetLang: TargetLang,
