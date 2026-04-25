@@ -5,7 +5,7 @@
  */
 
 import { cfg, getConfig } from "~/config/mod.ts";
-import { generate, learn } from "~/services/markov/mod.ts";
+import { generate, learn, sampleWord } from "~/services/markov/mod.ts";
 import { SqlError } from "~/database/errors.ts";
 import { Ok, Result } from "~/lib/result.ts";
 
@@ -30,9 +30,11 @@ function resetMarkovTrigger() {
 }
 
 export async function messageCreate(message: Message): Promise<Result<void, SqlError>> {
-	if (
-		message.channelId !== getConfig().modules.markov.channelId
-	) return Ok(undefined);
+	if (message.author.id === getConfig().discord.applicationId) {
+		memory.set(message.id, message);
+		return Ok(undefined);
+	}
+	if (message.channelId !== getConfig().modules.markov.channelId) return Ok(undefined);
 
 	if (!chatTriggerThreshold) resetMarkovTrigger();
 
@@ -42,7 +44,9 @@ export async function messageCreate(message: Message): Promise<Result<void, SqlE
 	if (!learnt.ok) return learnt;
 
 	const isReplyToBot = !!message.mentions?.find((x) => x.id === 1399158285621395516n) ||
-		/b(e|i)(nh)?a(n|m)(c|k|kenh|quenh|queñ|keñ|kinh|quinh|kiñ|quiñ)a/i.test(message.content);
+		/b[ei]t?c?h?a?n?(?:nh)?a(?:[nm])(?:g|c|k(?:enh|eñ|inh|iñ)|qu(?:enh|eñ|inh|iñ))a?/i.test(
+			message.content,
+		);
 
 	const now = Date.now();
 	let shouldTrigger = ++chatMessageCount >= chatTriggerThreshold;
@@ -56,6 +60,14 @@ export async function messageCreate(message: Message): Promise<Result<void, SqlE
 			console.log("  · markov: reply ignored (cooldown active).");
 			return Ok(undefined);
 		}
+	}
+
+	if (Math.random() < 0.12) {
+		const word = sampleWord();
+		if (!word.ok) return word;
+		await discord.helpers.sendMessage(message.channelId, { content: word.value ?? "12 reais :(" });
+		resetMarkovTrigger();
+		return Ok(undefined);
 	}
 
 	let result = generate();
@@ -90,7 +102,7 @@ export async function messageCreate(message: Message): Promise<Result<void, SqlE
 	if (!result.ok) return result;
 
 	try {
-		const sent = await discord.helpers.sendMessage(message.channelId, {
+		await discord.helpers.sendMessage(message.channelId, {
 			content: value,
 			messageReference: isReplyToBot
 				? {
@@ -101,9 +113,6 @@ export async function messageCreate(message: Message): Promise<Result<void, SqlE
 				}
 				: undefined,
 		});
-
-		memory.set(sent.id, sent);
-
 		console.log(`  · markov: sent "${value}"`);
 	} catch (err) {
 		console.error("    · markov error:", err);
@@ -139,6 +148,11 @@ export async function reactionAdd(reaction: Reaction): Promise<Result<void, AppE
 	if (!result.ok) return result;
 
 	let { text, detectedSourceLang } = result.value;
+
+	for (const [pattern, replacement] of Object.entries(getConfig().modules.markov.replacements)) {
+		const regex = new RegExp(pattern, "g");
+		text = text.replace(regex, replacement);
+	}
 
 	if (detectedSourceLang.startsWith("EN")) {
 		result = await translateOne(message.content, "PT-BR", params);

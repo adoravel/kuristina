@@ -39,6 +39,7 @@ const configSchema = {
 		markov: {
 			enabled: field.boolean(false),
 			channelId: field.snowflakeOr(0n),
+			replacements: field.record(field.stringOr("")),
 		},
 		deepl: {
 			enabled: field.boolean(false),

@@ -31,12 +31,21 @@ export function learn(text: string): Result<void, SqlError> {
 	const tokens = tokenize(clean);
 
 	if (!tokens.length) return Ok(undefined);
+	if (tokens.length === 1) {
+		const result = sql(
+			`INSERT INTO markov_words (word, count) VALUES (?, 1)
+			 ON CONFLICT(word) DO UPDATE SET count = count + 1`,
+			tokens[0],
+		);
+		return result.ok ? Ok(undefined) : result;
+	}
+
 	if (tokens.length <= 2 && !/https?:\/\/\S+/.test(clean)) {
 		return Ok(undefined);
 	}
 
 	const chain: MarkovLink[] = [];
-	for (let i = 0; i < Math.max(tokens.length - 2, 2); i++) {
+	for (let i = 0; i < Math.max(tokens.length - 2, 3); i++) {
 		chain.push({
 			prefix: `${tokens[i] || tokens[0]} ${tokens[i + 1] || [tokens[0]]}`,
 			suffix: tokens[i + 2] || tokens[0],
@@ -57,6 +66,23 @@ export function learn(text: string): Result<void, SqlError> {
 			);
 		}
 	}));
+}
+
+export function sampleWord(): Result<string | null, SqlError> {
+	const total = search<{ total: number }>("SELECT SUM(count) as total FROM markov_words");
+	if (!total.ok) return total;
+	if (!total.value[0]?.total) return Ok(null);
+
+	const threshold = Math.floor(Math.random() * total.value[0].total);
+	const row = search<{ word: string }>(
+		`SELECT word FROM markov_words
+		 WHERE (SELECT SUM(m2.count) FROM markov_words m2 WHERE m2.word <= markov_words.word) > ?
+		 ORDER BY word LIMIT 1`,
+		threshold,
+	);
+
+	if (!row.ok) return row;
+	return Ok(row.value[0]?.word ?? null);
 }
 
 export function bulkLearn(messages: string[]): Result<void, SqlError> {
