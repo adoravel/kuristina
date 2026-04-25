@@ -4,7 +4,7 @@
  * SPDX-License-Identifier: AGPL-3.0-or-later
  */
 
-import type { FieldError } from "~/config/errors.ts";
+import type { FieldError } from "~/lib/config/errors.ts";
 
 export class Field<T> {
 	constructor(
@@ -142,5 +142,25 @@ export const field = {
 				if (val !== undefined) result[k] = val;
 			}
 			return result;
+		}),
+
+	regex: (fallback: RegExp): Field<RegExp> =>
+		make((raw, path, errors) => {
+			const str = typeof raw === "string" ? raw.trim() : undefined;
+
+			if (str) {
+				try {
+					const match = str.match(/^\/(.*?)\/([gimsuy]*)$/);
+					return match ? new RegExp(match[1], match[2]) : new RegExp(str);
+				} catch (e) {
+					errors.push({
+						path,
+						message: `expected valid regex pattern, got ${JSON.stringify(raw)}: ` + String(e),
+					});
+					return;
+				}
+			}
+
+			return fallback;
 		}),
 };

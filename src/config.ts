@@ -6,8 +6,8 @@
 
 import { parse as parseToml } from "@std/toml";
 import { Fail, Ok, type Result } from "~/lib/result.ts";
-import { config$Errors, type ConfigError, type FieldError } from "~/config/errors.ts";
-import { field, type Infer, parseSchema } from "~/config/schema.ts";
+import { config$Errors, type ConfigError, type FieldError } from "~/lib/config/errors.ts";
+import { field, type Infer, parseSchema } from "~/lib/config/schema.ts";
 
 const configSchema = {
 	discord: {
@@ -37,6 +37,7 @@ const configSchema = {
 		client: field.boolean(false),
 		commands: field.record(field.boolean(false)),
 		markov: {
+			pattern: field.regex(/\bmarkov\b/ig),
 			enabled: field.boolean(false),
 			channelId: field.snowflakeOr(0n),
 			replacements: field.record(field.stringOr("")),

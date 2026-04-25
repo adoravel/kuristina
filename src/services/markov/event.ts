@@ -38,15 +38,12 @@ export async function messageCreate(message: Message): Promise<Result<void, SqlE
 
 	if (!chatTriggerThreshold) resetMarkovTrigger();
 
-	// if (message.content.match(/^[^\p{L}]/u)) return Ok(undefined);
-
 	const learnt = learn(message.content);
 	if (!learnt.ok) return learnt;
 
-	const isReplyToBot = !!message.mentions?.find((x) => x.id === 1399158285621395516n) ||
-		/b[ei]t?c?h?a?n?(?:nh)?a(?:[nm])(?:g|c|k(?:enh|eñ|inh|iñ)|qu(?:enh|eñ|inh|iñ))a?/i.test(
-			message.content,
-		);
+	const isReplyToBot =
+		!!message.mentions?.find((x) => x.id === getConfig().discord.applicationId) ||
+		getConfig().modules.markov.pattern.test(message.content);
 
 	const now = Date.now();
 	let shouldTrigger = ++chatMessageCount >= chatTriggerThreshold;
@@ -149,7 +146,7 @@ export async function reactionAdd(reaction: Reaction): Promise<Result<void, AppE
 	let { text, detectedSourceLang } = result.value;
 
 	for (const [pattern, replacement] of Object.entries(getConfig().modules.markov.replacements)) {
-		const regex = new RegExp(pattern, "g");
+		const regex = new RegExp(pattern, "ig");
 		text = text.replace(regex, replacement);
 	}
 

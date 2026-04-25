@@ -5,7 +5,7 @@
  */
 
 import { lastfm$describe, lastfm$Errors, LastFmError } from "~/services/lastfm/errors.ts";
-import { config$describe, config$Errors, ConfigError } from "~/config/errors.ts";
+import { config$describe, config$Errors, ConfigError } from "~/lib/config/errors.ts";
 import { tidal$describe, tidal$Errors, TidalError } from "~/services/tidal/errors.ts";
 import { sql$Errors, SqlError } from "~/database/errors.ts";
 import { deepl$Errors, DeepLError } from "~/services/deepl/errors.ts";

@@ -27,7 +27,8 @@
 		"@db/sqlite": "jsr:@db/sqlite@^0.13.0",
 		"@discordeno/bot": "npm:@discordeno/bot@^22.0.1-next.ff7c51d",
 		"@discordeno/types": "npm:@discordeno/types@^22.0.1-next.ff7c51d",
-		"dd-cache-proxy": "npm:dd-cache-proxy@^2.7.0"
+		"dd-cache-proxy": "npm:dd-cache-proxy@^2.7.0",
+		"~/config/mod.ts": "./src/config.ts"
 	},
 	"compilerOptions": {
 		"jsx": "react-jsx",
