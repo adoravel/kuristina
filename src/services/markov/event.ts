@@ -7,7 +7,7 @@
 import { cfg, getConfig } from "~/config/mod.ts";
 import { generate, learn, sampleWord } from "~/services/markov/mod.ts";
 import { SqlError } from "~/database/errors.ts";
-import { discard, Ok, Result, safePromise, tapError } from "~/lib/result.ts";
+import { discard, Ok, or, Result, safePromise, tapError } from "~/lib/result.ts";
 
 import { Message, Reaction } from "~/discord/types";
 import discord from "~/discord/bot";
@@ -59,18 +59,21 @@ export async function messageCreate(message: Message): Promise<Result<void, SqlE
 		}
 	}
 
-	if (Math.random() < 0.12) {
-		const word = sampleWord();
-		if (!word.ok) return word;
-		await discord.helpers.sendMessage(message.channelId, { content: word.value ?? "12 reais :(" });
-		resetMarkovTrigger();
-		return Ok(undefined);
-	}
+	let result;
 
-	let result = generate();
+	if (Math.random() < 0.12) {
+		console.log("  · markov: generating single word...");
+		result = or(generate())(
+			tapError<string, SqlError>((e) => {
+				console.log("  · failed to generate single word:", e);
+			})(sampleWord()),
+		);
+	} else {
+		console.log(`  · markov: triggering generation...`);
+		result = tapError<string, SqlError>(console.error)(generate());
+	}
 	if (!result.ok) return result;
 
-	console.log(`  · markov: triggering generation...`);
 	console.log(
 		"  · markov:",
 		`"${result.value}" -${chatTriggerThreshold - chatMessageCount}`,

@@ -69,10 +69,14 @@ export function learn(text: string): Result<void, SqlError> {
 	}));
 }
 
-export function sampleWord(): Result<string | null, SqlError> {
+export function sampleWord(): Result<string, SqlError> {
 	const total = search<{ total: number }>("SELECT SUM(count) as total FROM markov_words");
 	if (!total.ok) return total;
-	if (!total.value[0]?.total) return Ok(null);
+	if (!total.value[0]?.total) {
+		return Fail(
+			Errors.sql.queryFailed("SELECT SUM(count) as total FROM markov_words", "12 reais :("),
+		);
+	}
 
 	const threshold = Math.floor(Math.random() * total.value[0].total);
 	const row = search<{ word: string }>(
@@ -83,7 +87,16 @@ export function sampleWord(): Result<string | null, SqlError> {
 	);
 
 	if (!row.ok) return row;
-	return Ok(row.value[0]?.word ?? null);
+	if (!row.value[0]?.word) {
+		return Fail(
+			Errors.sql.queryFailed(
+				"SELECT word FROM markov_words WHERE (SELECT SUM(m2.count) FROM markov_words m2 WHERE m2.word <= markov_words.word) > ? ORDER BY word LIMIT 1",
+				"12 reais :(",
+			),
+		);
+	}
+
+	return Ok(row.value[0].word);
 }
 
 export function bulkLearn(messages: string[]): Result<void, SqlError> {
