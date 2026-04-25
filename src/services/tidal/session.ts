@@ -8,7 +8,7 @@ import { OAuthTokenResponse } from "~/services/tidal/auth.ts";
 import { distinct, sql } from "~/database/mod.ts";
 import { decodeSnowflake, encodeSnowflake } from "~/database/helpers.ts";
 import { SqlError } from "~/database/errors.ts";
-import { Ok, Result } from "~/lib/result.ts";
+import { flatMap, Ok, Result } from "~/lib/result.ts";
 
 const DEVICE_TTL = 10 * 60;
 
@@ -20,21 +20,19 @@ export interface StoredTidalSession extends Omit<OAuthTokenResponse, "tokenType"
 }
 
 export function readTidalSession(userId: bigint): Result<StoredTidalSession | null, SqlError> {
-	const row = distinct<[string, string, number, string]>(
-		`SELECT access_token, refresh_token, expires_at, country_code
-			FROM tidal_sessions WHERE discord_id = ?`,
-		encodeSnowflake(userId),
+	return flatMap<[string, string, number, string] | undefined, StoredTidalSession | null, SqlError>(
+		(row: [string, string, number, string] | undefined) => {
+			if (!row) return Ok(null);
+			const [accessToken, refreshToken, expiresAt, countryCode] = row;
+			return Ok({ accessToken, refreshToken, countryCode, expiresAt });
+		},
+	)(
+		distinct<[string, string, number, string]>(
+			`SELECT access_token, refresh_token, expires_at, country_code
+             FROM tidal_sessions WHERE discord_id = ?`,
+			encodeSnowflake(userId),
+		),
 	);
-	if (!row.ok) return row;
-	if (!row.value) return Ok(null);
-
-	const [accessToken, refreshToken, expiresAt, countryCode] = row.value;
-	return Ok({
-		accessToken,
-		refreshToken,
-		countryCode,
-		expiresAt,
-	});
 }
 
 export function writeTidalSession(

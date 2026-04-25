@@ -6,7 +6,7 @@
 
 import { isTransient, TidalError } from "~/services/tidal/errors.ts";
 import { FIRE_TV_ID, FIRE_TV_UA } from "~/services/tidal/auth.ts";
-import { Fail, Ok, type Result } from "~/lib/result.ts";
+import { Fail, type Result, tryAsync } from "~/lib/result.ts";
 import { withRetry } from "~/lib/util/retry.ts";
 import { Errors } from "~/lib/errors.ts";
 
@@ -29,22 +29,22 @@ async function get<T>(
 		url.searchParams.set(k, String(v));
 	}
 
-	let response: Response;
-	try {
-		response = await fetch(url, {
-			headers: {
-				"Authorization": `Bearer ${ctx.accessToken}`,
-				"X-Tidal-Token": FIRE_TV_ID,
-				"Accept-Encoding": "gzip",
-				"User-Agent": FIRE_TV_UA,
-			},
-		});
-	} catch (e) {
-		return Fail(Errors.network(e instanceof Error ? e.message : String(e)));
-	}
+	const response = await tryAsync(
+		() =>
+			fetch(url, {
+				headers: {
+					"Authorization": `Bearer ${ctx.accessToken}`,
+					"X-Tidal-Token": FIRE_TV_ID,
+					"Accept-Encoding": "gzip",
+					"User-Agent": FIRE_TV_UA,
+				},
+			}),
+		(e) => Errors.network(e instanceof Error ? e.message : String(e)),
+	);
+	if (!response.ok) return response;
 
-	if (!response.ok) {
-		switch (response.status) {
+	if (!response.value.ok) {
+		switch (response.value.status) {
 			case 401:
 				return Fail(Errors.tidal.api(401, "Unauthorised"));
 			case 402:
@@ -56,20 +56,18 @@ async function get<T>(
 			case 429:
 				return Fail(Errors.tidal.api(429, "Rate limited"));
 		}
-		if (response.status >= 500) {
-			return Fail(Errors.tidal.api(response.status as 500, `Server error ${response.status}`));
+		if (response.value.status >= 500) {
+			return Fail(
+				Errors.tidal.api(response.value.status as 500, `Server error ${response.value.status}`),
+			);
 		}
-		return Fail(Errors.network(`HTTP ${response.status}`, response.status));
+		return Fail(Errors.network(`HTTP ${response.value.status}`, response.value.status));
 	}
 
-	let json: T;
-	try {
-		json = await response.json();
-	} catch {
-		return Fail(Errors.network("Invalid JSON response"));
-	}
-
-	return Ok(json);
+	return tryAsync(
+		() => response.value.json() as Promise<T>,
+		() => Errors.network("Invalid JSON response"),
+	);
 }
 
 function retrying<T>(fn: () => Promise<TidalResult<T>>): Promise<TidalResult<T>> {

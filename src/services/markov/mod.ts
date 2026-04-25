@@ -5,7 +5,7 @@
  */
 
 import { search, sql, transaction } from "~/database/mod.ts";
-import { Fail, Ok, type Result } from "~/lib/result.ts";
+import { discard, Fail, Ok, type Result, tapError } from "~/lib/result.ts";
 import { Errors } from "~/lib/errors.ts";
 import { SqlError } from "~/database/errors.ts";
 
@@ -32,12 +32,13 @@ export function learn(text: string): Result<void, SqlError> {
 
 	if (!tokens.length) return Ok(undefined);
 	if (tokens.length === 1) {
-		const result = sql(
-			`INSERT INTO markov_words (word, count) VALUES (?, 1)
-			 ON CONFLICT(word) DO UPDATE SET count = count + 1`,
-			tokens[0],
+		return discard(
+			sql(
+				`INSERT INTO markov_words (word, count) VALUES (?, 1)
+			 	ON CONFLICT(word) DO UPDATE SET count = count + 1`,
+				tokens[0],
+			),
 		);
-		return result.ok ? Ok(undefined) : result;
 	}
 
 	if (tokens.length <= 2 && !/https?:\/\/\S+/.test(clean)) {
@@ -128,19 +129,18 @@ export function generate(bias?: string): Result<string, SqlError> {
 		let begin = bias;
 		if (bias) {
 			const word = bias.trim();
-			const seed = search<MarkovLink>(
+			const seed = tapError<MarkovLink[], SqlError>(console.error)(search<MarkovLink>(
 				"SELECT prefix FROM markov_chain WHERE prefix LIKE ? ORDER BY RANDOM() LIMIT 1",
 				`%${word}%`,
-			);
+			));
 			begin = seed.ok && seed.value.length ? seed.value[0].prefix : undefined;
 		}
 
 		if (!begin) {
-			const maxId = search<{ id: number }>("SELECT MAX(id) as id FROM markov_chain");
-			if (!maxId.ok || !maxId.value[0]?.id) {
-				if (!maxId.ok) console.error(maxId.error);
-				return Ok("12 reais i got nothing on me twin");
-			}
+			const maxId = tapError<{ id: number }[], SqlError>(console.error)(
+				search("SELECT MAX(id) as id FROM markov_chain"),
+			);
+			if (!maxId.ok || !maxId.value[0]?.id) return Ok("12 reais :<");
 
 			const begins = search<MarkovLink>(
 				"SELECT prefix FROM markov_chain WHERE id >= ? LIMIT 1",
@@ -148,8 +148,7 @@ export function generate(bias?: string): Result<string, SqlError> {
 			);
 
 			if (!begins.ok || !begins.value.length) {
-				if (!begins.ok) console.error(begins.error);
-				return Ok("12 reais i got nothing on me twin");
+				return Ok("12 reais ):");
 			}
 
 			begin = begins.value[0].prefix;
@@ -160,14 +159,13 @@ export function generate(bias?: string): Result<string, SqlError> {
 		const result: string[] = [p1, p2];
 
 		for (let i = 0; i < MAX_GENERATION_LENGTH; i++) {
-			const next = search<MarkovLink>(
-				"SELECT suffix, count FROM markov_chain WHERE prefix = ?",
-				`${p1}${p2.length ? (" " + p2) : ""}`,
+			const next = tapError<MarkovLink[], SqlError>(console.error)(
+				search(
+					"SELECT suffix, count FROM markov_chain WHERE prefix = ?",
+					`${p1}${p2.length ? (" " + p2) : ""}`,
+				),
 			);
-			if (!next.ok || next.value.length === 0) {
-				if (!next.ok) console.error(next.error);
-				break;
-			}
+			if (!next.ok || !next.value.length) break;
 
 			const nextWord = pickWeighted(next.value);
 			result.push(nextWord);
@@ -183,6 +181,7 @@ export function generate(bias?: string): Result<string, SqlError> {
 		const firstUrl = result.findIndex((w) => /https?:\/\/\S+/.test(w));
 		return Ok(firstUrl === -1 ? result.join(" ") : result.slice(0, firstUrl + 1).join(" "));
 	} catch (e) {
+		if (e instanceof Error) console.log(e.stack);
 		return Fail(Errors.sql.queryFailed("generate()", String(e)));
 	}
 }

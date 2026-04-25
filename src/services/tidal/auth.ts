@@ -4,7 +4,7 @@
  * SPDX-License-Identifier: AGPL-3.0-or-later
  */
 
-import { Fail, Ok, type Result } from "~/lib/result.ts";
+import { Fail, Ok, type Result, tryAsync } from "~/lib/result.ts";
 import { Errors } from "~/lib/errors.ts";
 import { TidalError } from "~/services/tidal/errors.ts";
 import { sleep } from "~/lib/util/retry.ts";
@@ -48,25 +48,24 @@ async function post<T>(
 	path: string,
 	body: Record<string, string>,
 ): Promise<AuthResult<T>> {
-	let response: Response;
-	try {
-		response = await fetch(`${AUTH_BASE}${path}`, {
-			method: "POST",
-			headers: {
-				"Content-Type": "application/x-www-form-urlencoded",
-			},
-			body: new URLSearchParams(body).toString(),
-		});
-	} catch (e) {
-		return Fail(Errors.network(e instanceof Error ? e.message : String(e)));
-	}
+	const fetched = await tryAsync(
+		() =>
+			fetch(`${AUTH_BASE}${path}`, {
+				method: "POST",
+				headers: { "Content-Type": "application/x-www-form-urlencoded" },
+				body: new URLSearchParams(body).toString(),
+			}),
+		(e) => Errors.network(e instanceof Error ? e.message : String(e)),
+	);
+	if (!fetched.ok) return fetched;
 
-	let json: Record<string, unknown>;
-	try {
-		json = await response.json();
-	} catch {
-		return Fail(Errors.network(`Auth HTTP ${response.status}: invalid JSON`));
-	}
+	const parsed = await tryAsync(
+		() => fetched.value.json() as Promise<Record<string, unknown>>,
+		() => Errors.network(`Auth HTTP ${fetched.value.status}: invalid JSON`),
+	);
+
+	if (!parsed.ok) return parsed;
+	const response = fetched.value, json = parsed.value;
 
 	if (!response.ok) {
 		const error = json.error as string | undefined;
@@ -75,9 +74,7 @@ async function post<T>(
 		if (error === "authorization_pending") {
 			return Fail(Errors.tidal.auth("device_pending", "Waiting for user approval"));
 		}
-		if (error === "slow_down") {
-			return Fail(Errors.rateLimit(5_000));
-		}
+		if (error === "slow_down") return Fail(Errors.rateLimit(5_000));
 		if (error === "expired_token") {
 			return Fail(Errors.tidal.auth("device_expired", "Device code expired"));
 		}

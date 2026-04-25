@@ -7,7 +7,7 @@
 import { cfg, getConfig } from "~/config/mod.ts";
 import { generate, learn, sampleWord } from "~/services/markov/mod.ts";
 import { SqlError } from "~/database/errors.ts";
-import { Ok, Result } from "~/lib/result.ts";
+import { discard, Ok, Result, safePromise, tapError } from "~/lib/result.ts";
 
 import { Message, Reaction } from "~/discord/types";
 import discord from "~/discord/bot";
@@ -101,21 +101,20 @@ export async function messageCreate(message: Message): Promise<Result<void, SqlE
 
 	if (!result.ok) return result;
 
-	try {
-		await discord.helpers.sendMessage(message.channelId, {
-			content: value,
-			messageReference: isReplyToBot
-				? {
-					messageId: message.id,
-					channelId: message.channelId,
-					guildId: message.guildId,
-					failIfNotExists: false,
-				}
-				: undefined,
-		});
+	const sent = await safePromise(discord.helpers.sendMessage(message.channelId, {
+		content: value,
+		messageReference: isReplyToBot
+			? {
+				messageId: message.id,
+				channelId: message.channelId,
+			}
+			: undefined,
+	}));
+
+	if (!sent.ok) {
+		console.error("    · markov: send failed:", sent.error.message);
+	} else {
 		console.log(`  · markov: sent "${value}"`);
-	} catch (err) {
-		console.error("    · markov error:", err);
 	}
 
 	resetMarkovTrigger();
@@ -171,8 +170,14 @@ export async function reactionAdd(reaction: Reaction): Promise<Result<void, AppE
 	console.log(
 		`  · markov(translate): "${message.content}" → "${text}", requested by ${requester}`,
 	);
-	await discord.helpers.editMessage(reaction.channelId, reaction.messageId, {
-		content: text.toLowerCase(),
-	});
-	return Ok(undefined);
+
+	const edited = tapError((e) => console.error("  · markov(translate): edit failed:", e))(
+		await safePromise(
+			discord.helpers.editMessage(reaction.channelId, reaction.messageId, {
+				content: text.toLowerCase(),
+			}),
+		),
+	);
+
+	return discard(edited) as Result<void, AppError>;
 }
