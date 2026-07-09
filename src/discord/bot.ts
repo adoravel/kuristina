@@ -87,7 +87,7 @@ const desiredProperties = createDesiredPropertiesObject({
 	messageReference: {
 		channelId: true,
 		guildId: true,
-		messageId: true
+		messageId: true,
 	},
 	channel: {
 		id: true,

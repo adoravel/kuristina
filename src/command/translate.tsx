@@ -25,7 +25,6 @@ const UNICODE_EMOJI_RE =
 	/\p{Extended_Pictographic}(?:\u200d\p{Extended_Pictographic})*[\uFE0F\u{1F3FB}-\u{1F3FF}]*/gu;
 
 const DEFAULT_TARGET: TargetLang = "EN-GB";
-const PRECISION_THRESHOLDS = { low: 8, medium: 25 } as const;
 
 const FORMALITY_ALIASES: Record<string, Formality> = {
 	default: "default",
@@ -107,6 +106,37 @@ async function getMentionedUsersLastMessages(platform: Bot, message: Message): P
 	return results;
 }
 
+async function getTranslationText(
+	platform: Bot,
+	message: Message,
+	input: string,
+	threshold: number,
+): Promise<{ text: string; source: string }> {
+	let text = input.trim();
+	let source = "from command input";
+
+	if (!text || text.length < threshold) {
+		const replied = await getRepliedMessage(platform, message);
+		if (replied?.content) {
+			text = replied.content.trim();
+			source = "from replied message";
+		}
+	}
+
+	const clean = text.replace(/<@!?\d+>/g, "").trim();
+
+	if (!clean || clean.length < threshold) {
+		const mentionedMessages = await getMentionedUsersLastMessages(platform, message);
+		if (mentionedMessages.length) {
+			text = mentionedMessages.join("\n\n");
+			const count = message.mentions?.length ?? 0;
+			source = count > 1 ? `from ${count} mentions` : "from a mention";
+		}
+	}
+
+	return { text, source };
+}
+
 export default defineCommand("translate", {
 	to: optional(identifier),
 	from: optional(identifier),
@@ -114,27 +144,20 @@ export default defineCommand("translate", {
 	model: optional(identifier),
 	$: optional(greedyString),
 }, async (ctx) => {
-	let text = ctx.remaining?.trim() ?? "";
+	const input = ctx.remaining?.trim() ?? "";
+	const { text, source: inputSource } = await getTranslationText(
+		ctx.platform,
+		ctx.message,
+		input,
+		3,
+	);
 
 	if (!text || text.length < 3) {
-		const replied = await getRepliedMessage(ctx.platform, ctx.message);
-		if (replied?.content) {
-			text = replied.content.trim();
-		}
+		return void await ctx.error(
+			"give me something to translate first, reply to a message, or mention someone",
+		);
 	}
-
-	const clean = text.replace(/<@!?\d+>/g, "").trim();
-	if (!clean || clean.length < 3) {
-		const mentionedMessages = await getMentionedUsersLastMessages(ctx.platform, ctx.message);
-		if (mentionedMessages.length) {
-			text = mentionedMessages.join("\n\n");
-		}
-	}
-
-	if (!text || text.length < 3) {
-		return void await ctx.error("give me something to translate first, or reply to a message");
-	}
-	text = truncate(text, 480);
+	const truncated = truncate(text, 256);
 
 	const target = (ctx.args.to?.toUpperCase() ?? DEFAULT_TARGET) as TargetLang;
 	const source = ctx.args.from?.toUpperCase() as SourceLang | undefined;
@@ -171,7 +194,7 @@ export default defineCommand("translate", {
 	}
 
 	const [result, usage] = await Promise.all([
-		translateOne(text, target, {
+		translateOne(truncated, target, {
 			sourceLang: source,
 			formality,
 			modelType,
@@ -189,17 +212,8 @@ export default defineCommand("translate", {
 	const tuning: string[] = [];
 	if (modelType) tuning.push(`model: ${modelType}`);
 	if (formality) tuning.push(`formality: ${formality}`);
-	if (ctx.message.messageReference && text.length <= 3) {
-		tuning.push("from replied message");
-	} else if (ctx.message.mentions?.length) {
-		tuning.push(
-			`from ${ctx.message.mentions.length} mentioned user${
-				ctx.message.mentions.length > 1 ? "s" : ""
-			}`,
-		);
-	} else {
-		tuning.push("from command input");
-	}
+	tuning.push(inputSource);
+
 	if (usage.ok) {
 		const { fraction, characterCount, characterLimit } = usage.value;
 		const pct = (fraction * 100).toFixed(2);
@@ -214,7 +228,7 @@ export default defineCommand("translate", {
 				↑{"  "}{formatLanguage(source ?? detectedSourceLang)}
 				{source ? " (forced)" : ""}
 			</Subtext>
-			<TextDisplay>{quoteBlock(text)}</TextDisplay>
+			<TextDisplay>{quoteBlock(truncated)}</TextDisplay>
 			<Section spacing={1}>
 				<Subtext>↓{"  "}{formatLanguage(target)}</Subtext>
 				<TextDisplay>{quoteBlock(translated)}</TextDisplay>
