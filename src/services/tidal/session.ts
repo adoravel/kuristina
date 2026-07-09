@@ -56,7 +56,7 @@ export function writeTidalSession(
 }
 
 export function purgeTidalSession(userId: bigint): Result<number, SqlError> {
-	return sql(`DELETE FROM tidal_sessions WHERE user_id = ?`, encodeSnowflake(userId));
+	return sql(`DELETE FROM tidal_sessions WHERE discord_id = ?`, encodeSnowflake(userId));
 }
 
 export function writePendingDeviceAuth(
