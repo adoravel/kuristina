@@ -18,6 +18,62 @@ import type {
 } from "./types.ts";
 import { Errors } from "~/lib/errors.ts";
 
+const SOURCE_CODES: ReadonlySet<string> = new Set([
+	"AR",
+	"BG",
+	"CS",
+	"DA",
+	"DE",
+	"EL",
+	"EN",
+	"ES",
+	"ET",
+	"FI",
+	"FR",
+	"HU",
+	"ID",
+	"IT",
+	"JA",
+	"KO",
+	"LT",
+	"LV",
+	"NB",
+	"NL",
+	"PL",
+	"PT",
+	"RO",
+	"RU",
+	"SK",
+	"SL",
+	"SV",
+	"TR",
+	"UK",
+	"ZH",
+	"HE",
+	"VI",
+]);
+
+const TARGET_CODES: ReadonlySet<string> = new Set([
+	...SOURCE_CODES,
+	"EN-US",
+	"EN-GB",
+	"PT-BR",
+	"PT-PT",
+	"ZH-HANS",
+	"ZH-HANT",
+	"ES-419",
+	"DE-CH",
+	"FR-CA",
+]);
+
+export function isSupportedSourceLang(code: string): boolean {
+	return SOURCE_CODES.has(code.toUpperCase());
+}
+
+export function isSupportedTargetLang(code: string): boolean {
+	return TARGET_CODES.has(code.toUpperCase());
+}
+
 function baseUrl(): string {
 	return getConfig().modules.deepl.baseUrl;
 }

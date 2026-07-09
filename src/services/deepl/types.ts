@@ -5,22 +5,53 @@
  */
 
 // https://developers.deepl.com/docs/resources/supported-languages
+
 export type SourceLang =
+	| "AR"
+	| "BG"
+	| "CS"
+	| "DA"
 	| "DE"
+	| "EL"
 	| "EN"
 	| "ES"
+	| "ET"
+	| "FI"
+	| "FR"
+	| "HU"
+	| "ID"
+	| "IT"
+	| "JA"
+	| "KO"
+	| "LT"
+	| "LV"
+	| "NB"
+	| "NL"
+	| "PL"
 	| "PT"
+	| "RO"
+	| "RU"
+	| "SK"
+	| "SL"
+	| "SV"
+	| "TR"
+	| "UK"
 	| "ZH"
-	| "RU";
+	| "HE"
+	| "VI";
 
-export type TargetLang =
-	| SourceLang
-	| "EN-GB"
+export type TargetOnlyLang =
 	| "EN-US"
+	| "EN-GB"
 	| "PT-BR"
 	| "PT-PT"
 	| "ZH-HANS"
-	| "ZH-HANT";
+	| "ZH-HANT"
+	| "ES-419"
+	| "DE-CH"
+	| "FR-CA";
+
+export type TargetLang = SourceLang | TargetOnlyLang;
 
 export type Formality = "default" | "more" | "less" | "prefer_more" | "prefer_less";
 export type TagHandling = "xml" | "html";
