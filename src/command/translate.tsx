@@ -17,6 +17,8 @@ import { Formality, ModelType, SourceLang, TargetLang } from "~/services/deepl/t
 import { describe } from "~/lib/errors.ts";
 import { Card, Section, Subtext, TextDisplay } from "~/lib/ui";
 import { formatLanguage } from "~/services/deepl/languages.ts";
+import { Message } from "~/discord/types";
+import { Bot } from "~/discord/bot";
 
 const DISCORD_EMOJI_RE = /<a?:\w+:\d+>/g;
 const UNICODE_EMOJI_RE =
@@ -68,28 +70,41 @@ function quoteBlock(text: string): string {
 	return text.split("\n").map((line) => `> ${line}`).join("\n");
 }
 
-function precisionLabel(
-	inputLength: number,
-	forced: boolean,
-): { label: string; note: string } {
-	if (forced) {
-		return { label: "N/A", note: "source language was forced, autodetection was not used" };
+async function getRepliedMessage(platform: Bot, message: Message): Promise<Message | undefined> {
+	const ref = message.messageReference;
+	if (!ref?.messageId) return undefined;
+
+	try {
+		return await platform.helpers.getMessage(message.channelId, ref.messageId);
+	} catch {
+		return undefined;
 	}
-	if (inputLength < PRECISION_THRESHOLDS.low) {
-		return {
-			label: "Low",
-			note: "very short; pin down with `-from` if this looks wrong",
-		};
-	}
-	if (inputLength < PRECISION_THRESHOLDS.medium) {
-		return { label: "Medium", note: "short input, usually right but worth a second look" };
-	}
-	return { label: "High", note: "enough context to detect reliably" };
 }
 
-function formatUsage(characterCount: number, characterLimit: number, fraction: number): string {
-	const pct = (fraction * 100).toFixed(2);
-	return `${characterCount.toLocaleString()} / ${characterLimit.toLocaleString()} characters used this period (${pct}%)`;
+async function getMentionedUsersLastMessages(platform: Bot, message: Message): Promise<string[]> {
+	const mentions = message.mentions;
+	if (!mentions?.length) return [];
+
+	const messages = await platform.helpers.getMessages(message.channelId, { limit: 25 });
+
+	const pendingMentions = new Map(mentions.map((m: any) => [m.id, m]));
+	const results: string[] = [];
+
+	for (const msg of messages) {
+		const authorId = msg.author.id;
+
+		if (pendingMentions.has(authorId)) {
+			const content = msg.content.replace(/<@!?\d+>/g, "").trim();
+			if (content) {
+				results.push(`-# <@${msg.author.id}>\n${content}`);
+			}
+			pendingMentions.delete(authorId);
+		}
+
+		if (pendingMentions.size === 0) break;
+	}
+
+	return results;
 }
 
 export default defineCommand("translate", {
@@ -99,10 +114,27 @@ export default defineCommand("translate", {
 	model: optional(identifier),
 	$: optional(greedyString),
 }, async (ctx) => {
-	const text = truncate(ctx.remaining?.trim() ?? "", 480);
-	if (!text) {
-		return void await ctx.error("give me something to translate first");
+	let text = ctx.remaining?.trim() ?? "";
+
+	if (!text || text.length < 3) {
+		const replied = await getRepliedMessage(ctx.platform, ctx.message);
+		if (replied?.content) {
+			text = replied.content.trim();
+		}
 	}
+
+	const clean = text.replace(/<@!?\d+>/g, "").trim();
+	if (!clean || clean.length < 3) {
+		const mentionedMessages = await getMentionedUsersLastMessages(ctx.platform, ctx.message);
+		if (mentionedMessages.length) {
+			text = mentionedMessages.join("\n\n");
+		}
+	}
+
+	if (!text || text.length < 3) {
+		return void await ctx.error("give me something to translate first, or reply to a message");
+	}
+	text = truncate(text, 480);
 
 	const target = (ctx.args.to?.toUpperCase() ?? DEFAULT_TARGET) as TargetLang;
 	const source = ctx.args.from?.toUpperCase() as SourceLang | undefined;
@@ -157,7 +189,17 @@ export default defineCommand("translate", {
 	const tuning: string[] = [];
 	if (modelType) tuning.push(`model: ${modelType}`);
 	if (formality) tuning.push(`formality: ${formality}`);
-	tuning.push(`${text.length} → ${translated.length} chars`);
+	if (ctx.message.messageReference && text.length <= 3) {
+		tuning.push("from replied message");
+	} else if (ctx.message.mentions?.length) {
+		tuning.push(
+			`from ${ctx.message.mentions.length} mentioned user${
+				ctx.message.mentions.length > 1 ? "s" : ""
+			}`,
+		);
+	} else {
+		tuning.push("from command input");
+	}
 	if (usage.ok) {
 		const { fraction, characterCount, characterLimit } = usage.value;
 		const pct = (fraction * 100).toFixed(2);
@@ -172,10 +214,10 @@ export default defineCommand("translate", {
 				↑{"  "}{formatLanguage(source ?? detectedSourceLang)}
 				{source ? " (forced)" : ""}
 			</Subtext>
-			<TextDisplay>{text}</TextDisplay>
+			<TextDisplay>{quoteBlock(text)}</TextDisplay>
 			<Section spacing={1}>
 				<Subtext>↓{"  "}{formatLanguage(target)}</Subtext>
-				<TextDisplay>{translated}</TextDisplay>
+				<TextDisplay>{quoteBlock(translated)}</TextDisplay>
 			</Section>
 			<Section spacing={1}>
 				<Subtext>{tuning.join(" · ")}</Subtext>

@@ -84,6 +84,11 @@ const desiredProperties = createDesiredPropertiesObject({
 		attachments: true,
 		editedTimestamp: true,
 	},
+	messageReference: {
+		channelId: true,
+		guildId: true,
+		messageId: true
+	},
 	channel: {
 		id: true,
 		guildId: true,

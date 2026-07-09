@@ -42,6 +42,7 @@ function getState(channelId: bigint): ChannelState {
 }
 
 const memory = new TimedMap<bigint, Message>(1.8e6); // 30 min
+const messageLastTranslated = new Map<bigint, number>();
 
 function cooldownFor(channelId: bigint): number {
 	const { cooldownMs, channelCooldowns } = getConfig().modules.markov;
@@ -174,6 +175,11 @@ export async function reactionAdd(
 	) return Ok(undefined);
 
 	if (reaction.emoji.name !== "❔") return Ok(undefined);
+	const lastTranslated = messageLastTranslated.get(reaction.messageId);
+	if (lastTranslated && (Date.now() - lastTranslated) < 10_000) {
+		console.log(`  · markov(translate): message was recently translated, skipping...`);
+		return Ok(undefined);
+	}
 
 	const state = getState(reaction.channelId);
 	const now = Date.now();
@@ -184,6 +190,7 @@ export async function reactionAdd(
 		return Ok(undefined);
 	}
 	state.lastReactionTimestamp = now;
+	messageLastTranslated.set(reaction.messageId, Date.now());
 
 	const message = memory.get(reaction.messageId);
 	if (!message?.content) {
