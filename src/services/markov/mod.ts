@@ -8,8 +8,7 @@ import { search, sql, transaction } from "~/database/mod.ts";
 import { discard, Fail, Ok, type Result, tapError } from "~/lib/result.ts";
 import { Errors } from "~/lib/errors.ts";
 import { SqlError } from "~/database/errors.ts";
-
-const MAX_GENERATION_LENGTH = 420;
+import { getConfig } from "~/config/mod.ts";
 
 export interface MarkovLink {
 	prefix: string;
@@ -17,9 +16,8 @@ export interface MarkovLink {
 	count: number;
 }
 
-function sanitize(text: string): string {
-	return text.replace(/`{1,3}[\s\S]*?`{1,3}/g, "") // Remove code blocks
-		.trim();
+function sanitise(text: string): string {
+	return text.replace(/`{1,3}[\s\S]*?`{1,3}/g, "").trim();
 }
 
 function tokenize(text: string): string[] {
@@ -27,7 +25,7 @@ function tokenize(text: string): string[] {
 }
 
 export function learn(text: string): Result<void, SqlError> {
-	const clean = sanitize(text);
+	const clean = sanitise(text);
 	const tokens = tokenize(clean);
 
 	if (!tokens.length) return Ok(undefined);
@@ -103,7 +101,7 @@ export function bulkLearn(messages: string[]): Result<void, SqlError> {
 	const tallies = new Map<string, Map<string, number>>();
 
 	for (const msg of messages) {
-		const clean = sanitize(msg);
+		const clean = sanitise(msg);
 		const tokens = tokenize(clean);
 
 		if (tokens.length < 2) continue;
@@ -138,6 +136,7 @@ export function bulkLearn(messages: string[]): Result<void, SqlError> {
 }
 
 export function generate(bias?: string): Result<string, SqlError> {
+	const maxLength = getConfig().modules.markov.maxGenerationLength;
 	try {
 		let begin = bias;
 		if (bias) {
@@ -171,7 +170,7 @@ export function generate(bias?: string): Result<string, SqlError> {
 		let [p1, p2] = prefix.split(" ");
 		const result: string[] = [p1, p2];
 
-		for (let i = 0; i < MAX_GENERATION_LENGTH; i++) {
+		for (let i = 0; i < maxLength; i++) {
 			const next = tapError<MarkovLink[], SqlError>(console.error)(
 				search(
 					"SELECT suffix, count FROM markov_chain WHERE prefix = ?",
@@ -185,7 +184,7 @@ export function generate(bias?: string): Result<string, SqlError> {
 
 			if (/[.!?]$/.test(nextWord) && i > 10) break; // sentence boundary
 			if (i > 20 && Math.random() < 0.08) break;
-			if (i >= MAX_GENERATION_LENGTH - 1) break;
+			if (i >= maxLength - 1) break;
 			if (i > 12 && Math.random() < (6 / 7) ** 9) break;
 
 			p1 = p2, p2 = nextWord;

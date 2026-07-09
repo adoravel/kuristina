@@ -9,59 +9,99 @@ import { generate, learn, sampleWord } from "~/services/markov/mod.ts";
 import { SqlError } from "~/database/errors.ts";
 import { discard, Ok, or, Result, safePromise, tapError } from "~/lib/result.ts";
 
-import { Message, Reaction } from "~/discord/types";
-import discord from "~/discord/bot";
 import { AppError } from "~/lib/errors.ts";
 import { translateOne } from "~/services/deepl/mod.ts";
 import { TimedMap } from "~/lib/util/map.ts";
 import { TranslateOptions } from "~/services/deepl/types.ts";
+import { applyReplacements } from "~/services/markov/replacements.ts";
+import { Client, Message, Reaction } from "~/discord/client/types";
 
-let chatMessageCount = 0, chatTriggerThreshold = 0;
+type ChannelState = {
+	chatMessageCount: number;
+	chatTriggerThreshold: number;
+	lastReplyTimestamp: number;
+	lastReactionTimestamp: number;
+};
 
-let lastReplyTimestamp = 0;
-const REPLY_COOLDOWN_MS = 5_000;
+const channelState = new Map<bigint, ChannelState>();
 
-const memory = new TimedMap<bigint, Message>(9e5); // 15 min
-
-function resetMarkovTrigger() {
-	chatMessageCount = 0;
-	chatTriggerThreshold = Math.floor(Math.random() * (15 - 2 + 1)) + 2;
-	console.log(`  · markov: next message in ${chatTriggerThreshold} messages.`);
+function getState(channelId: bigint): ChannelState {
+	let state = channelState.get(channelId);
+	if (!state) {
+		channelState.set(
+			channelId,
+			state = {
+				chatMessageCount: 0,
+				chatTriggerThreshold: 0,
+				lastReplyTimestamp: 0,
+				lastReactionTimestamp: 0,
+			},
+		);
+	}
+	return state;
 }
 
-export async function messageCreate(message: Message): Promise<Result<void, SqlError>> {
-	if (message.author.id === getConfig().discord.applicationId) {
+const memory = new TimedMap<bigint, Message>(1.8e6); // 30 min
+
+function cooldownFor(channelId: bigint): number {
+	const { cooldownMs, channelCooldowns } = getConfig().modules.markov;
+	return channelCooldowns[channelId.toString()] ?? cooldownMs;
+}
+
+function resetMarkovTrigger(state: ChannelState) {
+	const { min, max } = getConfig().modules.markov.triggerThreshold;
+	state.chatMessageCount = 0;
+	state.chatTriggerThreshold = Math.floor(Math.random() * (max - min + 1)) + min;
+	console.log(`  · markov: next message in ${state.chatTriggerThreshold} messages.`);
+}
+
+const isTrackedChannel = (channelId: bigint) =>
+	getConfig().modules.markov.channelIds.includes(channelId);
+
+const stripDiacritics = (input: string) => input.normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+
+export async function messageCreate(
+	client: Client,
+	message: Message,
+): Promise<Result<void, SqlError>> {
+	if (
+		message.author.id === getConfig().discord.client.applicationId ||
+		message.author.id === getConfig().discord.applicationId
+	) {
 		memory.set(message.id, message);
 		return Ok(undefined);
 	}
-	if (message.channelId !== getConfig().modules.markov.channelId) return Ok(undefined);
+	if (!isTrackedChannel(message.channelId)) return Ok(undefined);
 
-	if (!chatTriggerThreshold) resetMarkovTrigger();
+	const state = getState(message.channelId);
+	if (!state.chatTriggerThreshold) resetMarkovTrigger(state);
 
 	const learnt = learn(message.content);
 	if (!learnt.ok) return learnt;
 
 	const isReplyToBot =
-		!!message.mentions?.find((x) => x.id === getConfig().discord.applicationId) ||
-		getConfig().modules.markov.pattern.test(message.content);
+		!!message.mentions?.find((x) => x.id === getConfig().discord.client.applicationId) ||
+		getConfig().modules.markov.pattern.test(stripDiacritics(message.content));
 
 	const now = Date.now();
-	let shouldTrigger = ++chatMessageCount >= chatTriggerThreshold;
+	const cooldownMs = cooldownFor(message.channelId);
+	let shouldTrigger = ++state.chatMessageCount >= state.chatTriggerThreshold;
 
 	if (!shouldTrigger && isReplyToBot) {
-		if (now - lastReplyTimestamp > REPLY_COOLDOWN_MS) {
+		if (now - state.lastReplyTimestamp > cooldownMs) {
 			console.log("  · markov: valid reply detected.");
 			shouldTrigger = true;
-			lastReplyTimestamp = now;
+			state.lastReplyTimestamp = now;
 		} else {
 			console.log("  · markov: reply ignored (cooldown active).");
 			return Ok(undefined);
 		}
 	}
 
+	const { singleWordChance, urlConcatChance, urlOnlyChance } = getConfig().modules.markov;
 	let result;
 
-	if (Math.random() < 0.12) {
+	if (Math.random() * 100 < singleWordChance) {
 		console.log("  · markov: generating single word...");
 		result = or(generate())(
 			tapError<string, SqlError>((e) => {
@@ -76,7 +116,7 @@ export async function messageCreate(message: Message): Promise<Result<void, SqlE
 
 	console.log(
 		"  · markov:",
-		`"${result.value}" -${chatTriggerThreshold - chatMessageCount}`,
+		`"${result.value}" -${state.chatTriggerThreshold - state.chatMessageCount}`,
 	);
 
 	if (!shouldTrigger) {
@@ -84,13 +124,13 @@ export async function messageCreate(message: Message): Promise<Result<void, SqlE
 	}
 
 	let { value } = result;
+	const roll = Math.random() * 1000;
 
-	const roll = Math.random();
-	if (roll < 0.165) {
+	if (roll < urlConcatChance) {
 		console.log(`  · markov: triggering url concat...`);
 		result = generate("https://");
 		if (result.ok) value += " " + result.value;
-	} else if (roll < 0.33) {
+	} else if (roll < urlOnlyChance) {
 		console.log(`  · markov: triggering url only...`);
 		result = generate("https://");
 		if (result.ok) value = result.value;
@@ -98,15 +138,17 @@ export async function messageCreate(message: Message): Promise<Result<void, SqlE
 		result = generate();
 		if (result.ok) value = result.value;
 	}
-
 	if (!result.ok) return result;
 
-	const sent = await safePromise(discord.helpers.sendMessage(message.channelId, {
+	value = applyReplacements(value, message.guildId);
+	const sent = await safePromise(client.helpers.sendMessage(message.channelId, {
 		content: value,
 		messageReference: isReplyToBot
 			? {
 				messageId: message.id,
 				channelId: message.channelId,
+				guildId: message.guildId,
+				failIfNotExists: false,
 			}
 			: undefined,
 	}));
@@ -117,19 +159,31 @@ export async function messageCreate(message: Message): Promise<Result<void, SqlE
 		console.log(`  · markov: sent "${value}"`);
 	}
 
-	resetMarkovTrigger();
-	return Ok(undefined);
+	return resetMarkovTrigger(state), Ok(undefined);
 }
 
-export async function reactionAdd(reaction: Reaction): Promise<Result<void, AppError>> {
+export async function reactionAdd(
+	client: Client,
+	reaction: Reaction,
+): Promise<Result<void, AppError>> {
 	if (!cfg("deepl")) return Ok(undefined);
 
 	if (
-		reaction.messageAuthorId !== getConfig().discord.applicationId ||
-		reaction.channelId !== getConfig().modules.markov.channelId
+		reaction.messageAuthorId !== getConfig().discord.client.applicationId ||
+		!isTrackedChannel(reaction.channelId)
 	) return Ok(undefined);
 
 	if (reaction.emoji.name !== "❔") return Ok(undefined);
+
+	const state = getState(reaction.channelId);
+	const now = Date.now();
+	const cooldownMs = cooldownFor(reaction.channelId);
+
+	if (now - state.lastReactionTimestamp < cooldownMs) {
+		console.log("  · markov(translate): reaction ignored (cooldown active).");
+		return Ok(undefined);
+	}
+	state.lastReactionTimestamp = now;
 
 	const message = memory.get(reaction.messageId);
 	if (!message?.content) {
@@ -148,11 +202,6 @@ export async function reactionAdd(reaction: Reaction): Promise<Result<void, AppE
 
 	let { text, detectedSourceLang } = result.value;
 
-	for (const [pattern, replacement] of Object.entries(getConfig().modules.markov.replacements)) {
-		const regex = new RegExp(pattern, "ig");
-		text = text.replace(regex, replacement);
-	}
-
 	if (detectedSourceLang.startsWith("EN")) {
 		result = await translateOne(message.content, "PT-BR", params);
 		if (!result.ok) return result;
@@ -160,20 +209,17 @@ export async function reactionAdd(reaction: Reaction): Promise<Result<void, AppE
 		detectedSourceLang = result.value.detectedSourceLang;
 	}
 
+	text = applyReplacements(text, message.guildId);
 	memory.set(message.id, { ...message, content: text });
 
 	let requester = `snowflake(${reaction.userId})`;
-	if (reaction.user?.username) {
-		requester = `@${reaction.user.username}, ${requester}`;
-	}
+	if (reaction.user?.username) requester = `@${reaction.user.username}, ${requester}`;
 
-	console.log(
-		`  · markov(translate): "${message.content}" → "${text}", requested by ${requester}`,
-	);
+	console.log(`  · markov(translate): "${message.content}" → "${text}", requested by ${requester}`);
 
 	const edited = tapError((e) => console.error("  · markov(translate): edit failed:", e))(
 		await safePromise(
-			discord.helpers.editMessage(reaction.channelId, reaction.messageId, {
+			client.helpers.editMessage(reaction.channelId, reaction.messageId, {
 				content: text.toLowerCase(),
 			}),
 		),
