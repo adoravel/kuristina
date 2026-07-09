@@ -96,7 +96,35 @@ export const field = {
 				errors.push({ path, message: `could not parse as bigint: ${JSON.stringify(str)}` });
 			}
 		}),
-
+	snowflakeArray: (): Field<bigint[]> =>
+		make((raw, path, errors) => {
+			if (raw === undefined) return [];
+			if (!Array.isArray(raw)) {
+				errors.push({ path, message: `expected an array, got ${JSON.stringify(raw)}` });
+				return [];
+			}
+			const out: bigint[] = [];
+			for (const [i, v] of raw.entries()) {
+				const str = typeof v === "string"
+					? v.trim()
+					: typeof v === "number"
+					? String(v)
+					: undefined;
+				if (!str) {
+					errors.push({ path: `${path}[${i}]`, message: "invalid snowflake entry" });
+					continue;
+				}
+				try {
+					out.push(BigInt(str));
+				} catch {
+					errors.push({
+						path: `${path}[${i}]`,
+						message: `could not parse as bigint: ${JSON.stringify(str)}`,
+					});
+				}
+			}
+			return out;
+		}),
 	snowflakeOr: (fallback: bigint): Field<bigint> =>
 		make((raw) => {
 			const str = typeof raw === "string"

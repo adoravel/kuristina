@@ -14,6 +14,10 @@ const configSchema = {
 		token: field.string(),
 		applicationId: field.snowflake(),
 		guildId: field.snowflake(),
+		client: {
+			token: field.stringOr(""),
+			applicationId: field.snowflakeOr(0n),
+		},
 	},
 	owner: {
 		id: field.snowflake(),
@@ -34,13 +38,23 @@ const configSchema = {
 		contextTtlMs: field.positiveInt(45_000),
 	},
 	modules: {
-		client: field.boolean(false),
 		commands: field.record(field.boolean(false)),
 		markov: {
 			pattern: field.regex(/\bmarkov\b/ig),
 			enabled: field.boolean(false),
-			channelId: field.snowflakeOr(0n),
+			channelIds: field.snowflakeArray(),
+			maxGenerationLength: field.positiveInt(420),
+			cooldownMs: field.positiveInt(1_000),
+			channelCooldowns: field.record(field.positiveInt(1_000)),
+			triggerThreshold: {
+				min: field.positiveInt(9),
+				max: field.positiveInt(32),
+			},
+			singleWordChance: field.positiveInt(12),
+			urlConcatChance: field.positiveInt(165),
+			urlOnlyChance: field.positiveInt(330),
 			replacements: field.record(field.stringOr("")),
+			serverReplacements: field.record(field.record(field.stringOr(""))),
 		},
 		deepl: {
 			enabled: field.boolean(false),
@@ -107,4 +121,8 @@ export function cfg(path: string): boolean {
 	}
 
 	return node === true;
+}
+
+export function hasClientAccount(): boolean {
+	return getConfig().discord.client.token.length > 0;
 }

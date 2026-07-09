@@ -10,7 +10,7 @@
 	},
 	"tasks": {
 		"dev": "deno run --watch -P=default main.ts",
-		"start": "deno run -P=default main.ts",
+		"start": "env DENO_SQLITE_PATH=/usr/lib/libsqlite3.so.0 deno run -P=default main.ts",
 		"add-header": "deno fmt && deno run --allow-read --allow-write scripts/add-header.ts"
 	},
 	"imports": {
@@ -19,15 +19,17 @@
 		"~/lib/ui": "./lib/ui/mod.ts",
 		"~/lib/ui/jsx-runtime": "./lib/ui/runtime.ts",
 		"~/discord/bot": "./src/discord/bot.ts",
+		"~/discord/client": "./src/discord/client.ts",
+		"~/discord/client/types": "./src/discord/types.client.ts",
 		"~/discord/resolve": "./src/discord/resolve.ts",
 		"~/discord/types": "./src/discord/types.ts",
-		"@std/path": "jsr:@std/path@^1.1.4",
+		"@std/path": "jsr:@std/path@^1.1.6",
 		"@std/crypto": "jsr:@std/crypto@^1.1.0",
 		"@std/toml": "jsr:@std/toml@^1.0.11",
 		"@db/sqlite": "jsr:@db/sqlite@^0.13.0",
 		"@discordeno/bot": "npm:@discordeno/bot@^22.0.1-next.ff7c51d",
 		"@discordeno/types": "npm:@discordeno/types@^22.0.1-next.ff7c51d",
-		"dd-cache-proxy": "npm:dd-cache-proxy@^2.7.0",
+		"dd-cache-proxy": "npm:dd-cache-proxy@^2.9.0",
 		"~/config/mod.ts": "./src/config.ts"
 	},
 	"compilerOptions": {
