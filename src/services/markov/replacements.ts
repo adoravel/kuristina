@@ -1,3 +1,9 @@
+/**
+ * kuristina, a ~~kitchen~~ bathroom sink discord bot
+ * Copyright (c) 2025-2026 kyu.re
+ * SPDX-License-Identifier: AGPL-2.0-or-later
+ */
+
 import { getConfig } from "~/config/mod.ts";
 
 export function applyReplacements(text: string, guildId?: bigint): string {

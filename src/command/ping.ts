@@ -1,7 +1,7 @@
 /**
- * kuristina, a ~~kitchen~~ bathroom sink Discord bot
- * Copyright (c) 2025 adoravel
- * SPDX-License-Identifier: AGPL-3.0-or-later
+ * kuristina, a ~~kitchen~~ bathroom sink discord bot
+ * Copyright (c) 2025-2026 kyu.re
+ * SPDX-License-Identifier: AGPL-2.0-or-later
  */
 
 import { defineCommand } from "~/lib/command/registry.tsx";
