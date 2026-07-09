@@ -18,10 +18,10 @@ const CUSTOM_ID_PREFIX = "kuristina_role_colour:" as const;
 const encode = (id: bigint) =>
 	[...String(id)].map((c) => {
 		const p = c.codePointAt(0)!;
-		return p < 0x80 && p > 0 ? String.fromCodePoint(p + 917504) : c;
+		return p < 0x80 && p > 0 ? String.fromCodePoint(p + 0xE0000) : c;
 	}).join("");
 
-const isColorRole = (role: Role): boolean => role.name.startsWith(ROLE_MARKER);
+const isColourRole = (role: Role): boolean => role.name.startsWith(ROLE_MARKER);
 
 const isPersonalRole = (role: Role, id: bigint) => role.name === encode(id);
 
@@ -31,7 +31,7 @@ interface RoleCardProps {
 }
 
 function RoleCard({ roles, userId }: RoleCardProps) {
-	const colorRoles = roles.filter(isColorRole);
+	const colorRoles = roles.filter(isColourRole);
 
 	return (
 		<Card>
@@ -39,7 +39,7 @@ function RoleCard({ roles, userId }: RoleCardProps) {
 				Role colours
 			</Heading>
 			<Section>
-				<TextDisplay>_woah you're so colorful~_</TextDisplay>
+				<TextDisplay>_woah {"you're"} so colorful~_</TextDisplay>
 				{colorRoles.length > 0
 					? (
 						<ActionRow>
@@ -50,7 +50,7 @@ function RoleCard({ roles, userId }: RoleCardProps) {
 							>
 								{colorRoles.map((role) => ({
 									label: role.name,
-									description: `#${role.color.toString(16).padStart(6, "0")}`,
+									description: `#${role.colors.primaryColor.toString(16).padStart(6, "0")}`,
 									emoji: role.unicodeEmoji ? { name: role.unicodeEmoji } : undefined,
 									value: role.id,
 								})) as any}
@@ -83,7 +83,7 @@ setupInteractionHandler({
 	const { guild, member } = ctx;
 
 	const rolesToRemove = guild.roles.filter((role) =>
-		(isColorRole(role) || isPersonalRole(role, member.id)) &&
+		(isColourRole(role) || isPersonalRole(role, member.id)) &&
 		member.roles.includes(role.id)
 	);
 
@@ -94,7 +94,7 @@ setupInteractionHandler({
 	);
 	await Promise.all(
 		ctx.data!.values!.map((role) =>
-			ctx.bot.helpers.addRole(guild.id, userId, role, "Selected color preset")
+			ctx.bot.helpers.addRole(guild.id, userId, role, "selected colour preset")
 		),
 	);
 
@@ -118,7 +118,7 @@ export default defineCommand([
 
 	if (ctx.remaining) {
 		await Promise.all(
-			guild.roles.filter(isColorRole).map((r) =>
+			guild.roles.filter(isColourRole).map((r) =>
 				ctx.platform.helpers.removeRole(guild.id, ctx.user.id, r.id, "arbitrary colour role update")
 			),
 		);
