@@ -47,7 +47,7 @@ export async function resolveRole(
 	id: bigint,
 	guildId = getConfig().discord.guildId,
 ): Promise<Role | undefined> {
-	const cached = await discord.cache.roles.get(id);
+	const cached = await discord.cache.roles.get(id, guildId);
 	if (cached) return cached;
 
 	const fetched = await safePromise(withRetry(() => discord.helpers.getRole(guildId, id)));

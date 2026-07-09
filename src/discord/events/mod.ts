@@ -6,7 +6,6 @@
 
 import { messageCreate, messageDelete, messageUpdate } from "~/discord/events/messageHandling.ts";
 import interactionCreate from "~/discord/events/interactionCreate.ts";
-import { reactionAdd } from "~/discord/events/reactionAdd.ts";
 
 import { Events } from "~/discord/types";
 
@@ -28,5 +27,4 @@ export default {
 	messageUpdate: guarded("messageUpdate", messageUpdate),
 	messageDelete: guarded("messageDelete", messageDelete),
 	interactionCreate: guarded("interactionCreate", interactionCreate),
-	reactionAdd: guarded("reactionAdd", reactionAdd),
 };

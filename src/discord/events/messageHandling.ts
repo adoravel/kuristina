@@ -5,32 +5,19 @@
  */
 
 import discord from "~/discord/bot";
-import { Message } from "~/discord/types";
 import { StringStream } from "~/lib/combinators/stream.ts";
 import { prefix } from "~/lib/command/primitives.ts";
 import { infer } from "~/lib/combinators/mod.ts";
 import { commandRegistry, contextCache } from "~/lib/command/registry.tsx";
-import { cfg, getConfig } from "~/config/mod.ts";
-
-import * as markov from "~/services/markov/event.ts";
-
-const predicate: (message: Message) => boolean = cfg("client")
-	? (message) => message.channelId === getConfig().modules.markov.channelId
-	: (message) => !message.author.bot && !!message.guildId;
 
 export const messageCreate: typeof discord.events.messageCreate = async (message) => {
-	if (!predicate(message)) return;
+	if (message.author.bot || !message.guildId) return;
 
 	const stream = new StringStream(message.content);
 	const prefixResult = prefix(stream);
 
 	if (infer("success")(prefixResult)) {
 		await commandRegistry.execute(message, stream);
-	}
-
-	if (cfg("markov")) {
-		const result = await markov.messageCreate(message);
-		if (!result.ok) throw result.error;
 	}
 };
 

@@ -12,7 +12,7 @@ import { getConfig } from "~/config/mod.ts";
 
 export const Theme = {
 	colors: {
-		primary: 0x5865f2,
+		primary: 0xb74139,
 		success: 0x57f287,
 		warning: 0xfee75c,
 		danger: 0xed4245,

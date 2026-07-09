@@ -20,7 +20,6 @@ import { cfg, getConfig } from "~/config/mod.ts";
 import { closeSqlConnection, initialiseDatabase } from "~/database/mod.ts";
 import { AppError } from "~/lib/errors.ts";
 import { Ok, Result } from "~/lib/result.ts";
-import { monkeyPatchUserAppSupport } from "~/discord/client.ts";
 
 const desiredProperties = createDesiredPropertiesObject({
 	user: {
@@ -47,6 +46,11 @@ const desiredProperties = createDesiredPropertiesObject({
 		memberCount: true,
 		presences: true,
 		toggles: true,
+	},
+	roleColors: {
+		primaryColor: true,
+		secondaryColor: true,
+		tertiaryColor: true,
 	},
 	member: {
 		id: true,
@@ -107,7 +111,7 @@ const desiredProperties = createDesiredPropertiesObject({
 		guildId: true,
 		name: true,
 		icon: true,
-		color: true,
+		colors: true,
 		permissions: true,
 		unicodeEmoji: true,
 		flags: true,
@@ -148,10 +152,6 @@ const bot = createBot({
 	loggerFactory: (name) => createLogger({ logLevel: LogLevels.Info, name }),
 });
 
-if (cfg("client")) {
-	monkeyPatchUserAppSupport(bot);
-}
-
 export type Bot = typeof bot;
 
 bot.events = {
@@ -174,17 +174,19 @@ export async function initialise(): Promise<Result<void, AppError>> {
 	await discord.start();
 
 	const commandManifest = [
-		{ filename: "help.tsx", module: "commands.help", allowUserApp: false },
-		{ filename: "role.tsx", module: "commands.role", allowUserApp: false },
-		{ filename: "ping.ts", module: "commands.ping", allowUserApp: true },
+		{ filename: "help.tsx", module: "commands.help" },
+		{ filename: "role.tsx", module: "commands.role" },
+		{ filename: "ping.ts", module: "commands.ping" },
+		{ filename: "translate.tsx", module: "commands.translate" },
 	] as const;
 
 	await Promise.all(
 		commandManifest
-			.filter(({ module, allowUserApp }) => cfg(module) && allowUserApp === cfg("client"))
+			.filter(({ module }) => cfg(module))
 			.map(({ filename }) =>
 				import(`~/command/${filename}`)
 					.then((m) => commandRegistry.register(m.default))
+					.catch((e) => console.error("huh?", e))
 			),
 	);
 

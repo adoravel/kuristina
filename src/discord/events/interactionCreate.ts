@@ -34,7 +34,7 @@ const interactionCreate: typeof discord.events.interactionCreate = async (intera
 	}
 
 	const { customId, componentType } = interaction.data;
-	if (!customId || componentType) return;
+	if (!customId || componentType === undefined) return;
 
 	for (const handler of handlers) {
 		if (componentType !== handler.kind || !customId.startsWith(handler.identifier)) continue;

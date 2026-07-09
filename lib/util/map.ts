@@ -5,7 +5,7 @@
  */
 
 export class TimedMap<K, V> extends Map<K, V> {
-	private readonly timers = new Map<K, number>();
+	private readonly timers = new Map<K, ReturnType<typeof setTimeout>>();
 
 	public constructor(
 		public readonly lifeDuration: number,
