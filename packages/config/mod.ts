@@ -1,0 +1,91 @@
+/**
+ * kuristina, a ~~kitchen~~ bathroom sink discord bot
+ * Copyright (c) 2025-2026 kyu.re
+ * SPDX-License-Identifier: AGPL-2.0-or-later
+ */
+
+import { getConfig } from "./loader.ts";
+import { field, type Infer } from "./schema.ts";
+
+export const configSchema = {
+	discord: {
+		token: field.string(),
+		applicationId: field.snowflake(),
+		guildId: field.snowflake(),
+		client: {
+			token: field.stringOr(""),
+			applicationId: field.snowflakeOr(0n),
+		},
+	},
+	owner: {
+		id: field.snowflake(),
+	},
+	sqlite: {
+		path: field.stringOr("./data/kuristina.sqlite"),
+	},
+	commands: {
+		defaultCooldownMs: field.positiveInt(3_000),
+		maxMentions: field.positiveInt(5),
+	},
+	cache: {
+		contextTtlMs: field.positiveInt(45_000),
+	},
+	modules: {
+		commands: field.record(field.boolean(false)),
+		markov: {
+			pattern: field.regex(/\bmarkov\b/ig),
+			enabled: field.boolean(false),
+			channelIds: field.snowflakeArray(),
+			maxGenerationLength: field.positiveInt(420),
+			cooldownMs: field.positiveInt(1_000),
+			channelCooldowns: field.record(field.positiveInt(1_000)),
+			triggerThreshold: {
+				min: field.positiveInt(9),
+				max: field.positiveInt(32),
+			},
+			singleWordChance: field.positiveInt(12),
+			urlConcatChance: field.positiveInt(165),
+			urlOnlyChance: field.positiveInt(330),
+			replacements: field.record(field.stringOr("")),
+			serverReplacements: field.record(field.record(field.stringOr(""))),
+			translationEmoji: field.stringOr("❔"),
+		},
+		deepl: {
+			enabled: field.boolean(false),
+			baseUrl: field.stringOr("https://api-free.deepl.com/v2"),
+			apiKey: field.stringOr(""),
+		},
+	},
+	design: {
+		colours: {
+			primary: field.hexColourOr(0xb74139),
+			success: field.hexColourOr(0x57f287),
+			danger: field.hexColourOr(0xed4245),
+			info: field.hexColourOr(0x5865f2),
+		},
+		emojis: {
+			success: field.stringOr("✅"),
+			error: field.stringOr("❌"),
+			loading: field.stringOr("⏳"),
+			wordmark: field.stringOr(""),
+		},
+		branding: {
+			name: field.stringOr("kuristina"),
+			repoUrl: field.stringOr("https://kyu.re/~kuristina"),
+			licenseName: field.stringOr("GNU Affero General Public License v3.0"),
+			licenseUrl: field.stringOr("https://spdx.org/licenses/AGPL-3.0-or-later.html"),
+		},
+	},
+};
+
+export type KuristinaConfig = Infer<typeof configSchema>;
+
+export const config: Readonly<ReturnType<typeof getConfig>> = new Proxy({} as any, {
+	get(_, prop) {
+		return Reflect.get(getConfig(), prop);
+	},
+});
+
+export * from "./loader.ts";
+export * from "./errors.ts";
+export * from "./schema.ts";

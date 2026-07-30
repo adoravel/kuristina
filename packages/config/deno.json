@@ -1,0 +1,7 @@
+{
+	"name": "@kuristina/config",
+	"exports": "./mod.ts",
+	"imports": {
+		"@std/toml": "jsr:@std/toml@^1.0.11"
+	}
+}
