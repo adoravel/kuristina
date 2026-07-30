@@ -4,7 +4,7 @@
  * SPDX-License-Identifier: AGPL-2.0-or-later
  */
 
-import { defineCommand } from "@kuristina/commands";
+import { defineCommand } from "@kuristina/commands/registry";
 
 export default defineCommand("ping", {}, async (ctx) => {
 	const sent = await ctx.reply({ content: `Pong! 🏓` });

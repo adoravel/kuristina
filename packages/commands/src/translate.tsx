@@ -4,8 +4,9 @@
  * SPDX-License-Identifier: AGPL-2.0-or-later
  */
 
-import { describe } from "@kuristina/core";
-import { defineCommand, greedyString, identifier, optional } from "@kuristina/commands";
+import { describe } from "@kuristina/errors";
+import { defineCommand } from "@kuristina/commands/registry";
+import { greedyString, identifier, optional } from "@kuristina/commands";
 import type { Bot, Message } from "@kuristina/discord-bot";
 import { getTranslationProvider } from "@kuristina/services/translation";
 import {

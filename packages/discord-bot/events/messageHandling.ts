@@ -5,7 +5,8 @@
  */
 
 import discord from "@kuristina/discord-bot";
-import { commandRegistry, contextCache, infer, prefix, StringStream } from "@kuristina/commands";
+import { infer, StringStream } from "@kuristina/commands";
+import { commandRegistry, contextCache, prefix } from "@kuristina/commands/registry";
 
 export const messageCreate: typeof discord.events.messageCreate = async (message) => {
 	if (message.author.bot || !message.guildId) return;

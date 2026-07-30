@@ -4,7 +4,7 @@
  * SPDX-License-Identifier: AGPL-2.0-or-later
  */
 
-import { commandRegistry, commands } from "@kuristina/commands";
+import { commandRegistry, commands } from "@kuristina/commands/registry";
 
 import { createProxyCache } from "dd-cache-proxy";
 import {
@@ -17,7 +17,9 @@ import {
 
 import { getConfig } from "@kuristina/config";
 import { closeDatabaseConnection, initialiseDatabase } from "@kuristina/database";
-import { type AppError, Ok, type Result } from "@kuristina/core";
+
+import { Ok, type Result } from "@kuristina/core";
+import type { AppError } from "@kuristina/errors";
 
 import { events } from "./events/mod.ts";
 

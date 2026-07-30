@@ -4,7 +4,8 @@
  * SPDX-License-Identifier: AGPL-2.0-or-later
  */
 
-import { defineCommand, number, optional } from "@kuristina/commands";
+import { number, optional } from "@kuristina/commands";
+import { defineCommand } from "@kuristina/commands/registry";
 import {
 	ActionRow,
 	Card,

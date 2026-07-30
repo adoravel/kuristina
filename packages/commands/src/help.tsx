@@ -4,7 +4,7 @@
  * SPDX-License-Identifier: AGPL-2.0-or-later
  */
 
-import { commandRegistry, defineCommand, identifier, optional } from "@kuristina/commands";
+import { identifier, optional } from "@kuristina/commands";
 import {
 	Card,
 	ErrorMessage,
@@ -15,6 +15,8 @@ import {
 	TextDisplay,
 } from "@kuristina/discord-ui";
 import { config } from "@kuristina/config";
+import { defineCommand } from "@kuristina/commands/registry";
+import { commandRegistry } from "../lib/registry.tsx";
 
 interface HelpCardProps {
 	commands: Array<{ name: string; description: string }>;

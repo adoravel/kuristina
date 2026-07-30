@@ -4,7 +4,6 @@
  * SPDX-License-Identifier: AGPL-2.0-or-later
  */
 
-export * from "./combinators/mod.ts";
 export * from "./lib/mod.ts";
 
 export const commands = {
