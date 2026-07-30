@@ -8,5 +8,8 @@
 		"./deepl": "./deepl/mod.ts",
 		"./lastfm": "./lastfm/mod.ts",
 		"./google/batchexecute": "./google/batchexecute/mod.ts"
+	},
+	"test": {
+		"include": ["tests/*.ts"]
 	}
 }
