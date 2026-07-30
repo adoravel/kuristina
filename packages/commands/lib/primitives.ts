@@ -15,9 +15,12 @@ import {
 	pick,
 	sequence,
 	skipWhitespace,
+	toParser,
 	yay,
 } from "@kuristina/commands";
-import { getConfig } from "@kuristina/config";
+import { config } from "@kuristina/config";
+
+import type { Parser } from "../combinators/parse.ts";
 
 export const snowflake = sequence(digit).map(
 	"snowflake",
@@ -101,13 +104,11 @@ export const timestamp = few(
 		}),
 );
 
-export const prefix = pick(
-	...["/", "$", "kuristina", `<@${getConfig().discord.applicationId}>`].map((
-		prefix,
-	) =>
-		few(literal(prefix), optional(skipWhitespace)).map(
-			"prefix",
-			(_, [prefix]) => yay(prefix),
-		)
-	),
-);
+export const prefix: Parser<string> = toParser((stream) => {
+	const parser = pick(
+		...["/", "$", "kuristina", `<@${config.discord.applicationId}>`].map((p) =>
+			few(literal(p), optional(skipWhitespace)).map("prefix", (_, [matched]) => yay(matched))
+		),
+	);
+	return parser(stream);
+}, "prefix");
