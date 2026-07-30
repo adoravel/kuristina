@@ -1,0 +1,11 @@
+{
+	"name": "@kuristina/services",
+	"exports": {
+		"./markov": "./markov/mod.ts",
+		"./tidal": "./tidal/mod.ts",
+		"./tidal/client": "./tidal/client/mod.ts",
+		"./translation": "./translation/mod.ts",
+		"./deepl": "./deepl/mod.ts",
+		"./lastfm": "./lastfm/mod.ts"
+	}
+}
