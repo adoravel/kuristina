@@ -15,8 +15,7 @@ import {
 	TextDisplay,
 } from "@kuristina/discord-ui";
 import { config } from "@kuristina/config";
-import { defineCommand } from "@kuristina/commands/registry";
-import { commandRegistry } from "../lib/registry.tsx";
+import { commandRegistry, defineCommand } from "@kuristina/commands/registry";
 
 interface HelpCardProps {
 	commands: Array<{ name: string; description: string }>;
