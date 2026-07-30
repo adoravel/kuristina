@@ -5,7 +5,7 @@
 		"dev": "deno run --watch -P=lesbian-sex apps/bot/main.ts",
 		"start": "deno run -P=lesbian-sex apps/bot/main.ts",
 		"lint": "deno lint",
-		"test": "deno test -P=lesbian-sex packages/commands/test/*.ts packages/services/test/*.ts",
+		"test": "deno test --allow-env --allow-read",
 		"add-header": "deno fmt && deno run --allow-read --allow-write scripts/copyright.ts"
 	},
 	"permissions": {
