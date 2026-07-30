@@ -13,6 +13,8 @@ import {
 	formatLanguage,
 	isSupportedSourceLang,
 	isSupportedTargetLang,
+	resolveFormality,
+	resolveModelType,
 } from "@kuristina/services/deepl";
 import type { Formality, ModelType, SourceLang, TargetLang } from "@kuristina/services/deepl";
 import { Card, Section, Subtext, TextDisplay } from "@kuristina/discord-ui";
@@ -22,33 +24,6 @@ const UNICODE_EMOJI_RE =
 	/\p{Extended_Pictographic}(?:\u200d\p{Extended_Pictographic})*[\uFE0F\u{1F3FB}-\u{1F3FF}]*/gu;
 
 const DEFAULT_TARGET: TargetLang = "EN-GB";
-
-const FORMALITY_ALIASES: Record<string, Formality> = {
-	default: "default",
-	more: "more",
-	formal: "more",
-	less: "less",
-	informal: "less",
-	prefer_more: "prefer_more",
-	"prefer-more": "prefer_more",
-	prefer_less: "prefer_less",
-	"prefer-less": "prefer_less",
-};
-
-const MODEL_ALIASES: Record<string, ModelType> = {
-	quality: "quality_optimized",
-	q: "quality_optimized",
-	best: "quality_optimized",
-	b: "quality_optimized",
-	latency: "latency_optimized",
-	l: "latency_optimized",
-	fast: "latency_optimized",
-	f: "latency_optimized",
-	balanced: "prefer_quality_optimized",
-	prefer_quality: "prefer_quality_optimized",
-	pq: "prefer_quality_optimized",
-	preferQuality: "prefer_quality_optimized",
-};
 
 function truncate(text: string, max: number): string {
 	return text.length > max ? text.slice(0, max - 1) + "…" : text;
@@ -172,7 +147,7 @@ export default defineCommand("translate", {
 
 	let formality: Formality | undefined;
 	if (ctx.args.formality) {
-		formality = FORMALITY_ALIASES[ctx.args.formality.toLowerCase()];
+		formality = resolveFormality(ctx.args.formality);
 		if (!formality) {
 			return void await ctx.error(
 				`"${ctx.args.formality}" isn't a recognised formality. Try \`more\`, \`less\`, or \`default\`.`,
@@ -182,7 +157,7 @@ export default defineCommand("translate", {
 
 	let modelType: ModelType | undefined;
 	if (ctx.args.model) {
-		modelType = MODEL_ALIASES[ctx.args.model.toLowerCase()];
+		modelType = resolveModelType(ctx.args.model);
 		if (!modelType) {
 			return void await ctx.error(
 				`"${ctx.args.model}" isn't a recognised model. Try \`quality\`, \`latency\`, or \`balanced\`.`,

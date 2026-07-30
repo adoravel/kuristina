@@ -59,7 +59,7 @@ export function pick<T extends any[]>(
 export function pick(...lexers: any[]): any {
 	const parsers = lexers.map((l) => construct(l));
 	const tags = parsers.map((p) => p.tag).filter(Boolean);
-const attempted = parsers.map((p) => attempt(p));
+	const attempted = parsers.map((p) => attempt(p));
 
 	return construct((stream) => {
 		const errors: ParsingError[] = [];

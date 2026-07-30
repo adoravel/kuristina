@@ -8,3 +8,4 @@ export * from "./types.ts";
 export * from "./http.ts";
 export * from "./languages.ts";
 export * from "./errors.ts";
+export * from "./aliases.ts";
