@@ -4,10 +4,12 @@
  * SPDX-License-Identifier: AGPL-2.0-or-later
  */
 
-import { BatchExecuteClient } from "./batchexecute.ts";
-import { decodeBatchExecuteResponse } from "./batchexecute/decoder.ts";
-import { PreparedBatchExecute } from "./batchexecute/encoder.ts";
-import { BatchExecuteError } from "./batchexecute/types.ts";
+import {
+	BatchExecuteClient,
+	BatchExecuteError,
+	decodeBatchExecuteResponse,
+	PreparedBatchExecute,
+} from "@kuristina/services/google/batchexecute";
 
 const encoder = new TextEncoder();
 
@@ -66,7 +68,7 @@ Deno.test("BatchExecuteClient bootstraps a WIZ session, caches it, and sends gen
 		origin: "https://example.test",
 		app: "ExampleApp",
 		locale: "pt-BR",
-		fetch: (input, init) => {
+		fetch: (input: any, init: any) => {
 			calls.push({ url: String(input), init });
 			if (calls.length === 1) {
 				return Promise.resolve(
@@ -87,7 +89,7 @@ Deno.test("BatchExecuteClient bootstraps a WIZ session, caches it, and sends gen
 		calls[1].url,
 		"https://example.test/_/ExampleApp/data/batchexecute?rpcids=rpc&_reqid=1234&rt=c&f.sid=sid&bl=build&hl=pt-BR&soc-app=1&soc-platform=1&soc-device=1",
 	);
-	assertEquals(await (calls[1].init?.body as URLSearchParams).get("at"), "token");
+	assertEquals((calls[1].init?.body as URLSearchParams).get("at"), "token");
 	assertEquals((await client.getSession()).fSid, "sid");
 	assertEquals(calls.length, 2);
 });

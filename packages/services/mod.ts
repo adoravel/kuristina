@@ -5,4 +5,4 @@
  */
 
 export * from "./translation/mod.ts";
-export * from "./google/batchexecute.ts";
+export * from "./google/batchexecute/mod.ts";
