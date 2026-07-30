@@ -19,7 +19,6 @@ import type {
 import type { CommandArgs, CommandRemaining } from "./parser.ts";
 import type { CommandMetadata } from "./definition.ts";
 import { ErrorMessage, SuccessMessage } from "@kuristina/discord-ui";
-import { getConfig } from "@kuristina/config";
 
 type BaseArgs = Record<string, any>;
 
@@ -124,24 +123,5 @@ export class CommandExecutionContext<
 				opts.messageReference.guildId = this.message.guildId;
 			}
 		}
-	}
-}
-
-export async function sendCooldownMessage(message: Message): Promise<void> {
-	try {
-		await discord.helpers.sendMessage(message.channelId, {
-			messageReference: {
-				messageId: message.id,
-				channelId: message.channelId,
-				guildId: message.guildId,
-			},
-			...(
-				<ErrorMessage title="Cooldown" emoji={getConfig().design.emojis.loading}>
-					Please wait before using this command again.
-				</ErrorMessage>
-			),
-		});
-	} catch (error) {
-		console.error("failed to send cooldown message:", error);
 	}
 }

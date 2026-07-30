@@ -8,4 +8,5 @@ export * from "./parser.ts";
 export * from "./primitives.ts";
 export * from "./definition.ts";
 export * from "./context.tsx";
-export * from "./registry.tsx";
+export * from "./registry.ts";
+export * from "./responses.tsx";

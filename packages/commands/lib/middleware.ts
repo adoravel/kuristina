@@ -9,6 +9,7 @@ import type { StringStream } from "@kuristina/commands";
 
 import type { CommandMetadata } from "./definition.ts";
 import { config } from "@kuristina/config";
+import { sendBlockedMessage } from "./responses.tsx";
 
 export interface Middleware {
 	readonly name: string;
@@ -50,22 +51,7 @@ export const ownerOnly: Middleware = {
 			return { type: "stop", reason: "No author data" };
 		}
 		if (author.id !== config.owner.id) {
-			try {
-				await ctx.platform.helpers.sendMessage(
-					ctx.message.channelId,
-					{
-						content: `${config.design.emojis.error} Give up.`,
-						messageReference: {
-							messageId: ctx.message.id,
-							channelId: ctx.message.channelId,
-							guildId: ctx.message.guildId,
-							failIfNotExists: false,
-						},
-					},
-				);
-			} catch (error) {
-				console.error("failed to send owner-only error:", error);
-			}
+			await sendBlockedMessage(ctx.message, "Give up.");
 			return { type: "stop", reason: "Not owner" };
 		}
 		return { type: "continue" };
@@ -77,16 +63,7 @@ export const guildOnly: Middleware = {
 	priority: 10,
 	async execute(ctx) {
 		if (!ctx.message.guildId) {
-			try {
-				await ctx.platform.helpers.sendMessage(
-					ctx.message.channelId,
-					{
-						content: `${config.design.emojis.error} This command only works in servers.`,
-					},
-				);
-			} catch (error) {
-				console.error("failed to send guild-only message:", error);
-			}
+			await sendBlockedMessage(ctx.message, "This command only works in servers.");
 			return { type: "stop", reason: "DM message" };
 		}
 		return { type: "continue" };
@@ -108,25 +85,10 @@ export const permissions = (
 		const allow = permissions.every((p) => member.permissions?.has(p) ?? false);
 
 		if (!allow) {
-			try {
-				await ctx.platform.helpers.sendMessage(
-					ctx.message.channelId,
-					{
-						content:
-							`${config.design.emojis.error} You're not allowed to use this command.\nRequired: ${
-								permissions.join(", ")
-							}`,
-						messageReference: {
-							messageId: ctx.message.id,
-							channelId: ctx.message.channelId,
-							guildId: ctx.message.guildId,
-							failIfNotExists: false,
-						},
-					},
-				);
-			} catch (error) {
-				console.error("failed to send permission error:", error);
-			}
+			await sendBlockedMessage(
+				ctx.message,
+				`You're not allowed to use this command.\nRequired: ${permissions.join(", ")}`,
+			);
 			return { type: "stop", reason: "Lacking permissions" };
 		}
 		return { type: "continue" };
