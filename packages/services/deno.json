@@ -6,6 +6,7 @@
 		"./tidal/client": "./tidal/client/mod.ts",
 		"./translation": "./translation/mod.ts",
 		"./deepl": "./deepl/mod.ts",
-		"./lastfm": "./lastfm/mod.ts"
+		"./lastfm": "./lastfm/mod.ts",
+		"./google/batchexecute": "./google/batchexecute/mod.ts"
 	}
 }
