@@ -102,6 +102,11 @@ export function command<L extends Record<string, Parser<any>>, R = string>(
 		value: (lx.tag?.endsWith("?") ? lx.next! : lx) as Parser<any>,
 	}));
 
+	const attemptedSpecs = specs.map((s) => ({
+		...s,
+		parser: attempt(positional(s.name, s.value)),
+	}));
+
 	const parser = construct((stream) => {
 		const values: Record<string, unknown> = {};
 		const remainingParts: string[] = [];
@@ -110,8 +115,8 @@ export function command<L extends Record<string, Parser<any>>, R = string>(
 			stream.skipWhitespace();
 			if (stream.isEOF()) break;
 
-			const flag = specs.find(({ name, value }) => {
-				const at = attempt(positional(name, value))(stream);
+			const flag = attemptedSpecs.find(({ name, parser }) => {
+				const at = parser(stream);
 				if (!infer("success")(at)) return false;
 				values[name] = at.data;
 				return true;
