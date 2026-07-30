@@ -59,12 +59,13 @@ export function pick<T extends any[]>(
 export function pick(...lexers: any[]): any {
 	const parsers = lexers.map((l) => construct(l));
 	const tags = parsers.map((p) => p.tag).filter(Boolean);
+const attempted = parsers.map((p) => attempt(p));
 
 	return construct((stream) => {
 		const errors: ParsingError[] = [];
 
-		for (const parser of parsers) {
-			const at = attempt(parser)(stream);
+		for (const attemptedParser of attempted) {
+			const at = attemptedParser(stream);
 			if (infer("success")(at)) {
 				return yay(at.data);
 			}
@@ -159,11 +160,13 @@ export function unordered(...lexers: any[]): any {
 
 export function many<T>(lexer: Lexer<T>): Parser<T[]> {
 	const inner = construct(lexer);
+	const attemptInner = attempt(inner);
+
 	return construct((stream) => {
 		const output: T[] = [];
 
 		while (!stream.isEOF()) {
-			const at = attempt(inner)(stream);
+			const at = attemptInner(stream);
 			if (!infer("success")(at)) {
 				break;
 			}
@@ -209,11 +212,13 @@ export function atLeast<T>(n: number, lexer: Lexer<T>): Parser<T[]> {
 
 export function atMost<T>(n: number, lexer: Lexer<T>): Parser<T[]> {
 	const inner = construct(lexer);
+	const attemptInner = attempt(inner);
+
 	return construct((stream) => {
 		const output: T[] = [];
 
 		for (let i = 0; i < n; i++) {
-			const result = attempt(inner)(stream);
+			const result = attemptInner(stream);
 			if (!infer("success")(result)) {
 				break;
 			}
