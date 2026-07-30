@@ -5,7 +5,7 @@
  */
 
 import { Errors, Fail, Ok, type Result, sleep, type SnakeCase, tryAsync } from "@kuristina/core";
-import type { TidalError } from "./errors.ts";
+import { Errors as tidalErrors, type TidalError } from "./errors.ts";
 
 export interface DeviceAuthResponse {
 	deviceCode: string;
@@ -69,14 +69,14 @@ async function post<T>(
 		const detail = json.error_description as string | undefined;
 
 		if (error === "authorization_pending") {
-			return Fail(Errors.tidal.auth("device_pending", "Waiting for user approval"));
+			return Fail(tidalErrors.auth("device_pending", "Waiting for user approval"));
 		}
 		if (error === "slow_down") return Fail(Errors.rateLimit(5_000));
 		if (error === "expired_token") {
-			return Fail(Errors.tidal.auth("device_expired", "Device code expired"));
+			return Fail(tidalErrors.auth("device_expired", "Device code expired"));
 		}
 		if (response.status === 401) {
-			return Fail(Errors.tidal.auth("refresh_failed", detail ?? "Unauthorised"));
+			return Fail(tidalErrors.auth("refresh_failed", detail ?? "Unauthorised"));
 		}
 
 		return Fail(
@@ -137,7 +137,7 @@ export async function pollForToken(
 		});
 	}
 
-	return Fail(Errors.tidal.auth("device_expired", "polling timed out"));
+	return Fail(tidalErrors.auth("device_expired", "polling timed out"));
 }
 
 export async function refreshAccessToken(
@@ -155,7 +155,7 @@ export async function refreshAccessToken(
 
 	if (!result.ok) {
 		if (result.error.kind === "tidal/auth" || result.error.kind === "rate_limit") return result;
-		return Fail(Errors.tidal.auth("refresh_failed", `${result.error.kind} ${result.error.tag}`));
+		return Fail(tidalErrors.auth("refresh_failed", `${result.error.kind} ${result.error.tag}`));
 	}
 
 	const r = result.value;

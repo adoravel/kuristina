@@ -1,0 +1,4 @@
+{
+	"name": "@kuristina/errors",
+	"exports": "./mod.ts"
+}

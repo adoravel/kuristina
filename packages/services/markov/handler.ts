@@ -4,8 +4,8 @@
  * SPDX-License-Identifier: AGPL-2.0-or-later
  */
 
-import { discard, Ok, or, type Result, safePromise, tapError } from "@kuristina/core";
-import { type AppError, TimedMap } from "@kuristina/core";
+import { discard, Ok, or, type Result, safePromise, tapError, TimedMap } from "@kuristina/core";
+import type { AppError } from "@kuristina/errors";
 
 import { cfg, getConfig } from "@kuristina/config";
 import type { SqlError } from "@kuristina/database";

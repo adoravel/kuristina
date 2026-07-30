@@ -6,7 +6,8 @@
 
 import { Kysely } from "@kysely/kysely";
 
-import { Errors, Fail, Ok, type Result } from "@kuristina/core";
+import { Fail, Ok, type Result } from "@kuristina/core";
+import { Errors } from "./errors.ts";
 import { config } from "@kuristina/config";
 
 import type { SqlError } from "./errors.ts";
@@ -38,7 +39,7 @@ export async function tryQuery<T>(fn: () => Promise<T>): Promise<Result<T, SqlEr
 	try {
 		return Ok(await fn());
 	} catch (e) {
-		return Fail(Errors.sql.queryFailed(fn.toString(), String(e)));
+		return Fail(Errors.queryFailed(fn.toString(), String(e)));
 	}
 }
 

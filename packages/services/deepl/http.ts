@@ -4,7 +4,8 @@
  * SPDX-License-Identifier: AGPL-2.0-or-later
  */
 
-import { Errors, Fail, Ok, type Result, withRetry } from "@kuristina/core";
+import { Fail, Ok, type Result, withRetry } from "@kuristina/core";
+import { Errors } from "./errors.ts";
 import { cfg, getConfig } from "@kuristina/config";
 import type { DeepLError } from "./errors.ts";
 import type {
@@ -83,8 +84,8 @@ function apiKey(): string {
 }
 
 function assertConfigured(): DeepLError | null {
-	if (!cfg("deepl")) return Errors.deepl.notConfigured();
-	if (!apiKey()) return Errors.deepl.notConfigured();
+	if (!cfg("deepl")) return Errors.notConfigured();
+	if (!apiKey()) return Errors.notConfigured();
 	return null;
 }
 
@@ -136,26 +137,26 @@ async function request<T>(
 			case 204:
 				return Ok(text.length ? JSON.parse(text) as T : undefined as T);
 			case 400:
-				return Fail(Errors.deepl.badRequest(text));
+				return Fail(Errors.badRequest(text));
 			case 403:
-				return Fail(Errors.deepl.auth());
+				return Fail(Errors.auth());
 			case 413:
-				return Fail(Errors.deepl.tooLarge());
+				return Fail(Errors.tooLarge());
 			case 429:
-				return Fail(Errors.deepl.rateLimited());
+				return Fail(Errors.rateLimited());
 			case 456:
-				return Fail(Errors.deepl.quotaExceeded());
+				return Fail(Errors.quotaExceeded());
 			case 503:
-				return Fail(Errors.deepl.unavailable());
+				return Fail(Errors.unavailable());
 			default:
-				return Fail(Errors.deepl.unknown(response.status, text));
+				return Fail(Errors.unknown(response.status, text));
 		}
 	} catch (e) {
 		if (e instanceof DeepLRetryableError) {
-			return Fail(e.status === 429 ? Errors.deepl.rateLimited() : Errors.deepl.unavailable());
+			return Fail(e.status === 429 ? Errors.rateLimited() : Errors.unavailable());
 		}
 		const message = e instanceof Error ? e.message : String(e);
-		return Fail(Errors.deepl.unknown(0, `request failed: ${message}`));
+		return Fail(Errors.unknown(0, `request failed: ${message}`));
 	}
 }
 

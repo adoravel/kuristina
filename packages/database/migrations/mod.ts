@@ -7,9 +7,9 @@
 import type { Kysely } from "@kysely/kysely";
 import { FileMigrationProvider, Migrator } from "@kysely/kysely/migration";
 import { join, toFileUrl } from "@std/path";
-import { Errors, Fail, Ok, type Result } from "@kuristina/core";
-import type { SqlError } from "../errors.ts";
-import type { KuristinaSchema } from "../schema.ts";
+import { Fail, Ok, type Result } from "@kuristina/core";
+import { Errors, type SqlError } from "../errors.ts";
+import type { KuristinaSchema, SchemaContext } from "../schema.ts";
 
 function migrator(db: Kysely<KuristinaSchema>): Migrator {
 	return new Migrator({
@@ -41,17 +41,17 @@ function report(results: readonly { migrationName: string; status: string }[] | 
 	}
 }
 
-export async function migrate(db: Kysely<KuristinaSchema>): Promise<Result<void, SqlError>> {
-	const { error, results } = await migrator(db).migrateToLatest();
+export async function migrate(ctx: SchemaContext): Promise<Result<void, SqlError>> {
+	const { error, results } = await migrator(ctx).migrateToLatest();
 	report(results);
-	if (error) return Fail(Errors.sql.queryFailed("migrate()", String(error)));
+	if (error) return Fail(Errors.queryFailed("migrate()", String(error)));
 	return Ok(undefined);
 }
 
 /** steps the database back by one migration. intended for local development only */
-export async function rollback(db: Kysely<KuristinaSchema>): Promise<Result<void, SqlError>> {
-	const { error, results } = await migrator(db).migrateDown();
+export async function rollback(ctx: SchemaContext): Promise<Result<void, SqlError>> {
+	const { error, results } = await migrator(ctx).migrateDown();
 	report(results);
-	if (error) return Fail(Errors.sql.queryFailed("rollback()", String(error)));
+	if (error) return Fail(Errors.queryFailed("rollback()", String(error)));
 	return Ok(undefined);
 }
