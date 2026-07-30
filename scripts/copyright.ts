@@ -1,7 +1,7 @@
 #!/usr/bin/env -S deno run --allow-read --allow-write
 
-import { walk } from "https://deno.land/std/fs/walk.ts";
-import { bold, cyan, dim, green, red, yellow } from "https://deno.land/std/fmt/colors.ts";
+import { walk } from "@std/fs";
+import { bold, cyan, dim, green, red, yellow } from "@std/fmt/colors";
 
 const cfg = {
 	project: "kuristina",
