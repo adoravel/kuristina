@@ -1,0 +1,113 @@
+/**
+ * kuristina, a ~~kitchen~~ bathroom sink discord bot
+ * Copyright (c) 2025-2026 kyu.re
+ * SPDX-License-Identifier: AGPL-2.0-or-later
+ */
+
+import {
+	digit,
+	error,
+	few,
+	identifier,
+	literal,
+	many,
+	optional,
+	pick,
+	sequence,
+	skipWhitespace,
+	yay,
+} from "@kuristina/commands";
+import { getConfig } from "@kuristina/config";
+
+export const snowflake = sequence(digit).map(
+	"snowflake",
+	(stream, digits) => {
+		const id = digits.join("");
+		if (Number.isSafeInteger(id)) {
+			return error(
+				stream,
+				`invalid snowflake: ${id}`,
+				["valid snowflake (within uint64 range)"],
+			);
+		}
+		return yay(BigInt(id));
+	},
+);
+
+export const mention = few(literal("<@"), snowflake, literal(">")).map(
+	"snowflake",
+	(_, [, id]) => yay(id),
+);
+
+export const roleMention = few(
+	literal("<@&"),
+	snowflake,
+	literal(">"),
+).map(
+	"role_mention",
+	(_, [, id]) => yay(id),
+);
+
+export const channelMention = few(
+	literal("<#"),
+	snowflake,
+	literal(">"),
+).map(
+	"channel_mention",
+	(_, [, id]) => yay(id),
+);
+
+export const userId = pick(mention, snowflake);
+
+export const memberId = pick(mention, snowflake);
+
+export const memberIds = few(
+	pick(mention, snowflake),
+	many(
+		few(skipWhitespace, pick(mention, snowflake))
+			.map("additional_member", (_, [, id]) => yay(id)),
+	),
+).map("member_ids", (_, [head, tail]) => yay([head, ...tail]));
+
+export const emoji = few(
+	literal("<"),
+	optional(literal("a")),
+	literal(":"),
+	identifier,
+	literal(":"),
+	snowflake,
+	literal(">"),
+).map(
+	"emoji",
+	(_, [, animated, , name, , id]) =>
+		yay({
+			name,
+			id,
+			animated: animated !== null,
+		}),
+);
+
+export const timestamp = few(
+	literal("<t:"),
+	snowflake,
+	optional(few(literal(":"), pick("t", "T", "d", "D", "f", "F", "R"))),
+	literal(">"),
+).map(
+	"timestamp",
+	(_, [, timestamp, format]) =>
+		yay({
+			timestamp,
+			format: format?.[1] || "f",
+		}),
+);
+
+export const prefix = pick(
+	...["/", "$", "kuristina", `<@${getConfig().discord.applicationId}>`].map((
+		prefix,
+	) =>
+		few(literal(prefix), optional(skipWhitespace)).map(
+			"prefix",
+			(_, [prefix]) => yay(prefix),
+		)
+	),
+);
