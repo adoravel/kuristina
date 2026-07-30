@@ -10,5 +10,6 @@ export * from "./components/Container.tsx";
 export * from "./components/Separator.tsx";
 export * from "./components/StringSelect.tsx";
 export * from "./components/TextDisplay.tsx";
-export * from "./design/components.tsx";
+export * from "./design/primitives.tsx";
+export * from "./design/messages.tsx";
 export * from "./design/theme.ts";
