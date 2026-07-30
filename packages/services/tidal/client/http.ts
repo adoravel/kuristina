@@ -4,10 +4,12 @@
  * SPDX-License-Identifier: AGPL-2.0-or-later
  */
 
-import { Errors, Fail, type Result, tryAsync, withRetry } from "@kuristina/core";
+import { Fail, type Result, tryAsync, withRetry } from "@kuristina/core";
+import { Errors as tidalErrors } from "../errors.ts";
 
 import { isTransient, type TidalError } from "../errors.ts";
 import { FIRE_TV_ID, FIRE_TV_UA } from "../auth.ts";
+import { Errors } from "@kuristina/errors";
 
 const API_BASE = "https://api.tidal.com/v1";
 
@@ -45,19 +47,19 @@ async function get<T>(
 	if (!response.value.ok) {
 		switch (response.value.status) {
 			case 401:
-				return Fail(Errors.tidal.api(401, "Unauthorised"));
+				return Fail(tidalErrors.api(401, "Unauthorised"));
 			case 402:
-				return Fail(Errors.tidal.api(402, "Subscription required"));
+				return Fail(tidalErrors.api(402, "Subscription required"));
 			case 403:
-				return Fail(Errors.tidal.api(403, "Forbidden"));
+				return Fail(tidalErrors.api(403, "Forbidden"));
 			case 404:
-				return Fail(Errors.tidal.api(404, "Not found"));
+				return Fail(tidalErrors.api(404, "Not found"));
 			case 429:
-				return Fail(Errors.tidal.api(429, "Rate limited"));
+				return Fail(tidalErrors.api(429, "Rate limited"));
 		}
 		if (response.value.status >= 500) {
 			return Fail(
-				Errors.tidal.api(response.value.status as 500, `Server error ${response.value.status}`),
+				tidalErrors.api(response.value.status as 500, `Server error ${response.value.status}`),
 			);
 		}
 		return Fail(Errors.network(`HTTP ${response.value.status}`, response.value.status));
