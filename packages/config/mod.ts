@@ -55,6 +55,12 @@ export const configSchema = {
 			baseUrl: field.stringOr("https://api-free.deepl.com/v2"),
 			apiKey: field.stringOr(""),
 		},
+		lastfm: {
+			enabled: field.boolean(false),
+			baseUrl: field.stringOr("https://ws.audioscrobbler.com/2.0/"),
+			apiKey: field.stringOr(""),
+			secret: field.stringOr(""),
+		},
 	},
 	design: {
 		colours: {
