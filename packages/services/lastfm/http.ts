@@ -4,17 +4,17 @@
  * SPDX-License-Identifier: AGPL-2.0-or-later
  */
 
+import { cfg, config } from "@kuristina/config";
 import {
-	err,
 	Errors as CoreErrors,
+	err,
 	type FetchOptions,
 	fetchWithRetry,
 	ok,
 	type Result,
 } from "@kuristina/core";
-import { cfg, config } from "@kuristina/config";
+import { createHash } from "node:crypto";
 import { Errors, type LastFmApiError, type LastFmError } from "./errors.ts";
-import { encodeHex } from "@std/encoding/hex";
 
 export const REQUEST_TIMEOUT_MS = 10_000;
 
@@ -30,9 +30,8 @@ export function mapLastFmError(error: unknown, status?: number): LastFmError {
 	return CoreErrors.network(message, status);
 }
 
-async function md5(input: string): Promise<string> {
-	const hash = await crypto.subtle.digest("MD5", new TextEncoder().encode(input));
-	return encodeHex(hash);
+function md5(input: string): string {
+	  return createHash("md5").update(input).digest("hex");
 }
 
 export async function request<T>(
@@ -70,7 +69,7 @@ export async function request<T>(
 		const sortedEntries = Object.entries(body)
 			.sort(([a], [b]) => a.localeCompare(b));
 		const toSign = sortedEntries.map(([k, v]) => `${k}${v}`).join("");
-		const sig = await md5(toSign + secret);
+		const sig = md5(toSign + secret);
 		body.api_sig = sig;
 
 		requestBody = new URLSearchParams(body);
