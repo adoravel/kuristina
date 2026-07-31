@@ -9,7 +9,7 @@ import {
 	type SelectOption,
 	type StringSelectComponent,
 } from "@discordeno/types";
-import { childrenToArray } from "../utils.ts";
+import { childrenToArray, childrenToString } from "../utils.ts";
 import type { Flatten } from "@kuristina/core";
 
 export type StringSelectProps = Omit<StringSelectComponent, "type" | "options"> & {
@@ -26,6 +26,33 @@ export function StringSelect(
 	};
 }
 
-export function StringOption(props: SelectOption) {
-	return props;
+export type StringOptionProps = Omit<SelectOption, "label"> & { children?: unknown };
+
+export function StringOption({
+	children,
+	value,
+	description,
+	emoji,
+	default: isDefault,
+}: StringOptionProps): SelectOption {
+	const label = childrenToString("option", children) ?? "Unknown";
+
+	const option: SelectOption = {
+		label: label.slice(0, 100),
+		value: value.slice(0, 100),
+	};
+
+	if (description) {
+		option.description = description.slice(0, 100);
+	}
+
+	if (emoji) {
+		option.emoji = emoji;
+	}
+
+	if (isDefault !== undefined) {
+		option.default = isDefault;
+	}
+
+	return option;
 }
