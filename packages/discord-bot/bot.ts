@@ -85,6 +85,7 @@ const desiredProperties = createDesiredPropertiesObject({
 		messageReference: true,
 		attachments: true,
 		editedTimestamp: true,
+		reactions: true,
 	},
 	messageReference: {
 		channelId: true,
