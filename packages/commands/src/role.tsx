@@ -57,11 +57,11 @@ function RoleCard({ roles, userId }: RoleCardProps) {
 			</section>
 			<section>
 				<sub>
-					• Pro tip: You can pick an arbitrary colour by running `kuristina colour
-					&lt;colour_code&gt;`.
+					• Pro tip: You can pick an arbitrary colour by running{"  "}
+					<kbd>kuristina colour &lt;colour_code&gt;</kbd>.
 				</sub>
 				<sub>
-					• Example: <kbd>kuristina colour #FF69B4`</kbd> for hot pink.
+					• Example: <kbd>kuristina colour #FF69B4</kbd> for hot pink.
 				</sub>
 			</section>
 		</message>
