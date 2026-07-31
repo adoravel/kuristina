@@ -106,7 +106,7 @@ export const timestamp = few(
 
 export const prefix: Parser<string> = toParser((stream) => {
 	const parser = pick(
-		...["/", "$", "kuri", "kuris", "kuristina", `<@${config.discord.applicationId}>`].map((p) =>
+		...["/", "$", "kuristina", "kuris", "kuri", `<@${config.discord.applicationId}>`].map((p) =>
 			few(literal(p), optional(skipWhitespace)).map("prefix", (_, [matched]) => yay(matched))
 		),
 	);
