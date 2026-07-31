@@ -5,6 +5,6 @@
  */
 
 export * from "./core.ts";
-export * from "./storage.ts";
+export * from "./consumer.ts";
 export * from "./replacements.ts";
 export * from "./handler.ts";

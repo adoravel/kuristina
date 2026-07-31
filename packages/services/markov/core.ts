@@ -4,7 +4,7 @@
  * SPDX-License-Identifier: AGPL-2.0-or-later
  */
 
-import type { MarkovLink } from "./storage.ts";
+import type { MarkovLink } from "./consumer.ts";
 
 export function sanitise(text: string): string {
 	return text.replace(/`{1,3}[\s\S]*?`{1,3}/g, "").trim();

@@ -4,10 +4,10 @@
  * SPDX-License-Identifier: AGPL-2.0-or-later
  */
 
-import { discard, ok, or, type Result, safePromise, tapError, TimedMap } from "@kuristina/core";
+import { discard, ok, orAsync, type Result, safePromise } from "@kuristina/core";
 import type { AppError } from "@kuristina/errors";
 
-import { cfg, getConfig } from "@kuristina/config";
+import { cfg, config } from "@kuristina/config";
 import type { SqlError } from "@kuristina/database";
 import { getTranslationProvider } from "@kuristina/services/translation";
 import type { TranslateOptions } from "@kuristina/services/deepl";
@@ -15,111 +15,107 @@ import type { TranslateOptions } from "@kuristina/services/deepl";
 import type { DiscordClient, Message, Reaction } from "@kuristina/discord-client";
 
 import { applyReplacements } from "./replacements.ts";
+import * as markov from "./consumer.ts";
+import discord from "@kuristina/discord-bot";
 
-import * as markov from "./storage.ts";
+const TRANSLATION_DEBOUNCE_MS = 10_000;
 
-type ChannelState = {
-	chatMessageCount: number;
-	chatTriggerThreshold: number;
-	lastReplyTimestamp: number;
-	lastReactionTimestamp: number;
-};
+interface ChannelState {
+	messageCount: number;
+	triggerThreshold: number;
+	lastReplyAt: number;
+	lastReactionAt: number;
+}
 
-const channelState = new Map<bigint, ChannelState>();
+const channelStates = new Map<bigint, ChannelState>();
+const translationTimestamps = new Map<bigint, number>();
 
-function getState(channelId: bigint): ChannelState {
-	let state = channelState.get(channelId);
-	const { triggerThreshold } = getConfig().modules.markov;
+function getChannelState(channelId: bigint): ChannelState {
+	const existing = channelStates.get(channelId);
+	if (existing) return existing;
 
-	if (!state) {
-		channelState.set(
-			channelId,
-			state = {
-				chatMessageCount: 0,
-				chatTriggerThreshold:
-					Math.floor(Math.random() * (triggerThreshold.max - triggerThreshold.min + 1)) +
-					triggerThreshold.min,
-				lastReplyTimestamp: 0,
-				lastReactionTimestamp: 0,
-			},
-		);
-	}
+	const { min, max } = config.modules.markov.triggerThreshold;
+	const state: ChannelState = {
+		messageCount: 0,
+		triggerThreshold: Math.floor(Math.random() * (max - min + 1)) + min,
+		lastReplyAt: 0,
+		lastReactionAt: 0,
+	};
+	channelStates.set(channelId, state);
 	return state;
 }
 
-const memory = new TimedMap<bigint, Message>(1.8e6); // 30 min
-const messageLastTranslated = new Map<bigint, number>();
+function resetTrigger(state: ChannelState): void {
+	const { min, max } = config.modules.markov.triggerThreshold;
+	state.messageCount = 0;
+	state.triggerThreshold = Math.floor(Math.random() * (max - min + 1)) + min;
+	console.log(`  · markov: next message in ${state.triggerThreshold} messages.`);
+}
 
-function cooldownFor(channelId: bigint): number {
-	const { cooldownMs, channelCooldowns } = getConfig().modules.markov;
+function getCooldown(channelId: bigint): number {
+	const { cooldownMs, channelCooldowns } = config.modules.markov;
 	return channelCooldowns[channelId.toString()] ?? cooldownMs;
 }
 
-function resetMarkovTrigger(state: ChannelState) {
-	const { min, max } = getConfig().modules.markov.triggerThreshold;
-	state.chatMessageCount = 0;
-	state.chatTriggerThreshold = Math.floor(Math.random() * (max - min + 1)) + min;
-	console.log(`  · markov: next message in ${state.chatTriggerThreshold} messages.`);
+function isTrackedChannel(channelId: bigint): boolean {
+	return config.modules.markov.channelIds.includes(channelId);
 }
 
-export async function messageCreate(
+const normalise = (input: string): string =>
+	input.normalize("NFKC").normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+
+const matches = (input: string, pattern: RegExp): boolean => pattern.test(normalise(input));
+
+async function produce(
 	client: DiscordClient,
 	message: Message,
 ): Promise<Result<void, SqlError>> {
-	if (
-		message.author.id === getConfig().discord.client.applicationId ||
-		message.author.id === getConfig().discord.applicationId
-	) {
-		memory.set(message.id, message);
-		return ok(undefined);
-	}
+	const isBotAuthor = message.author.id === config.discord.client.applicationId ||
+		message.author.id === config.discord.applicationId;
+
+	if (isBotAuthor) return ok(undefined);
 	if (!isTrackedChannel(message.channelId)) return ok(undefined);
 
-	const state = getState(message.channelId);
-	if (!state.chatTriggerThreshold) resetMarkovTrigger(state);
+	const state = getChannelState(message.channelId);
 
-	const learnt = await markov.learn(message.content);
-	if (!learnt.ok) return learnt;
+	const learnResult = await markov.learn(message.content);
+	if (!learnResult.ok) return learnResult;
 
-	const isReplyToBot =
-		!!message.mentions?.find((x) => x.id === getConfig().discord.client.applicationId) ||
-		getConfig().modules.markov.pattern.test(stripDiacritics(message.content));
+	const isMentioned = message.mentions?.some(
+		(m) => m.id === config.discord.client.applicationId,
+	) ?? false;
+
+	const isReplyToBot = isMentioned || matches(message.content, config.modules.markov.pattern);
 
 	const now = Date.now();
-	const cooldownMs = cooldownFor(message.channelId);
-	let shouldTrigger = ++state.chatMessageCount >= state.chatTriggerThreshold;
+	const cooldown = getCooldown(message.channelId);
+	let shouldTrigger = ++state.messageCount >= state.triggerThreshold;
 
 	if (!shouldTrigger && isReplyToBot) {
-		if (now - state.lastReplyTimestamp > cooldownMs) {
-			console.log("  · markov: valid reply detected.");
+		if (now - state.lastReplyAt > cooldown) {
+			console.log("  · markov: valid reply detected");
 			shouldTrigger = true;
-			state.lastReplyTimestamp = now;
+			state.lastReplyAt = now;
 		} else {
-			console.log("  · markov: reply ignored (cooldown active).");
+			console.log("  · markov: reply ignored (cooldown active)");
 			return ok(undefined);
 		}
 	}
 
-	const { singleWordChance, urlConcatChance, urlOnlyChance } = getConfig().modules.markov;
-	let result: Result<string, SqlError> | undefined;
+	const { singleWordChance, urlConcatChance, urlOnlyChance } = config.modules.markov;
+
+	let result: Result<string, SqlError>;
 
 	if (Math.random() * 100 < singleWordChance) {
 		console.log("  · markov: generating single word...");
-		result = or<string, SqlError>(await markov.generate())(
-			tapError<string, SqlError>((e) => {
-				console.log("  · failed to generate single word:", e);
-			})(await markov.sampleWord()),
-		);
+		result = await orAsync(markov.generate)(await markov.sampleWord());
 	} else {
-		console.log(`  · markov: triggering generation...`);
-		result = tapError<string, SqlError>(console.error)(await markov.generate());
+		console.log("  · markov: triggering generation...");
+		result = await markov.generate();
 	}
-	if (!result.ok) return result;
 
-	console.log(
-		"  · markov:",
-		`"${result.value}" -${state.chatTriggerThreshold - state.chatMessageCount}`,
-	);
+	if (!result.ok) return result;
+	console.log(`  · markov: "${result.value}" -${state.triggerThreshold - state.messageCount}`);
 
 	if (!shouldTrigger) {
 		return ok(undefined);
@@ -129,39 +125,49 @@ export async function messageCreate(
 	const roll = Math.random() * 1000;
 
 	if (roll < urlConcatChance) {
-		console.log(`  · markov: triggering url concat...`);
-		result = await markov.generate("https://");
-		if (result.ok) value += " " + result.value;
+		console.log("  · markov: triggering url concat...");
+		const urlResult = await markov.generate("https://");
+		if (urlResult.ok) value += " " + urlResult.value;
 	} else if (roll < urlOnlyChance) {
-		console.log(`  · markov: triggering url only...`);
-		result = await markov.generate("https://");
-		if (result.ok) value = result.value;
+		console.log("  · markov: triggering url only...");
+		const urlResult = await markov.generate("https://");
+		if (urlResult.ok) value = urlResult.value;
 	} else {
-		result = await markov.generate();
-		if (result.ok) value = result.value;
+		const genResult = await markov.generate();
+		if (genResult.ok) value = genResult.value;
 	}
-	if (!result.ok) return result;
 
 	value = applyReplacements(value, message.guildId);
-	const sent = await safePromise(client.helpers.sendMessage(message.channelId, {
-		content: value,
-		messageReference: isReplyToBot
-			? {
-				messageId: message.id,
-				channelId: message.channelId,
-				guildId: message.guildId,
-				failIfNotExists: false,
-			}
-			: undefined,
-	}));
+
+	const sent = await safePromise(
+		client.helpers.sendMessage(message.channelId, {
+			content: value,
+			messageReference: isReplyToBot
+				? {
+					messageId: message.id,
+					channelId: message.channelId,
+					guildId: message.guildId,
+					failIfNotExists: false,
+				}
+				: undefined,
+		}),
+	);
 
 	if (!sent.ok) {
-		console.error("    · markov: send failed:", sent.error.message);
+		console.error("  · markov: send failed:", sent.error.message);
 	} else {
 		console.log(`  · markov: sent "${value}"`);
 	}
 
-	return resetMarkovTrigger(state), ok(undefined);
+	resetTrigger(state);
+	return ok(undefined);
+}
+
+export function messageCreate(
+	client: DiscordClient,
+	message: Message,
+): Promise<Result<void, SqlError>> {
+	return produce(client, message);
 }
 
 export async function reactionAdd(
@@ -170,36 +176,59 @@ export async function reactionAdd(
 ): Promise<Result<void, AppError>> {
 	if (!cfg("deepl")) return ok(undefined);
 
-	if (
-		reaction.messageAuthorId !== getConfig().discord.client.applicationId ||
-		!isTrackedChannel(reaction.channelId)
-	) return ok(undefined);
-
-	const translateEmoji = getConfig().modules.markov.translationEmoji;
-	if (reaction.emoji.name !== translateEmoji) return ok(undefined);
-
-	const lastTranslated = messageLastTranslated.get(reaction.messageId);
-	if (lastTranslated && (Date.now() - lastTranslated) < 10_000) {
-		console.log(`  · markov(translate): message was recently translated, skipping...`);
+	const botId = config.discord.client.applicationId;
+	if (reaction.messageAuthorId !== botId || !isTrackedChannel(reaction.channelId)) {
 		return ok(undefined);
 	}
 
-	const state = getState(reaction.channelId);
-	const now = Date.now();
-	const cooldownMs = cooldownFor(reaction.channelId);
+	const translateEmoji = config.modules.markov.translationEmoji;
+	if (reaction.emoji.name !== translateEmoji) return ok(undefined);
 
-	if (now - state.lastReactionTimestamp < cooldownMs) {
+	const lastTranslated = translationTimestamps.get(reaction.messageId);
+	if (lastTranslated && Date.now() - lastTranslated < TRANSLATION_DEBOUNCE_MS) {
+		console.log("  · markov(translate): message was recently translated, skipping...");
+		return ok(undefined);
+	}
+
+	const state = getChannelState(reaction.channelId);
+	const now = Date.now();
+	const cooldown = getCooldown(reaction.channelId);
+
+	if (now - state.lastReactionAt < cooldown) {
 		console.log("  · markov(translate): reaction ignored (cooldown active).");
 		return ok(undefined);
 	}
-	state.lastReactionTimestamp = now;
-	messageLastTranslated.set(reaction.messageId, Date.now());
 
-	const message = memory.get(reaction.messageId);
-	if (!message?.content) {
-		console.error("  · markov(translate): failed to retrieve:", reaction);
+	state.lastReactionAt = now;
+	translationTimestamps.set(reaction.messageId, now);
+
+	const messageResult = await safePromise(
+		discord.helpers.getMessage(reaction.channelId, reaction.messageId),
+	);
+
+	if (!messageResult.ok) {
+		console.error("  · markov(translate): failed to fetch message:", messageResult.error);
 		return ok(undefined);
 	}
+
+	const message = messageResult.value;
+	const reactionCount = message.reactions?.find(
+		(r) => r.emoji.name === translateEmoji,
+	)?.count ?? 0;
+
+	if (reactionCount > 1) {
+		console.log(`  · markov(translate): skipping - ${reactionCount} reactions of this type exist`);
+		return ok(undefined);
+	}
+
+	safePromise(
+		discord.helpers.deleteUserReaction(
+			reaction.channelId,
+			reaction.messageId,
+			reaction.userId,
+			reaction.emoji.name ?? reaction.emoji.id,
+		),
+	).catch(() => {});
 
 	const params: TranslateOptions = {
 		formality: "prefer_less",
@@ -207,6 +236,7 @@ export async function reactionAdd(
 		preserveFormatting: true,
 		splitSentences: "1",
 	};
+
 	const provider = getTranslationProvider();
 	let result = await provider.translateOne(message.content, "EN", params);
 	if (!result.ok) return result;
@@ -221,25 +251,22 @@ export async function reactionAdd(
 	}
 
 	text = applyReplacements(text, message.guildId);
-	memory.set(message.id, { ...message, content: text });
 
-	let requester = `snowflake(${reaction.userId})`;
-	if (reaction.user?.username) requester = `@${reaction.user.username}, ${requester}`;
+	const requester = reaction.user?.username
+		? `@${reaction.user.username}, snowflake(${reaction.userId})`
+		: `snowflake(${reaction.userId})`;
 
 	console.log(`  · markov(translate): "${message.content}" → "${text}", requested by ${requester}`);
 
-	const edited = tapError((e) => console.error("  · markov(translate): edit failed:", e))(
-		await safePromise(
-			client.helpers.editMessage(reaction.channelId, reaction.messageId, {
-				content: text.toLowerCase(),
-			}),
-		),
+	const edited = await safePromise(
+		client.helpers.editMessage(reaction.channelId, reaction.messageId, {
+			content: text,
+		}),
 	);
+
+	if (!edited.ok) {
+		console.error("  · markov(translate): edit failed:", edited.error.message);
+	}
 
 	return discard(edited) as Result<void, AppError>;
 }
-
-const isTrackedChannel = (channelId: bigint) =>
-	getConfig().modules.markov.channelIds.includes(channelId);
-
-const stripDiacritics = (input: string) => input.normalize("NFD").replace(/[\u0300-\u036f]/g, "");
