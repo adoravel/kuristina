@@ -60,6 +60,16 @@ export function describe(e: AppError): string {
 		case "sql":
 			return e.cause ? `${e.message} (${e.cause})` : e.message;
 		default:
-			return `Unknown error: ${e}`;
+			if (e && typeof e === "object") {
+				const obj = e as unknown as Record<string, unknown>;
+				if ("message" in obj && typeof obj.message === "string") {
+					return `Unknown error: ${obj.message}`;
+				}
+				if ("name" in obj && typeof obj.name === "string") {
+					return `Unknown error: ${obj.name}`;
+				}
+				return `Unknown error: ${JSON.stringify(obj, null, 4)}`;
+			}
+			return `Unknown error: ${String(e)}`;
 	}
 }
