@@ -91,7 +91,7 @@ function CommandDetail({
 							<strong>Aliases</strong>
 							{aliases.map((a) =>
 								// deno-lint-ignore jsx-key
-								<kbd>${a}</kbd>
+								<kbd>{a}</kbd>
 							).join(" ")}
 						</p>
 					</>
