@@ -10,4 +10,3 @@ export * from "./parse.ts";
 export * from "./primitives.ts";
 export * from "./stream.ts";
 export * from "./colour.ts";
-

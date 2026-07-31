@@ -8,18 +8,18 @@ import { type RetryOptions, withRetry } from "./retry.ts";
 import { Errors, type NetworkError } from "../errors.ts";
 import { err, ok, type Result } from "../result.ts";
 
-export interface FetchOptions extends RequestInit {
+export interface FetchOptions<E = NetworkError> extends RequestInit {
 	retry?: RetryOptions;
-	mapError?: (e: unknown, status?: number, body?: string) => unknown;
+	mapError?: (e: unknown, status?: number, body?: string) => E;
 }
 
 const defaultMapError = (e: unknown): NetworkError =>
 	Errors.network(e instanceof Error ? e.message : String(e));
 
-export async function fetchWithRetry<T>(
+export async function fetchWithRetry<T, E = NetworkError>(
 	input: RequestInfo | URL,
-	init?: FetchOptions & { json?: boolean },
-): Promise<Result<T, unknown>> {
+	init?: FetchOptions<E | NetworkError> & { json?: boolean },
+): Promise<Result<T, E | NetworkError>> {
 	const { retry, mapError = defaultMapError, json = true, ...fetchInit } = init ?? {};
 	try {
 		const response = await withRetry(
@@ -37,7 +37,9 @@ export async function fetchWithRetry<T>(
 			return ok(JSON.parse(text) as T);
 		} catch {
 			if (json) {
-				return err(Errors.network(`Invalid JSON response: ${JSON.stringify(text, null, 4)}}`));
+				return err(
+					Errors.network(`Invalid JSON response: ${JSON.stringify(text, null, 4)}}`),
+				) as Result<T, E | NetworkError>;
 			}
 			return ok(text as T);
 		}

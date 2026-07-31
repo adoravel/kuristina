@@ -86,7 +86,7 @@ export async function request<T>(
 		}
 	}
 
-	const result = await fetchWithRetry<string>(url.toString(), {
+	const result = await fetchWithRetry<string, LastFmError>(url.toString(), {
 		method: body ? "POST" : "GET",
 		body,
 		signal: AbortSignal.timeout(REQUEST_TIMEOUT_MS),
