@@ -10,3 +10,4 @@ export * from "./util/map.ts";
 export * from "./util/retry.ts";
 export * from "./util/types.ts";
 export * from "./util/http.ts";
+export * from "./util/concurrency.ts";
