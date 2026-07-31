@@ -21,7 +21,7 @@ export interface LastFmSession {
 }
 
 export async function getAuthToken(): Promise<Result<LastFmAuthToken, LastFmError>> {
-	const result = await request<{ token: string }>("auth.gettoken", {}, undefined, false);
+	const result = await request<{ token: string }>("auth.getToken", {}, undefined, false);
 	if (!result.ok) return result;
 
 	const token = result.value.token;
@@ -33,7 +33,7 @@ export async function getAuthToken(): Promise<Result<LastFmAuthToken, LastFmErro
 
 export async function getSessionKey(token: string): Promise<Result<LastFmSession, LastFmError>> {
 	const result = await request<{ session: { key: string; name: string } }>(
-		"auth.getsession",
+		"auth.getSession",
 		{ token },
 		undefined,
 		true,
