@@ -59,8 +59,8 @@ export function and<T, U, E>(other: Result<U, E>): (result: Result<T, E>) => Res
 			: err(result.error);
 }
 
-export function or<T, E>(alternative: Result<T, E>): (result: Result<T, E>) => Result<T, E> {
-	return (result) => (result.ok ? result : alternative);
+export function or<T, E>(alternative: () => Result<T, E>): (result: Result<T, E>) => Result<T, E> {
+	return (result) => (result.ok ? result : alternative());
 }
 
 export function tap<T, E>(fn: (value: T) => void): (result: Result<T, E>) => Result<T, E> {
@@ -103,4 +103,32 @@ export function safePromise<T, E = NetworkError>(promise: Promise<T>): Promise<R
 		() => promise,
 		(e) => Errors.network(e instanceof Error ? e.message : String(e)) as E,
 	);
+}
+
+export function filter<T, E>(
+	predicate: (value: T) => boolean,
+	error: E,
+): (result: Result<T, E>) => Result<T, E> {
+	return (result) => result.ok ? (predicate(result.value) ? result : err(error)) : result;
+}
+
+export function forEach<T, E>(
+	fn: (value: T) => void,
+): (result: Result<T, E>) => void {
+	return (result) => {
+		if (result.ok) fn(result.value);
+	};
+}
+
+export function sequence<T, E>(
+	results: readonly Result<T, E>[],
+): Result<T[], E> {
+	const values: T[] = [];
+	for (const r of results) {
+		if (!r.ok) {
+			return err(r.error);
+		}
+		values.push(r.value);
+	}
+	return ok(values);
 }
