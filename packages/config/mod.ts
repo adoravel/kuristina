@@ -64,10 +64,10 @@ export const configSchema = {
 	},
 	design: {
 		colours: {
-			primary: field.hexColourOr(0xb74139),
-			success: field.hexColourOr(0x57f287),
-			danger: field.hexColourOr(0xed4245),
-			info: field.hexColourOr(0x5865f2),
+			primary: field.colourOr(0xb74139),
+			success: field.colourOr(0x57f287),
+			danger: field.colourOr(0xed4245),
+			info: field.colourOr(0x5865f2),
 		},
 		emojis: {
 			success: field.stringOr("✅"),

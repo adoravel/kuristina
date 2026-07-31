@@ -4,6 +4,7 @@
  * SPDX-License-Identifier: AGPL-2.0-or-later
  */
 
+import { parseColour } from "@kuristina/core";
 import type { FieldError } from "./errors.ts";
 
 export class Field<T> {
@@ -57,22 +58,6 @@ const make = <T>(
 	parse: (raw: unknown, path: string, errors: FieldError[]) => T | undefined,
 	tomlKey?: string,
 ): Field<T> => new Field(parse, tomlKey);
-
-function parseHexColour(raw: unknown): number | undefined {
-	if (typeof raw === "number" && Number.isInteger(raw) && raw >= 0 && raw <= 0xffffff) {
-		return raw;
-	}
-	if (typeof raw === "string") {
-		const str = raw.trim().replace(/^#|^0x/i, "");
-		if (/^[0-9a-fA-F]{6}$/.test(str)) {
-			return parseInt(str, 16);
-		}
-		if (/^[0-9a-fA-F]{3}$/.test(str)) {
-			return parseInt(str.split("").map((c) => c + c).join(""), 16);
-		}
-	}
-	return undefined;
-}
 
 export const field = {
 	string: (): Field<string> =>
@@ -207,17 +192,18 @@ export const field = {
 			return fallback;
 		}),
 
-	hexColour: (): Field<number> =>
+	colour: (): Field<number> =>
 		make((raw, path, errors) => {
-			const color = parseHexColour(raw);
-			if (color !== undefined) return color;
+			const colour = parseColour(raw);
+			if (colour !== undefined) return colour;
+
 			errors.push({
 				path,
 				message: raw === undefined
 					? "required field is missing"
-					: `expected a valid hex color, got ${JSON.stringify(raw)}`,
+					: `expected a valid colour, got ${JSON.stringify(raw)}`,
 			});
 		}),
 
-	hexColourOr: (fallback: number): Field<number> => make((raw) => parseHexColour(raw) ?? fallback),
+	colourOr: (fallback: number): Field<number> => make((raw) => parseColour(raw) ?? fallback),
 };
