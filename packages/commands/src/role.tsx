@@ -4,7 +4,7 @@
  * SPDX-License-Identifier: AGPL-2.0-or-later
  */
 
-import { number, optional } from "@kuristina/commands";
+import { colour, optional } from "@kuristina/commands";
 import { defineCommand } from "@kuristina/commands/registry";
 import { MessageComponentTypes, type Role } from "@kuristina/discord-bot";
 import { setupInteractionHandler } from "@kuristina/discord-bot";
@@ -104,7 +104,7 @@ export default defineCommand([
 	"role-colour",
 	"role",
 ], {
-	$: optional(number),
+	$: optional(colour),
 }, async (ctx) => {
 	const guild = await ctx.getGuild();
 	if (!guild) return void await ctx.error("guild context is uninitialised");
