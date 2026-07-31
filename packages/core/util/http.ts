@@ -10,7 +10,7 @@ import { err, ok, type Result } from "../result.ts";
 
 export interface FetchOptions extends RequestInit {
 	retry?: RetryOptions;
-	mapError?: (e: unknown) => NetworkError;
+	mapError?: (e: unknown, status?: number, body?: string) => unknown;
 }
 
 const defaultMapError = (e: unknown): NetworkError =>
@@ -18,24 +18,25 @@ const defaultMapError = (e: unknown): NetworkError =>
 
 export async function fetchWithRetry<T>(
 	input: RequestInfo | URL,
-	init?: FetchOptions,
-	json: boolean = true,
-): Promise<Result<T, NetworkError>> {
-	const { retry, mapError = defaultMapError, ...fetchInit } = init ?? {};
+	init?: FetchOptions & { json?: boolean },
+): Promise<Result<T, unknown>> {
+	const { retry, mapError = defaultMapError, json = true, ...fetchInit } = init ?? {};
 	try {
 		const response = await withRetry(
 			() => fetch(input, fetchInit),
 			retry ?? { maxAttempts: 3, baseDelayMs: 500 },
 		);
-		if (!response.ok) {
-			return err(Errors.network(`HTTP ${response.status}`, response.status));
-		}
 
 		const text = await response.text();
+		if (!response.ok) {
+			const mapped = mapError(new Error(`HTTP ${response.status}`), response.status, text);
+			return err(mapped);
+		}
+
 		try {
 			return ok(JSON.parse(text) as T);
 		} catch {
-			if (!json) {
+			if (json) {
 				return err(Errors.network(`Invalid JSON response: ${JSON.stringify(text, null, 4)}}`));
 			}
 			return ok(text as T);
