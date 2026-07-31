@@ -5,14 +5,7 @@
  */
 
 import { cfg, config } from "@kuristina/config";
-import {
-	err,
-	Errors as CoreErrors,
-	type FetchOptions,
-	fetchWithRetry,
-	ok,
-	type Result,
-} from "@kuristina/core";
+import { err, Errors as CoreErrors, fetchWithRetry, ok, type Result } from "@kuristina/core";
 import { createHash } from "node:crypto";
 import { Errors, type LastFmApiError, type LastFmError } from "./errors.ts";
 
@@ -22,12 +15,21 @@ export function isRetryableError(status?: number): boolean {
 	return status === 429 || status === 503 || (status !== undefined && status >= 500);
 }
 
-export function mapLastFmError(error: unknown, status?: number): LastFmError {
-	if (error && typeof error === "object" && "kind" in error) {
-		return error as LastFmError;
+function mapLastFmError(e: unknown, status?: number, body?: string): LastFmError {
+	if (e && typeof e === "object" && "kind" in e) {
+		return e as LastFmError;
 	}
-	const message = error instanceof Error ? error.message : String(error);
-	return CoreErrors.network(message, status);
+	if (body) {
+		try {
+			const data = JSON.parse(body);
+			if (data && typeof data === "object" && "error" in data) {
+				const errorData = data as { error: number; message: string };
+				return Errors.api(errorData.error as LastFmApiError["tag"], errorData.message);
+			}
+		} catch { /* no-op */ }
+	}
+	const message = e instanceof Error ? e.message : String(e);
+	return CoreErrors.network(message, status) as LastFmError;
 }
 
 function md5(input: string): string {
@@ -47,15 +49,12 @@ export async function request<T>(
 	}
 
 	const { baseUrl, apiKey, secret } = config.modules.lastfm;
-
 	const url = new URL(baseUrl);
 
 	const payload: Record<string, string> = {
 		method,
 		api_key: apiKey,
-		format: "json",
 	};
-
 	for (const [k, v] of Object.entries(params)) {
 		payload[k] = String(v);
 	}
@@ -71,18 +70,23 @@ export async function request<T>(
 		if (!secret) {
 			return err(Errors.auth("not_configured", "Last.fm shared secret is not configured"));
 		}
-		const sortedEntries = Object.entries(payload).sort(([a], [b]) => a.localeCompare(b));
+		const sortedEntries = Object.entries(payload)
+			.filter(([k]) => k !== "format")
+			.sort(([a], [b]) => a.localeCompare(b));
+
 		const toSign = sortedEntries.map(([k, v]) => `${k}${v}`).join("");
 		payload.api_sig = md5(toSign + secret);
 
+		payload.format = "json";
 		body = new URLSearchParams(payload);
 	} else {
+		payload.format = "json";
 		for (const [k, v] of Object.entries(payload)) {
 			url.searchParams.set(k, v);
 		}
 	}
 
-	const options: FetchOptions = {
+	const result = await fetchWithRetry<string>(url.toString(), {
 		method: body ? "POST" : "GET",
 		body,
 		signal: AbortSignal.timeout(REQUEST_TIMEOUT_MS),
@@ -95,27 +99,15 @@ export async function request<T>(
 			baseDelayMs: 500,
 			retryIf: (error) => {
 				const status = (error as { status?: number })?.status;
-				if (isRetryableError(status) || error instanceof TypeError) return true;
-
-				return error instanceof DOMException && error.name === "TimeoutError";
+				return isRetryableError(status);
 			},
 			onRetry: (attempt, delay) => console.warn(`  · lastfm: retry ${attempt}, waiting ${delay}ms`),
 		},
-	};
-
-	const fetchUrl = body ? url.toString() : url.toString();
-	const result = await fetchWithRetry<string>(fetchUrl, options);
+		mapError: mapLastFmError,
+	});
 
 	if (!result.ok) {
-		const networkError = result.error;
-		const status = networkError.tag;
-		if (status === 429) {
-			return err(Errors.api(29, "Rate limit exceeded"));
-		}
-		if (status === 503 || (status && status >= 500)) {
-			return err(Errors.api(16, "Service temporary error"));
-		}
-		return err(mapLastFmError(networkError, status));
+		return err(result.error as LastFmError);
 	}
 
 	const data = result.value;
