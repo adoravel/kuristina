@@ -4,11 +4,10 @@
  * SPDX-License-Identifier: AGPL-2.0-or-later
  */
 
-import { ok, type Result, sleep } from "@kuristina/core";
+import { ok, err, type Result, sleep } from "@kuristina/core";
 import { config } from "@kuristina/config";
 
 import { request } from "../http.ts";
-import { err } from "../../../core/result.ts";
 import { Errors, type LastFmError } from "../errors.ts";
 
 export interface LastFmAuthToken {
