@@ -9,7 +9,6 @@ import { defineCommand } from "@kuristina/commands/registry";
 import { repositories } from "@kuristina/database";
 import { getAuthToken, pollForSession } from "@kuristina/services/lastfm";
 import { describe } from "@kuristina/errors";
-// @ts-types="@kuristina/discord-ui"
 import { Theme } from "@kuristina/discord-ui";
 
 const PROVIDER = "lastfm" as const;

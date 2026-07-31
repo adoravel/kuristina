@@ -4,7 +4,7 @@
  * SPDX-License-Identifier: AGPL-2.0-or-later
  */
 
-import { ok, err, type Result, sleep } from "@kuristina/core";
+import { err, ok, type Result, sleep } from "@kuristina/core";
 import { config } from "@kuristina/config";
 
 import { request } from "../http.ts";

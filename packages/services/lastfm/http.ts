@@ -6,8 +6,8 @@
 
 import { cfg, config } from "@kuristina/config";
 import {
-	Errors as CoreErrors,
 	err,
+	Errors as CoreErrors,
 	type FetchOptions,
 	fetchWithRetry,
 	ok,
@@ -31,7 +31,7 @@ export function mapLastFmError(error: unknown, status?: number): LastFmError {
 }
 
 function md5(input: string): string {
-	  return createHash("md5").update(input).digest("hex");
+	return createHash("md5").update(input).digest("hex");
 }
 
 export async function request<T>(
