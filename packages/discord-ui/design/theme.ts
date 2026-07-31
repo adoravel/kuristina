@@ -22,4 +22,5 @@ export const Theme = {
 		const [name, id] = raw.split(":");
 		return id ? `<:${name}:${id}>` : raw;
 	},
+	prefix: "/",
 } as const;

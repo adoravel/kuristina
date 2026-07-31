@@ -4,8 +4,12 @@
  * SPDX-License-Identifier: AGPL-2.0-or-later
  */
 
-import { ComponentMessage, Container, Separator, TextDisplay, Theme } from "@kuristina/discord-ui";
-import { md, type HeadingLevel } from "./markdown.tsx";
+import {
+	ComponentMessage,
+	Container,
+	Separator,
+	Theme,
+} from "@kuristina/discord-ui";
 
 interface CardProps {
 	children: any;
@@ -14,29 +18,9 @@ interface CardProps {
 	id?: number | undefined;
 }
 
-interface SectionProps {
+export interface SectionProps {
 	children: any;
 	spacing?: 1 | 2;
-}
-
-interface HeadingProps {
-	children: any;
-	emoji?: string;
-	level?: HeadingLevel;
-}
-
-interface SubtextProps {
-	children: any;
-}
-
-interface LinkTextProps {
-	children: any;
-	url: string;
-}
-
-interface ListProps {
-	items: string[];
-	bullet?: string;
 }
 
 export function Card(
@@ -58,19 +42,3 @@ export function Section({ children, spacing = 2 }: SectionProps) {
 	);
 }
 
-export function Heading({ children, emoji, level = 3 }: HeadingProps) {
-	const text = emoji ? `${emoji} ${children}` : String(children);
-	return <TextDisplay>{md.heading(text, level)}</TextDisplay>;
-}
-
-export function Subtext({ children }: SubtextProps) {
-	return <TextDisplay>{md.subtext(String(children))}</TextDisplay>;
-}
-
-export function Link({ children, url }: LinkTextProps) {
-	return <TextDisplay>{md.link(String(children), url)}</TextDisplay>;
-}
-
-export function List({ items, bullet = "-#" }: ListProps) {
-	return <TextDisplay>{md.list(items, bullet)}</TextDisplay>;
-}

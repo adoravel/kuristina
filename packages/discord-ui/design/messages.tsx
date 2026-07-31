@@ -4,8 +4,6 @@
  * SPDX-License-Identifier: AGPL-2.0-or-later
  */
 
-import { Separator, TextDisplay } from "@kuristina/discord-ui";
-import { Card, Heading, Section, Subtext } from "./primitives.tsx";
 import { Theme } from "./theme.ts";
 
 interface InfoMessageProps {
@@ -32,20 +30,19 @@ export function InfoMessage({
 	title,
 	children,
 	emoji = Theme.emoji.success,
-	color = Theme.colours.info,
 	footer,
 }: InfoMessageProps) {
 	return (
-		<Card color={color}>
-			<Heading emoji={emoji}>{title}</Heading>
-			<Separator spacing={2} />
-			<TextDisplay>{children}</TextDisplay>
+		<message>
+			<h3>{emoji} {title}</h3>
+			<hr spacing={2} />
+			<p>{children}</p>
 			{footer && (
-				<Section spacing={2}>
-					<Subtext>{footer}</Subtext>
-				</Section>
+				<section spacing={2}>
+					<sub>{footer}</sub>
+				</section>
 			)}
-		</Card>
+		</message>
 	);
 }
 
@@ -56,25 +53,25 @@ export function ErrorMessage({
 	emoji = Theme.emoji.error,
 }: ErrorMessageProps) {
 	return (
-		<Card color={Theme.colours.danger}>
-			<Heading emoji={emoji}>{title}</Heading>
-			<Separator spacing={2} />
-			<TextDisplay>{children}</TextDisplay>
+		<message>
+			<h3>{emoji} {title}</h3>
+			<hr spacing={2} />
+			<p>{children}</p>
 			{suggestion && (
-				<Section spacing={2}>
-					<TextDisplay>{Theme.emoji.error} {suggestion}</TextDisplay>
-				</Section>
+				<section spacing={2}>
+					<p>{Theme.emoji.error} {suggestion}</p>
+				</section>
 			)}
-		</Card>
+		</message>
 	);
 }
 
 export function SuccessMessage({ title = "yippe!!!!11!1", children }: SuccessMessageProps) {
 	return (
-		<Card>
-			<Heading emoji={Theme.emoji.success}>{title}</Heading>
-			<Separator spacing={2} />
-			<TextDisplay>{children}</TextDisplay>
-		</Card>
+		<message>
+			<h3>{Theme.emoji.success} {title}</h3>
+			<hr spacing={2} />
+			<p>{children}</p>
+		</message>
 	);
 }
