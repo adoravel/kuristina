@@ -63,6 +63,12 @@ export function or<T, E>(alternative: () => Result<T, E>): (result: Result<T, E>
 	return (result) => (result.ok ? result : alternative());
 }
 
+export function orAsync<T, E>(
+	alternative: () => Promise<Result<T, E>>,
+): (result: Result<T, E>) => Promise<Result<T, E>> {
+	return async (result) => (result.ok ? result : await alternative());
+}
+
 export function tap<T, E>(fn: (value: T) => void): (result: Result<T, E>) => Result<T, E> {
 	return (result) => {
 		if (result.ok) fn(result.value);
