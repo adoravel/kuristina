@@ -3,5 +3,9 @@
 	"exports": {
 		"./ui": "./ui/mod.ts",
 		".": "./mod.ts"
+	},
+	"imports": {
+		"@types/culori": "npm:@types/culori@^4.0.1",
+		"culori": "npm:culori@^4.0.2"
 	}
 }
