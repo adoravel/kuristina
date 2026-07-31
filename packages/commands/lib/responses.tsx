@@ -6,8 +6,7 @@
 
 import type { Message } from "@kuristina/discord-bot";
 import discord from "@kuristina/discord-bot";
-import { ErrorMessage } from "@kuristina/discord-ui";
-import { config } from "@kuristina/config";
+import { ErrorMessage, md, Theme } from "@kuristina/discord-ui";
 import { type ParsingError, prettify } from "../combinators/mod.ts";
 
 function reference(message: Message) {
@@ -28,7 +27,7 @@ async function sendError(message: Message, node: ReturnType<typeof ErrorMessage>
 export const sendCooldownMessage = (message: Message) =>
 	sendError(
 		message,
-		<ErrorMessage title="Cooldown" emoji={config.design.emojis.loading}>
+		<ErrorMessage title="Cooldown" emoji={Theme.emoji.loading}>
 			Please wait before using this command again.
 		</ErrorMessage>,
 	);
@@ -40,7 +39,7 @@ export const sendParseError = (message: Message, error: ParsingError) =>
 	sendError(
 		message,
 		<ErrorMessage>
-			{`**Command Parse Error**\n\`\`\`\n${prettify(error)}\n\`\`\``}
+			{`${md.bold("Command Parse Error")}\n${md.codeblock(prettify(error))}`}
 		</ErrorMessage>,
 	);
 
@@ -48,8 +47,8 @@ export const sendExecutionError = (message: Message, error: unknown) =>
 	sendError(
 		message,
 		<ErrorMessage>
-			{`**Command Execution Error**\n\`\`\`\n${
-				error instanceof Error ? error.message : String(error)
-			}\n\`\`\``}
+			{`${md.bold("Command Execution Error")}\n${
+				md.codeblock(error instanceof Error ? error.message : String(error))
+			}`}
 		</ErrorMessage>,
 	);

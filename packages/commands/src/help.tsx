@@ -12,9 +12,10 @@ import {
 	List,
 	Section,
 	Subtext,
-	TextDisplay,
+	TextDisplay, // @ts-types="@kuristina/discord-ui"
+	 // @ts-types="@kuristina/discord-ui"
+	Theme,
 } from "@kuristina/discord-ui";
-import { config } from "@kuristina/config";
 import { commandRegistry, defineCommand } from "@kuristina/commands/registry";
 
 interface HelpCardProps {
@@ -33,7 +34,7 @@ function HelpCard({
 
 	return (
 		<Card>
-			<Heading level={3} emoji={config.design.emojis.success}>
+			<Heading level={3} emoji={Theme.emoji.success}>
 				List of commands
 			</Heading>
 			<Section>
@@ -73,7 +74,7 @@ function CommandDetail({
 }: CommandDetailProps) {
 	return (
 		<Card>
-			<TextDisplay>### {config.design.emojis.success} **`{name}`**</TextDisplay>
+			<Heading>{Theme.emoji.success} **`{name}`**</Heading>
 			<Section>
 				<TextDisplay>{description}</TextDisplay>
 				{usage && (

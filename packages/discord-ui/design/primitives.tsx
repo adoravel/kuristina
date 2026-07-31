@@ -5,10 +5,11 @@
  */
 
 import { ComponentMessage, Container, Separator, TextDisplay, Theme } from "@kuristina/discord-ui";
+import { md, type HeadingLevel } from "./markdown.tsx";
 
 interface CardProps {
 	children: any;
-	color?: number;
+	color?: number | null;
 	attachments?: any[];
 	id?: number | undefined;
 }
@@ -21,7 +22,7 @@ interface SectionProps {
 interface HeadingProps {
 	children: any;
 	emoji?: string;
-	level?: 1 | 2 | 3;
+	level?: HeadingLevel;
 }
 
 interface SubtextProps {
@@ -43,7 +44,7 @@ export function Card(
 ) {
 	return (
 		<ComponentMessage attachments={attachments}>
-			<Container accentColor={color} id={id}>{children}</Container>
+			<Container accentColor={color ?? undefined} id={id}>{children}</Container>
 		</ComponentMessage>
 	);
 }
@@ -58,19 +59,18 @@ export function Section({ children, spacing = 2 }: SectionProps) {
 }
 
 export function Heading({ children, emoji, level = 3 }: HeadingProps) {
-	const prefix = "#".repeat(level);
-	const emojiPrefix = emoji ? `${emoji} ` : "";
-	return <TextDisplay>{`${prefix} ${emojiPrefix}${children}`}</TextDisplay>;
+	const text = emoji ? `${emoji} ${children}` : String(children);
+	return <TextDisplay>{md.heading(text, level)}</TextDisplay>;
 }
 
 export function Subtext({ children }: SubtextProps) {
-	return <TextDisplay>-# {children}</TextDisplay>;
+	return <TextDisplay>{md.subtext(String(children))}</TextDisplay>;
 }
 
 export function Link({ children, url }: LinkTextProps) {
-	return <TextDisplay>[{children}]({url})</TextDisplay>;
+	return <TextDisplay>{md.link(String(children), url)}</TextDisplay>;
 }
 
 export function List({ items, bullet = "-#" }: ListProps) {
-	return <TextDisplay>{items.map((item) => `${bullet} ${item}`).join("\n")}</TextDisplay>;
+	return <TextDisplay>{md.list(items, bullet)}</TextDisplay>;
 }

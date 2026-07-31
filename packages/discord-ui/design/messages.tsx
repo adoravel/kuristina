@@ -71,7 +71,7 @@ export function ErrorMessage({
 
 export function SuccessMessage({ title = "yippe!!!!11!1", children }: SuccessMessageProps) {
 	return (
-		<Card color={Theme.colours.success}>
+		<Card>
 			<Heading emoji={Theme.emoji.success}>{title}</Heading>
 			<Separator spacing={2} />
 			<TextDisplay>{children}</TextDisplay>

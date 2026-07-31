@@ -17,7 +17,7 @@ import {
 	resolveModelType,
 } from "@kuristina/services/deepl";
 import type { Formality, ModelType, SourceLang, TargetLang } from "@kuristina/services/deepl";
-import { Card, Section, Subtext, TextDisplay } from "@kuristina/discord-ui";
+import { Card, md, Section, Subtext, TextDisplay } from "@kuristina/discord-ui";
 
 const DISCORD_EMOJI_RE = /<a?:\w+:\d+>/g;
 const UNICODE_EMOJI_RE =
@@ -35,10 +35,6 @@ export function stripEmoji(text: string): string {
 
 export function visibleLength(text: string): number {
 	return [...stripEmoji(text)].length;
-}
-
-function quoteBlock(text: string): string {
-	return text.split("\n").map((line) => `> ${line}`).join("\n");
 }
 
 async function getRepliedMessage(platform: Bot, message: Message): Promise<Message | undefined> {
@@ -201,10 +197,10 @@ export default defineCommand("translate", {
 				↑ {formatLanguage(source ?? detectedSourceLang)}
 				{source ? " (forced)" : ""}
 			</Subtext>
-			<TextDisplay>{quoteBlock(truncated)}</TextDisplay>
+			<TextDisplay>{md.quote(truncated)}</TextDisplay>
 			<Section spacing={1}>
 				<Subtext>↓ {formatLanguage(target)}</Subtext>
-				<TextDisplay>{quoteBlock(translated)}</TextDisplay>
+				<TextDisplay>{md.quote(translated)}</TextDisplay>
 			</Section>
 			<Section spacing={1}>
 				<Subtext>{tuning.join(" · ")}</Subtext>

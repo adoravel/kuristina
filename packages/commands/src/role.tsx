@@ -17,7 +17,7 @@ import {
 } from "@kuristina/discord-ui";
 import { MessageComponentTypes, type Role } from "@kuristina/discord-bot";
 import { setupInteractionHandler } from "@kuristina/discord-bot";
-import { config } from "@kuristina/config";
+import { Theme } from "@kuristina/discord-ui";
 
 const ROLE_MARKER = ".ᐟ〃" as const;
 const CUSTOM_ID_PREFIX = "kuristina_role_colour:" as const;
@@ -42,7 +42,7 @@ function RoleCard({ roles, userId }: RoleCardProps) {
 
 	return (
 		<Card>
-			<Heading level={3} emoji={config.design.emojis.loading}>
+			<Heading emoji={Theme.emoji.loading}>
 				Role colours
 			</Heading>
 			<Section>
