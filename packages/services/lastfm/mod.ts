@@ -11,3 +11,4 @@ export * from "./api/album.ts";
 export * from "./api/artist.ts";
 export * from "./api/track.ts";
 export * from "./api/user.ts";
+export * from "./api/auth.ts";
