@@ -6,7 +6,7 @@
 
 import { sql } from "@kysely/kysely";
 import { Errors as Sql, type SqlError, tryQuery } from "@kuristina/database";
-import { Fail, Ok, type Result } from "@kuristina/core";
+import { err, ok, type Result } from "@kuristina/core";
 import { Repository } from "./helper.ts";
 
 export interface MarkovLink {
@@ -22,13 +22,13 @@ export class MarkovRepository extends Repository {
 				.values({ word, count: 1 })
 				.onConflict((oc) => oc.column("word").doUpdateSet((eb) => ({ count: eb("count", "+", 1) })))
 				.execute()
-		).then((r) => r.ok ? Ok(undefined) : r);
+		).then((r) => r.ok ? ok(undefined) : r);
 	}
 
 	async bulkLearnChain(
 		entries: { prefix: string; suffix: string; count: number }[],
 	): Promise<Result<void, SqlError>> {
-		if (!entries.length) return Ok(undefined);
+		if (!entries.length) return ok(undefined);
 		return await tryQuery(async () => {
 			await this.database.transaction().execute(async (trx) => {
 				for (const { prefix, suffix, count } of entries) {
@@ -42,7 +42,7 @@ export class MarkovRepository extends Repository {
 						.execute();
 				}
 			});
-		}).then((r) => r.ok ? Ok(undefined) : r);
+		}).then((r) => r.ok ? ok(undefined) : r);
 	}
 
 	async sampleWord(): Promise<Result<string, SqlError>> {
@@ -53,7 +53,7 @@ export class MarkovRepository extends Repository {
 		);
 		if (!totalResult.ok) return totalResult;
 		if (!totalResult.value?.total) {
-			return Fail(Sql.queryFailed("sampleWord()", "12 reais :("));
+			return err(Sql.queryFailed("sampleWord()", "12 reais :("));
 		}
 
 		const threshold = Math.floor(Math.random() * totalResult.value.total);
@@ -75,9 +75,9 @@ export class MarkovRepository extends Repository {
 				.executeTakeFirst()
 		);
 		if (!rowResult.ok) return rowResult;
-		if (!rowResult.value?.word) return Fail(Sql.queryFailed("sampleWord()", "12 reais :("));
+		if (!rowResult.value?.word) return err(Sql.queryFailed("sampleWord()", "12 reais :("));
 
-		return Ok(rowResult.value.word);
+		return ok(rowResult.value.word);
 	}
 
 	async findLinksByPrefix(prefix: string): Promise<Result<MarkovLink[], SqlError>> {

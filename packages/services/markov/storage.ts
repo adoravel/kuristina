@@ -5,7 +5,7 @@
  */
 
 import { repositories } from "@kuristina/database";
-import { Ok, type Result } from "@kuristina/core";
+import { ok, type Result } from "@kuristina/core";
 import type { SqlError } from "@kuristina/database";
 import { getConfig } from "@kuristina/config";
 
@@ -20,7 +20,7 @@ export interface MarkovLink {
 const { markov } = repositories;
 
 export async function learn(text: string): Promise<Result<void, SqlError>> {
-	if (!shouldLearn(text)) return Ok(undefined);
+	if (!shouldLearn(text)) return ok(undefined);
 
 	const tokens = tokenize(sanitise(text));
 	if (tokens.length === 1) {
@@ -28,7 +28,7 @@ export async function learn(text: string): Promise<Result<void, SqlError>> {
 	}
 
 	const chain = buildChain(tokens);
-	if (!chain.length) return Ok(undefined);
+	if (!chain.length) return ok(undefined);
 
 	const entries = chain.map(({ prefix, suffix }) => ({ prefix, suffix, count: 1 }));
 	return await markov.bulkLearnChain(entries);
@@ -80,12 +80,12 @@ export async function generate(
 		const maxIdRes = await repo.maxChainId();
 		if (!maxIdRes.ok) return maxIdRes;
 		if (maxIdRes.value === null) {
-			return Ok("no data available");
+			return ok("no data available");
 		}
 		const randomId = Math.floor(Math.random() * maxIdRes.value) + 1;
 		const rows = await repo.findChainFromId(randomId);
 		if (!rows.ok) return rows;
-		if (!rows.value.length) return Ok("no data available");
+		if (!rows.value.length) return ok("no data available");
 		seedPrefix = rows.value[0].prefix;
 	}
 
@@ -95,5 +95,5 @@ export async function generate(
 	};
 
 	const sentence = await generateSentence(seedPrefix, getLinks, maxLength);
-	return Ok(sentence);
+	return ok(sentence);
 }

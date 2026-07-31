@@ -18,36 +18,36 @@ type Err<E> = {
 
 export type Result<T, E = never> = [E] extends [never] ? Ok<T> : Ok<T> | Err<E>;
 
-export const Ok = <T>(value: T): Result<T, never> => ({
+export const ok = <T>(value: T): Result<T, never> => ({
 	ok: true,
 	value,
 });
 
-export const Fail = <E>(error: E): Result<never, E> =>
+export const err = <E>(error: E): Result<never, E> =>
 	({
 		ok: false,
 		error,
 	}) as Result<never, E>;
 
 export function map<T, U, E>(fn: (value: T) => U): (result: Result<T, E>) => Result<U, E> {
-	return (result) => result.ok ? Ok(fn(result.value)) : Fail(result.error);
+	return (result) => result.ok ? ok(fn(result.value)) : err(result.error);
 }
 
 export function discard<E>(result: Result<any, E>): Result<void, E> {
-	return result.ok ? Ok(undefined) : result;
+	return result.ok ? ok(undefined) : result;
 }
 
 export function flatMap<T, U, E>(
 	fn: (value: T) => Result<U, E>,
 ): (result: Result<T, E>) => Result<U, E> {
-	return (result) => result.ok ? fn(result.value) : Fail(result.error);
+	return (result) => result.ok ? fn(result.value) : err(result.error);
 }
 
 export function flatMapAsync<T, U, E>(
 	fn: (value: T) => Promise<Result<U, E>>,
 ): (result: Result<T, E>) => Promise<Result<U, E>> {
 	return async (result) => {
-		if (!result.ok) return Fail(result.error);
+		if (!result.ok) return err(result.error);
 		return await fn(result.value);
 	};
 }
@@ -55,8 +55,8 @@ export function flatMapAsync<T, U, E>(
 export function and<T, U, E>(other: Result<U, E>): (result: Result<T, E>) => Result<T & U, E> {
 	return (result) =>
 		result.ok
-			? (other.ok ? Ok({ ...result.value, ...other.value }) : Fail(other.error))
-			: Fail(result.error);
+			? (other.ok ? ok({ ...result.value, ...other.value }) : err(other.error))
+			: err(result.error);
 }
 
 export function or<T, E>(alternative: Result<T, E>): (result: Result<T, E>) => Result<T, E> {
@@ -92,9 +92,9 @@ export async function tryAsync<T, E = NetworkError>(
 		Errors.network(e instanceof Error ? e.message : String(e)) as E,
 ): Promise<Result<T, E>> {
 	try {
-		return Ok(await fn());
+		return ok(await fn());
 	} catch (e) {
-		return Fail(mapError(e));
+		return err(mapError(e));
 	}
 }
 

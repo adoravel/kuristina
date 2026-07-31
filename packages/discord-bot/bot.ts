@@ -18,7 +18,7 @@ import {
 import { getConfig } from "@kuristina/config";
 import { closeDatabaseConnection, initialiseDatabase } from "@kuristina/database";
 
-import { Ok, type Result } from "@kuristina/core";
+import { ok, type Result } from "@kuristina/core";
 import type { AppError } from "@kuristina/errors";
 
 import { events } from "./events/mod.ts";
@@ -186,7 +186,7 @@ export async function initialise(): Promise<Result<void, AppError>> {
 		),
 	);
 
-	return Ok(undefined);
+	return ok(undefined);
 }
 
 export async function shutdown(): Promise<void> {

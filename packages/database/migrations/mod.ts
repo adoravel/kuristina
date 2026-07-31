@@ -7,7 +7,7 @@
 import type { Kysely } from "@kysely/kysely";
 import { FileMigrationProvider, Migrator } from "@kysely/kysely/migration";
 import { join, toFileUrl } from "@std/path";
-import { Fail, Ok, type Result } from "@kuristina/core";
+import { err, ok, type Result } from "@kuristina/core";
 import { Errors, type SqlError } from "../errors.ts";
 import type { KuristinaSchema, SchemaContext } from "../schema.ts";
 
@@ -44,14 +44,14 @@ function report(results: readonly { migrationName: string; status: string }[] | 
 export async function migrate(ctx: SchemaContext): Promise<Result<void, SqlError>> {
 	const { error, results } = await migrator(ctx).migrateToLatest();
 	report(results);
-	if (error) return Fail(Errors.queryFailed("migrate()", String(error)));
-	return Ok(undefined);
+	if (error) return err(Errors.queryFailed("migrate()", String(error)));
+	return ok(undefined);
 }
 
 /** steps the database back by one migration. intended for local development only */
 export async function rollback(ctx: SchemaContext): Promise<Result<void, SqlError>> {
 	const { error, results } = await migrator(ctx).migrateDown();
 	report(results);
-	if (error) return Fail(Errors.queryFailed("rollback()", String(error)));
-	return Ok(undefined);
+	if (error) return err(Errors.queryFailed("rollback()", String(error)));
+	return ok(undefined);
 }

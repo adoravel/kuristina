@@ -4,7 +4,7 @@
  * SPDX-License-Identifier: AGPL-2.0-or-later
  */
 
-import { Errors, Fail, Ok, type Result, sleep, type SnakeCase, tryAsync } from "@kuristina/core";
+import { err, Errors, ok, type Result, sleep, type SnakeCase, tryAsync } from "@kuristina/core";
 import { Errors as tidalErrors, type TidalError } from "./errors.ts";
 
 export interface DeviceAuthResponse {
@@ -69,22 +69,22 @@ async function post<T>(
 		const detail = json.error_description as string | undefined;
 
 		if (error === "authorization_pending") {
-			return Fail(tidalErrors.auth("device_pending", "Waiting for user approval"));
+			return err(tidalErrors.auth("device_pending", "Waiting for user approval"));
 		}
-		if (error === "slow_down") return Fail(Errors.rateLimit(5_000));
+		if (error === "slow_down") return err(Errors.rateLimit(5_000));
 		if (error === "expired_token") {
-			return Fail(tidalErrors.auth("device_expired", "Device code expired"));
+			return err(tidalErrors.auth("device_expired", "Device code expired"));
 		}
 		if (response.status === 401) {
-			return Fail(tidalErrors.auth("refresh_failed", detail ?? "Unauthorised"));
+			return err(tidalErrors.auth("refresh_failed", detail ?? "Unauthorised"));
 		}
 
-		return Fail(
+		return err(
 			Errors.network(detail ?? `HTTP ${response.status}, ${error}: ${detail}`, response.status),
 		);
 	}
 
-	return Ok(json as T);
+	return ok(json as T);
 }
 
 export async function startDeviceAuth(): Promise<AuthResult<DeviceAuthResponse>> {
@@ -129,7 +129,7 @@ export async function pollForToken(
 		}
 
 		const r = result.value;
-		return Ok({
+		return ok({
 			accessToken: r.access_token,
 			refreshToken: r.refresh_token,
 			tokenType: r.token_type,
@@ -137,7 +137,7 @@ export async function pollForToken(
 		});
 	}
 
-	return Fail(tidalErrors.auth("device_expired", "polling timed out"));
+	return err(tidalErrors.auth("device_expired", "polling timed out"));
 }
 
 export async function refreshAccessToken(
@@ -155,11 +155,11 @@ export async function refreshAccessToken(
 
 	if (!result.ok) {
 		if (result.error.kind === "tidal/auth" || result.error.kind === "rate_limit") return result;
-		return Fail(tidalErrors.auth("refresh_failed", `${result.error.kind} ${result.error.tag}`));
+		return err(tidalErrors.auth("refresh_failed", `${result.error.kind} ${result.error.tag}`));
 	}
 
 	const r = result.value;
-	return Ok({
+	return ok({
 		accessToken: r.access_token,
 		refreshToken: r.refresh_token ?? refreshToken,
 		tokenType: r.token_type,

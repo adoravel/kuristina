@@ -4,7 +4,7 @@
  * SPDX-License-Identifier: AGPL-2.0-or-later
  */
 
-import { Fail, type Result, tryAsync, withRetry } from "@kuristina/core";
+import { err, type Result, tryAsync, withRetry } from "@kuristina/core";
 import { Errors as tidalErrors } from "../errors.ts";
 
 import { isTransient, type TidalError } from "../errors.ts";
@@ -47,22 +47,22 @@ async function get<T>(
 	if (!response.value.ok) {
 		switch (response.value.status) {
 			case 401:
-				return Fail(tidalErrors.api(401, "Unauthorised"));
+				return err(tidalErrors.api(401, "Unauthorised"));
 			case 402:
-				return Fail(tidalErrors.api(402, "Subscription required"));
+				return err(tidalErrors.api(402, "Subscription required"));
 			case 403:
-				return Fail(tidalErrors.api(403, "Forbidden"));
+				return err(tidalErrors.api(403, "Forbidden"));
 			case 404:
-				return Fail(tidalErrors.api(404, "Not found"));
+				return err(tidalErrors.api(404, "Not found"));
 			case 429:
-				return Fail(tidalErrors.api(429, "Rate limited"));
+				return err(tidalErrors.api(429, "Rate limited"));
 		}
 		if (response.value.status >= 500) {
-			return Fail(
+			return err(
 				tidalErrors.api(response.value.status as 500, `Server error ${response.value.status}`),
 			);
 		}
-		return Fail(Errors.network(`HTTP ${response.value.status}`, response.value.status));
+		return err(Errors.network(`HTTP ${response.value.status}`, response.value.status));
 	}
 
 	return tryAsync(

@@ -5,7 +5,7 @@
  */
 
 import { parse as parseToml } from "@std/toml";
-import { Fail, Ok, type Result } from "@kuristina/core";
+import { err, ok, type Result } from "@kuristina/core";
 import { type ConfigError, Errors, type FieldError } from "./errors.ts";
 import { parseSchema } from "./schema.ts";
 import { configSchema, type KuristinaConfig } from "./mod.ts";
@@ -17,25 +17,25 @@ export function loadConfig(path = DEFAULT_CONFIG_PATH): Result<KuristinaConfig, 
 	try {
 		text = Deno.readTextFileSync(path);
 	} catch (e) {
-		if (e instanceof Deno.errors.NotFound) return Fail(Errors.notFound(path));
+		if (e instanceof Deno.errors.NotFound) return err(Errors.notFound(path));
 		if (e instanceof Deno.errors.PermissionDenied) {
-			return Fail(Errors.permissionDenied(path));
+			return err(Errors.permissionDenied(path));
 		}
-		return Fail(Errors.parseFailed(path, e instanceof Error ? e.message : String(e)));
+		return err(Errors.parseFailed(path, e instanceof Error ? e.message : String(e)));
 	}
 
 	let raw: Record<string, unknown>;
 	try {
 		raw = parseToml(text) as Record<string, unknown>;
 	} catch (e) {
-		return Fail(Errors.parseFailed(path, e instanceof Error ? e.message : String(e)));
+		return err(Errors.parseFailed(path, e instanceof Error ? e.message : String(e)));
 	}
 
 	const errors: FieldError[] = [];
 	const config = parseSchema(configSchema, raw, "", errors);
-	if (errors.length) return Fail(Errors.invalid(errors));
+	if (errors.length) return err(Errors.invalid(errors));
 
-	return Ok(config);
+	return ok(config);
 }
 
 export function requireConfig(path = DEFAULT_CONFIG_PATH): KuristinaConfig {

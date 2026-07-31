@@ -53,7 +53,7 @@ async function getMentionedUsersLastMessages(platform: Bot, message: Message): P
 
 	const messages = await platform.helpers.getMessages(message.channelId, { limit: 25 });
 
-	const pendingMentions = new Map(mentions.map((m: any) => [m.id, m]));
+	const pendingMentions = new Map(mentions.map((m) => [m.id, m]));
 	const results: string[] = [];
 
 	for (const msg of messages) {

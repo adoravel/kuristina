@@ -4,7 +4,7 @@
  * SPDX-License-Identifier: AGPL-2.0-or-later
  */
 
-import { Fail, Ok, type Result, withRetry } from "@kuristina/core";
+import { err, ok, type Result, withRetry } from "@kuristina/core";
 import { Errors } from "./errors.ts";
 import { cfg, getConfig } from "@kuristina/config";
 import type { DeepLError } from "./errors.ts";
@@ -94,8 +94,8 @@ async function request<T>(
 	path: string,
 	body?: URLSearchParams,
 ): Promise<Result<T, DeepLError>> {
-	const err = assertConfigured();
-	if (err) return Fail(err);
+	const error = assertConfigured();
+	if (error) return err(error);
 
 	try {
 		const response = await withRetry(
@@ -135,28 +135,28 @@ async function request<T>(
 			case 200:
 			case 201:
 			case 204:
-				return Ok(text.length ? JSON.parse(text) as T : undefined as T);
+				return ok(text.length ? JSON.parse(text) as T : undefined as T);
 			case 400:
-				return Fail(Errors.badRequest(text));
+				return err(Errors.badRequest(text));
 			case 403:
-				return Fail(Errors.auth());
+				return err(Errors.auth());
 			case 413:
-				return Fail(Errors.tooLarge());
+				return err(Errors.tooLarge());
 			case 429:
-				return Fail(Errors.rateLimited());
+				return err(Errors.rateLimited());
 			case 456:
-				return Fail(Errors.quotaExceeded());
+				return err(Errors.quotaExceeded());
 			case 503:
-				return Fail(Errors.unavailable());
+				return err(Errors.unavailable());
 			default:
-				return Fail(Errors.unknown(response.status, text));
+				return err(Errors.unknown(response.status, text));
 		}
 	} catch (e) {
 		if (e instanceof DeepLRetryableError) {
-			return Fail(e.status === 429 ? Errors.rateLimited() : Errors.unavailable());
+			return err(e.status === 429 ? Errors.rateLimited() : Errors.unavailable());
 		}
 		const message = e instanceof Error ? e.message : String(e);
-		return Fail(Errors.unknown(0, `request failed: ${message}`));
+		return err(Errors.unknown(0, `request failed: ${message}`));
 	}
 }
 
@@ -193,7 +193,7 @@ export async function translate(
 	);
 	if (!result.ok) return result;
 
-	return Ok(result.value.translations.map((t) => ({
+	return ok(result.value.translations.map((t) => ({
 		text: t.text,
 		detectedSourceLang: t.detected_source_language as SourceLang,
 	})));
@@ -206,7 +206,7 @@ export async function translateOne(
 ): Promise<Result<Translation, DeepLError>> {
 	const result = await translate([text], targetLang, opts);
 	if (!result.ok) return result;
-	return Ok(result.value[0]);
+	return ok(result.value[0]);
 }
 
 export async function getUsage(): Promise<Result<Usage, DeepLError>> {
@@ -217,7 +217,7 @@ export async function getUsage(): Promise<Result<Usage, DeepLError>> {
 	if (!result.ok) return result;
 
 	const { character_count, character_limit } = result.value;
-	return Ok({
+	return ok({
 		characterCount: character_count,
 		characterLimit: character_limit,
 		fraction: character_limit > 0 ? character_count / character_limit : 0,
@@ -234,7 +234,7 @@ export async function getLanguages(
 	);
 	if (!result.ok) return result;
 
-	return Ok(result.value.map((l) => ({
+	return ok(result.value.map((l) => ({
 		code: l.language,
 		name: l.name,
 		supportsFormality: l.supports_formality,

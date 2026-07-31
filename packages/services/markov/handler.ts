@@ -4,7 +4,7 @@
  * SPDX-License-Identifier: AGPL-2.0-or-later
  */
 
-import { discard, Ok, or, type Result, safePromise, tapError, TimedMap } from "@kuristina/core";
+import { discard, ok, or, type Result, safePromise, tapError, TimedMap } from "@kuristina/core";
 import type { AppError } from "@kuristina/errors";
 
 import { cfg, getConfig } from "@kuristina/config";
@@ -71,9 +71,9 @@ export async function messageCreate(
 		message.author.id === getConfig().discord.applicationId
 	) {
 		memory.set(message.id, message);
-		return Ok(undefined);
+		return ok(undefined);
 	}
-	if (!isTrackedChannel(message.channelId)) return Ok(undefined);
+	if (!isTrackedChannel(message.channelId)) return ok(undefined);
 
 	const state = getState(message.channelId);
 	if (!state.chatTriggerThreshold) resetMarkovTrigger(state);
@@ -96,7 +96,7 @@ export async function messageCreate(
 			state.lastReplyTimestamp = now;
 		} else {
 			console.log("  · markov: reply ignored (cooldown active).");
-			return Ok(undefined);
+			return ok(undefined);
 		}
 	}
 
@@ -122,7 +122,7 @@ export async function messageCreate(
 	);
 
 	if (!shouldTrigger) {
-		return Ok(undefined);
+		return ok(undefined);
 	}
 
 	let { value } = result;
@@ -161,27 +161,27 @@ export async function messageCreate(
 		console.log(`  · markov: sent "${value}"`);
 	}
 
-	return resetMarkovTrigger(state), Ok(undefined);
+	return resetMarkovTrigger(state), ok(undefined);
 }
 
 export async function reactionAdd(
 	client: DiscordClient,
 	reaction: Reaction,
 ): Promise<Result<void, AppError>> {
-	if (!cfg("deepl")) return Ok(undefined);
+	if (!cfg("deepl")) return ok(undefined);
 
 	if (
 		reaction.messageAuthorId !== getConfig().discord.client.applicationId ||
 		!isTrackedChannel(reaction.channelId)
-	) return Ok(undefined);
+	) return ok(undefined);
 
 	const translateEmoji = getConfig().modules.markov.translationEmoji;
-	if (reaction.emoji.name !== translateEmoji) return Ok(undefined);
+	if (reaction.emoji.name !== translateEmoji) return ok(undefined);
 
 	const lastTranslated = messageLastTranslated.get(reaction.messageId);
 	if (lastTranslated && (Date.now() - lastTranslated) < 10_000) {
 		console.log(`  · markov(translate): message was recently translated, skipping...`);
-		return Ok(undefined);
+		return ok(undefined);
 	}
 
 	const state = getState(reaction.channelId);
@@ -190,7 +190,7 @@ export async function reactionAdd(
 
 	if (now - state.lastReactionTimestamp < cooldownMs) {
 		console.log("  · markov(translate): reaction ignored (cooldown active).");
-		return Ok(undefined);
+		return ok(undefined);
 	}
 	state.lastReactionTimestamp = now;
 	messageLastTranslated.set(reaction.messageId, Date.now());
@@ -198,7 +198,7 @@ export async function reactionAdd(
 	const message = memory.get(reaction.messageId);
 	if (!message?.content) {
 		console.error("  · markov(translate): failed to retrieve:", reaction);
-		return Ok(undefined);
+		return ok(undefined);
 	}
 
 	const params: TranslateOptions = {

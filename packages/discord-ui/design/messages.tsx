@@ -6,14 +6,6 @@
 
 import { Theme } from "./theme.ts";
 
-interface InfoMessageProps {
-	title: string;
-	children: any;
-	emoji?: string;
-	color?: number;
-	footer?: any;
-}
-
 interface ErrorMessageProps {
 	title?: string;
 	children: any;
@@ -24,26 +16,6 @@ interface ErrorMessageProps {
 interface SuccessMessageProps {
 	title?: string;
 	children: any;
-}
-
-export function InfoMessage({
-	title,
-	children,
-	emoji = Theme.emoji.success,
-	footer,
-}: InfoMessageProps) {
-	return (
-		<message>
-			<h3>{emoji} {title}</h3>
-			<hr spacing={2} />
-			<p>{children}</p>
-			{footer && (
-				<section spacing={2}>
-					<sub>{footer}</sub>
-				</section>
-			)}
-		</message>
-	);
 }
 
 export function ErrorMessage({

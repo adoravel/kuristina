@@ -4,7 +4,7 @@
  * SPDX-License-Identifier: AGPL-2.0-or-later
  */
 
-import { Ok, type Result } from "@kuristina/core";
+import { ok, type Result } from "@kuristina/core";
 import { decodeSnowflake, encodeSnowflake, type SqlError, tryQuery } from "@kuristina/database";
 import type { StoredTidalSession } from "@kuristina/services/tidal";
 
@@ -49,7 +49,7 @@ export class TidalRepository extends Repository {
 					}))
 				)
 				.execute()
-		).then((r) => r.ok ? Ok(undefined) : r);
+		).then((r) => r.ok ? ok(undefined) : r);
 	}
 
 	async purgeSession(userId: bigint): Promise<Result<void, SqlError>> {
@@ -59,7 +59,7 @@ export class TidalRepository extends Repository {
 				"=",
 				encodeSnowflake(userId) as any,
 			).execute()
-		).then((r) => r.ok ? Ok(undefined) : r);
+		).then((r) => r.ok ? ok(undefined) : r);
 	}
 
 	async writePendingDeviceAuth(
@@ -80,7 +80,7 @@ export class TidalRepository extends Repository {
 					}))
 				)
 				.execute()
-		).then((r) => r.ok ? Ok(undefined) : r);
+		).then((r) => r.ok ? ok(undefined) : r);
 	}
 
 	async readPendingDeviceAuth(
@@ -102,14 +102,14 @@ export class TidalRepository extends Repository {
 	async deletePendingDeviceAuth(deviceCode: string): Promise<Result<void, SqlError>> {
 		return await tryQuery(() =>
 			this.database.deleteFrom("tidal_device_auth").where("device_code", "=", deviceCode).execute()
-		).then((r) => r.ok ? Ok(undefined) : r);
+		).then((r) => r.ok ? ok(undefined) : r);
 	}
 
 	async pruneExpiredDeviceAuth(ttlSeconds: number): Promise<Result<void, SqlError>> {
 		const cutoff = Math.floor(Date.now() / 1000) - ttlSeconds;
 		return await tryQuery(() =>
 			this.database.deleteFrom("tidal_device_auth").where("created_at", "<", cutoff).execute()
-		).then((r) => r.ok ? Ok(undefined) : r);
+		).then((r) => r.ok ? ok(undefined) : r);
 	}
 }
 
