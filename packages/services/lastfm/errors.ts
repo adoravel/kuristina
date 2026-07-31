@@ -28,7 +28,8 @@ export type FmAuthErrorKind =
 	| "session_expired" // session key rejected (code 9)
 	| "token_expired" // pending OAuth token expired (code 15)
 	| "token_not_found" // callback token not in pending store
-	| "token_unauthorised"; // token exists but user hasn't approved yet (code 14)
+	| "token_unauthorised" // token exists but user hasn't approved yet (code 14)
+	| "not_configured";
 
 export interface LastFmApiError extends TaggedError<"lastfm", FmErrorKind> {
 	readonly message: string;
@@ -95,6 +96,8 @@ export function describe(e: LastFmError): string {
 					return "Unknown callback token. The link may have already been used.";
 				case "token_unauthorised":
 					return "You haven't approved the login yet — click the link and try again.";
+				case "not_configured":
+					return "Last.fm support isn't configured on this bot — Tell the dumbass in charge to fix this.";
 				default:
 					return "Authentication error";
 			}

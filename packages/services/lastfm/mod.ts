@@ -5,3 +5,9 @@
  */
 
 export * from "./errors.ts";
+export * from "./types.ts";
+export * from "./http.ts";
+export * from "./api/album.ts";
+export * from "./api/artist.ts";
+export * from "./api/track.ts";
+export * from "./api/user.ts";
