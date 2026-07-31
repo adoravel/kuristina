@@ -49,43 +49,46 @@ export async function request<T>(
 	const { baseUrl, apiKey, secret } = config.modules.lastfm;
 
 	const url = new URL(baseUrl);
-	url.searchParams.set("method", method);
-	url.searchParams.set("api_key", apiKey);
-	url.searchParams.set("format", "json");
 
-	const body: Record<string, string> = {};
+	const payload: Record<string, string> = {
+		method,
+		api_key: apiKey,
+		format: "json",
+	};
+
 	for (const [k, v] of Object.entries(params)) {
-		body[k] = String(v);
+		payload[k] = String(v);
 	}
 
 	if (sessionKey) {
-		body.sk = sessionKey;
+		payload.sk = sessionKey;
 	}
 
 	const isWriteMethod = signed || !!sessionKey;
-	let requestBody: URLSearchParams | undefined;
+	let body: URLSearchParams | undefined;
 
 	if (isWriteMethod) {
-		const sortedEntries = Object.entries(body)
-			.sort(([a], [b]) => a.localeCompare(b));
+		if (!secret) {
+			return err(Errors.auth("not_configured", "Last.fm shared secret is not configured"));
+		}
+		const sortedEntries = Object.entries(payload).sort(([a], [b]) => a.localeCompare(b));
 		const toSign = sortedEntries.map(([k, v]) => `${k}${v}`).join("");
-		const sig = md5(toSign + secret);
-		body.api_sig = sig;
+		payload.api_sig = md5(toSign + secret);
 
-		requestBody = new URLSearchParams(body);
+		body = new URLSearchParams(payload);
 	} else {
-		for (const [k, v] of Object.entries(body)) {
+		for (const [k, v] of Object.entries(payload)) {
 			url.searchParams.set(k, v);
 		}
 	}
 
 	const options: FetchOptions = {
-		method: requestBody ? "POST" : "GET",
-		body: requestBody,
+		method: body ? "POST" : "GET",
+		body,
 		signal: AbortSignal.timeout(REQUEST_TIMEOUT_MS),
 		headers: {
 			"User-Agent": `kuristina/0.1.0 (https://kyu.re/~kuristina)`,
-			...(requestBody ? { "Content-Type": "application/x-www-form-urlencoded" } : {}),
+			...(body ? { "Content-Type": "application/x-www-form-urlencoded" } : {}),
 		},
 		retry: {
 			maxAttempts: 4,
@@ -100,7 +103,7 @@ export async function request<T>(
 		},
 	};
 
-	const fetchUrl = requestBody ? url.toString() : url.toString();
+	const fetchUrl = body ? url.toString() : url.toString();
 	const result = await fetchWithRetry<string>(fetchUrl, options);
 
 	if (!result.ok) {
