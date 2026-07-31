@@ -7,7 +7,7 @@
 import { defineCommand } from "@kuristina/commands/registry";
 import { greedyString } from "@kuristina/commands";
 import { repositories } from "@kuristina/database";
-import { getArtistInfoForUser } from "@kuristina/services/lastfm";
+import { getScrobbleProvider } from "@kuristina/services/scrobbling";
 import { mapWithConcurrency } from "@kuristina/core";
 import { Theme } from "@kuristina/discord-ui";
 
@@ -42,33 +42,19 @@ export default defineCommand(["whoknows", "wk"], {
 		);
 	}
 
+	const provider = getScrobbleProvider(PROVIDER);
 	const entries = [...linked.value.entries()];
 
-	const settled = await mapWithConcurrency(
-		entries,
-		5,
-		async ([discordId, username]) => {
-			const result = await getArtistInfoForUser(artist, username);
-			const playcount = result.ok ? result.value.stats?.userplaycount ?? 0 : 0;
+	const settled = await mapWithConcurrency(entries, 5, async ([discordId, username]) => {
+		const result = await provider.getArtistPlaycount(username, artist);
+		return { discordId, playcount: result.ok ? result.value ?? 0 : 0, ok: result.ok };
+	});
 
-			return {
-				discordId,
-				username,
-				playcount,
-				ok: result.ok,
-				error: result.ok ? undefined : result.error,
-			};
-		},
-	);
-
-	const results = settled
-		.filter((r) => r.status === "fulfilled")
-		.map((r) => r.value);
+	const results = settled.filter((r) => r.status === "fulfilled").map((r) => r.value);
+	const totalErrors = settled.filter((r) => r.status === "fulfilled" && !r.value.ok).length;
 
 	for (const r of settled) {
-		if (r.status === "rejected") {
-			console.warn(`  · whoknows: request failed:`, r.reason);
-		}
+		if (r.status === "rejected") console.warn("  · whoknows: request failed:", r.reason);
 	}
 
 	const ranked = results
@@ -77,37 +63,7 @@ export default defineCommand(["whoknows", "wk"], {
 		.slice(0, MAX_SHOWN);
 
 	if (!ranked.length) {
-		const totalErrors = settled.filter((r) => r.status === "rejected").length;
 		const errorSuffix = totalErrors > 0 ? ` (${totalErrors} requests failed)` : "";
-		await ctx.reply(
-			<message>
-				<h3>Who knows {artist}?</h3>
-				<section>
-					<p>
-						<ul>
-							{ranked.map((r, i) => (
-								<li>
-									{i === 0 ? "👑" : `${i + 1}.`} <strong>{`<@${r.discordId}>`}</strong>
-									{" — "}
-									<strong>{r.playcount.toLocaleString()}</strong> plays{" "}
-									{i === 0 ? "🎉" : r.playcount === maxCount ? "👏" : ""}
-								</li>
-							))}
-						</ul>
-					</p>
-					<p>
-						<sub>
-							{ranked.length} of {linked.value.size} linked members shown
-							{totalErrors > 0
-								? ` · ⚠️ ${totalErrors} request${totalErrors > 1 ? "s" : ""} failed`
-								: ""}
-							{" · "}
-							{PROVIDER}
-						</sub>
-					</p>
-				</section>
-			</message>,
-		);
 		return void await ctx.reply(
 			<message>
 				<h3>No plays found</h3>
@@ -119,7 +75,6 @@ export default defineCommand(["whoknows", "wk"], {
 	}
 
 	const maxCount = ranked[0].playcount;
-	const totalErrors = settled.filter((r) => r.status === "rejected").length;
 
 	await ctx.reply(
 		<message>
