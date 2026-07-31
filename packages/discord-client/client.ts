@@ -23,7 +23,7 @@ const desiredProperties = createDesiredPropertiesObject({
 		author: true,
 		content: true,
 		mentions: true,
-		reactions: true
+		reactions: true,
 	},
 	channel: { id: true, guildId: true, type: true },
 	defaultReactionEmoji: {
