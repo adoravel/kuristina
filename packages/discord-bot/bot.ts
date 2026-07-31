@@ -180,12 +180,7 @@ export async function initialise(): Promise<Result<void, AppError>> {
 	if (!result.ok) return result;
 
 	await discord.start();
-
-	await Promise.all(
-		[commands.help, commands.role, commands.ping, commands.translate].map(
-			async (cmd) => commandRegistry.register(await cmd),
-		),
-	);
+	await Promise.all(commands.all.map(async (cmd) => commandRegistry.register(await cmd)));
 
 	return ok(undefined);
 }
