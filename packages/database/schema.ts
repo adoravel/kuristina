@@ -19,6 +19,14 @@ export interface KuristinaSchema {
 		country_code: string;
 	};
 	tidal_device_auth: { device_code: string; user_id: Uint8Array; created_at: number };
+	scrobble_accounts: {
+		id: Generated<number>;
+		discord_id: Uint8Array;
+		provider: string;
+		username: string;
+		is_default: Generated<number>;
+		linked_at: number;
+	};
 }
 
 export type SchemaContext = Kysely<KuristinaSchema>;

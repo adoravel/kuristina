@@ -6,8 +6,10 @@
 
 import { MarkovRepository } from "./markov.ts";
 import { TidalRepository } from "./tidal.ts";
+import { ScrobbleAccountRepository } from "./scrobble.ts";
 
 export const repositories = {
 	markov: new MarkovRepository(),
 	tidal: new TidalRepository(),
+	scrobble: new ScrobbleAccountRepository(),
 };
