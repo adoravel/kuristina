@@ -6,17 +6,30 @@
 
 export * from "./lib/mod.ts";
 
+const cmd = (_: TemplateStringsArray, ...values: string[]) =>
+	import(`./src/${values[0]}.tsx`).then((m) => m.default);
+
+/** meow */
 export const commands = {
 	get help() {
-		return import("./src/help.tsx").then((m) => m.default);
+		return cmd`help`;
 	},
 	get ping() {
-		return import("./src/ping.ts").then((m) => m.default);
+		return cmd`ping`;
 	},
 	get role() {
-		return import("./src/role.tsx").then((m) => m.default);
+		return cmd`role`;
 	},
 	get translate() {
-		return import("./src/translate.tsx").then((m) => m.default);
+		return cmd`translate`;
+	},
+	get whoknows() {
+		return cmd`whoknows`;
+	},
+	get lastfm() {
+		return cmd`login`;
+	},
+	get all() {
+		return [this.help, this.ping, this.role, this.translate, this.whoknows, this.lastfm];
 	},
 };
