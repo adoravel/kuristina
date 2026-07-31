@@ -6,18 +6,8 @@
 
 import { number, optional } from "@kuristina/commands";
 import { defineCommand } from "@kuristina/commands/registry";
-import {
-	ActionRow,
-	Card,
-	Heading,
-	Section,
-	StringSelect,
-	Subtext,
-	TextDisplay,
-} from "@kuristina/discord-ui";
 import { MessageComponentTypes, type Role } from "@kuristina/discord-bot";
 import { setupInteractionHandler } from "@kuristina/discord-bot";
-import { Theme } from "@kuristina/discord-ui";
 
 const ROLE_MARKER = ".ᐟ〃" as const;
 const CUSTOM_ID_PREFIX = "kuristina_role_colour:" as const;
@@ -38,44 +28,43 @@ interface RoleCardProps {
 }
 
 function RoleCard({ roles, userId }: RoleCardProps) {
-	const colorRoles = roles.filter(isColourRole);
+	const colourRoles = roles.filter(isColourRole);
 
 	return (
-		<Card>
-			<Heading emoji={Theme.emoji.loading}>
-				Role colours
-			</Heading>
-			<Section>
-				<TextDisplay>_woah you're so colorful~_</TextDisplay>
-				{colorRoles.length > 0
+		<message>
+			<h3>Role colours</h3>
+			<section>
+				<p>_woah you're so colorful~_</p>
+				{colourRoles.length > 0
 					? (
-						<ActionRow>
-							<StringSelect
-								customId={CUSTOM_ID_PREFIX + userId}
-								placeholder="Select a colour preset"
-								maxValues={1}
-							>
-								{colorRoles.map((role) => ({
-									label: role.name,
-									description: `#${role.colors.primaryColor.toString(16).padStart(6, "0")}`,
-									emoji: role.unicodeEmoji ? { name: role.unicodeEmoji } : undefined,
-									value: role.id,
-								})) as any}
-							</StringSelect>
-						</ActionRow>
+						<select
+							customId={CUSTOM_ID_PREFIX + userId}
+							placeholder="Select a colour preset"
+							maxValues={1}
+						>
+							{colourRoles.map((role) => (
+								<option
+									value={role.id.toString()}
+									description={`#${role.colors.primaryColor.toString(16).padStart(6, "0")}`}
+									emoji={role.unicodeEmoji ? { name: role.unicodeEmoji } : undefined}
+								>
+									{role.name}
+								</option>
+							))}
+						</select>
 					)
-					: <TextDisplay>_No color presets available yet!_</TextDisplay>}
-			</Section>
-			<Section>
-				<Subtext>
+					: <p>_No color presets available yet!_</p>}
+			</section>
+			<section>
+				<sub>
 					• Pro tip: You can pick an arbitrary colour by running `kuristina colour
 					&lt;colour_code&gt;`.
-				</Subtext>
-				<Subtext>
-					• Example: `kuristina colour #FF69B4` for hot pink.
-				</Subtext>
-			</Section>
-		</Card>
+				</sub>
+				<sub>
+					• Example: <kbd>kuristina colour #FF69B4`</kbd> for hot pink.
+				</sub>
+			</section>
+		</message>
 	);
 }
 

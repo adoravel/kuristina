@@ -5,17 +5,7 @@
  */
 
 import { identifier, optional } from "@kuristina/commands";
-import {
-	Card,
-	ErrorMessage,
-	Heading,
-	List,
-	Section,
-	Subtext,
-	TextDisplay, // @ts-types="@kuristina/discord-ui"
-	 // @ts-types="@kuristina/discord-ui"
-	Theme,
-} from "@kuristina/discord-ui";
+import { ErrorMessage, Theme } from "@kuristina/discord-ui";
 import { commandRegistry, defineCommand } from "@kuristina/commands/registry";
 
 interface HelpCardProps {
@@ -28,30 +18,37 @@ function HelpCard({
 	const len = Math.max(
 		...commands.map((cmd) => cmd.name.length),
 	);
-	const cmds = commands.map((cmd) =>
-		`**\` ${cmd.name.padEnd(len, " ")} \`**    ${cmd.description}`
-	);
 
 	return (
-		<Card>
-			<Heading level={3} emoji={Theme.emoji.success}>
-				List of commands
-			</Heading>
-			<Section>
-				<List items={cmds} bullet="-# -" />
-				<TextDisplay>
-					&lt;:cord:1429507932864647239&gt; Use `kuristina help &lt;name&gt;` to view more
-					information about a specific command.
-				</TextDisplay>
-			</Section>
-			<Section>
-				<Subtext>
-					[kuristina](https://github.com/adoravel/kuristina) is free source software licensed under
-					the [GNU Affero General Public License
-					v3.0](https://spdx.org/licenses/AGPL-3.0-or-later.html).
-				</Subtext>
-			</Section>
-		</Card>
+		<message>
+			<h3>List of commands</h3>
+			<section>
+				<sub>
+					<ul>
+						{commands.map((cmd) => (
+							<li>
+								<strong>
+									<code>{cmd.name.padEnd(len, " ")}</code>
+								</strong>
+								{"    " + cmd.description}
+							</li>
+						))}
+					</ul>
+				</sub>
+
+				<p>
+					Use <kbd>{Theme.prefix}help &lt;name&gt;</kbd>{" "}
+					to view more information about a specific command.
+				</p>
+			</section>
+			<section>
+				<sub>
+					<a href={Theme.branding.repoUrl}>{Theme.branding.name}</a>{" "}
+					is free source software licensed under the{" "}
+					<a href={Theme.branding.licenseUrl}>{Theme.branding.licenseName}</a>
+				</sub>
+			</section>
+		</message>
 	);
 }
 
@@ -73,35 +70,53 @@ function CommandDetail({
 	permissions,
 }: CommandDetailProps) {
 	return (
-		<Card>
-			<Heading>{Theme.emoji.success} **`{name}`**</Heading>
-			<Section>
-				<TextDisplay>{description}</TextDisplay>
+		<message>
+			<h3>
+				<strong>
+					<kbd>{name}</kbd>
+				</strong>
+			</h3>
+			<section>
+				<p>{description}</p>
 				{usage && (
 					<>
-						<TextDisplay>**Usage:** `{usage}`</TextDisplay>
+						<p>
+							<strong>Usage:</strong> <kbd>{usage}</kbd>
+						</p>
 					</>
 				)}
 				{aliases && aliases.length > 0 && (
 					<>
-						<TextDisplay>
-							**Aliases:** {aliases.map((a) => `\`${a}\``).join(", ")}
-						</TextDisplay>
+						<p>
+							<strong>Aliases</strong>
+							{aliases.map((a) =>
+								// deno-lint-ignore jsx-key
+								<kbd>${a}</kbd>
+							).join(" ")}
+						</p>
 					</>
 				)}
-			</Section>
+			</section>
 			{examples && examples.length > 0 && (
-				<Section>
-					<TextDisplay>**Examples:**</TextDisplay>
-					<List items={examples.map((ex) => `\`${ex}\``)} />
-				</Section>
+				<section>
+					<p>
+						<strong>Examples:</strong>
+					</p>
+					<ul>
+						{examples.map((ex) => (
+							<li>
+								<code>{ex}</code>
+							</li>
+						))}
+					</ul>
+				</section>
 			)}
 			{permissions && permissions.length > 0 && (
-				<Section>
-					<Subtext>Required permissions: {permissions.join(", ")}</Subtext>
-				</Section>
+				<section>
+					<sub>Required permissions: {permissions.join(", ")}</sub>
+				</section>
 			)}
-		</Card>
+		</message>
 	);
 }
 
@@ -118,8 +133,11 @@ export default defineCommand("help", {
 		if (!cmd) {
 			return void await ctx.reply(
 				<ErrorMessage title="uh oh :(">
-					Command **`{needle}`** not found. Pwease, contact a developer if you firmly believe this
-					is a mistake.
+					Command{" "}
+					<strong>
+						<kbd>{needle}</kbd>
+					</strong>{" "}
+					not found. Pwease, contact a developer if you firmly believe this is a mistake.
 				</ErrorMessage>,
 			);
 		}

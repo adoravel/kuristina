@@ -17,7 +17,6 @@ import {
 	resolveModelType,
 } from "@kuristina/services/deepl";
 import type { Formality, ModelType, SourceLang, TargetLang } from "@kuristina/services/deepl";
-import { Card, md, Section, Subtext, TextDisplay } from "@kuristina/discord-ui";
 
 const DISCORD_EMOJI_RE = /<a?:\w+:\d+>/g;
 const UNICODE_EMOJI_RE =
@@ -125,7 +124,7 @@ export default defineCommand("translate", {
 			"give me something to translate first, reply to a message, or mention someone",
 		);
 	}
-	const truncated = truncate(text, 256);
+	const truncated = truncate(text, 2048);
 
 	const target = (ctx.args.to?.toUpperCase() ?? DEFAULT_TARGET) as TargetLang;
 	const source = ctx.args.from?.toUpperCase() as SourceLang | undefined;
@@ -192,20 +191,30 @@ export default defineCommand("translate", {
 	}
 
 	await ctx.reply(
-		<Card>
-			<Subtext>
-				↑ {formatLanguage(source ?? detectedSourceLang)}
-				{source ? " (forced)" : ""}
-			</Subtext>
-			<TextDisplay>{md.quote(truncated)}</TextDisplay>
-			<Section spacing={1}>
-				<Subtext>↓ {formatLanguage(target)}</Subtext>
-				<TextDisplay>{md.quote(translated)}</TextDisplay>
-			</Section>
-			<Section spacing={1}>
-				<Subtext>{tuning.join(" · ")}</Subtext>
-			</Section>
-		</Card>,
+		<message>
+			<p>
+				<sub>
+					↑ {formatLanguage(source ?? detectedSourceLang)}
+					{source ? " (forced)" : ""}
+				</sub>
+			</p>
+			<p>
+				<blockquote>{truncated}</blockquote>
+			</p>
+			<section>
+				<p>
+					<sub>↓ {formatLanguage(target)}</sub>
+				</p>
+				<p>
+					<blockquote>{translated}</blockquote>
+				</p>
+			</section>
+			<section>
+				<p>
+					<sub>{tuning.join(" · ")}</sub>
+				</p>
+			</section>
+		</message>,
 	);
 }, {
 	description:
