@@ -4,10 +4,9 @@
  * SPDX-License-Identifier: AGPL-2.0-or-later
  */
 
-import { err, ok, type Result, withRetry } from "@kuristina/core";
-import { Errors } from "./errors.ts";
-import { cfg, getConfig } from "@kuristina/config";
-import type { DeepLError } from "./errors.ts";
+import { err, type FetchOptions, fetchWithRetry, ok, type Result } from "@kuristina/core";
+import { type DeepLError, Errors } from "./errors.ts";
+import { cfg, config } from "@kuristina/config";
 import type {
 	SourceLang,
 	SupportedLanguage,
@@ -19,52 +18,18 @@ import type {
 
 const REQUEST_TIMEOUT_MS = 10_000;
 
+// deno-fmt-ignore
 const SOURCE_CODES: ReadonlySet<string> = new Set([
-	"AR",
-	"BG",
-	"CS",
-	"DA",
-	"DE",
-	"EL",
-	"EN",
-	"ES",
-	"ET",
-	"FI",
-	"FR",
-	"HU",
-	"ID",
-	"IT",
-	"JA",
-	"KO",
-	"LT",
-	"LV",
-	"NB",
-	"NL",
-	"PL",
-	"PT",
-	"RO",
-	"RU",
-	"SK",
-	"SL",
-	"SV",
-	"TR",
-	"UK",
-	"ZH",
-	"HE",
-	"VI",
+	"AR", "BG", "CS", "DA", "DE", "EL", "EN", "ES", "ET", "FI", "FR", "HU",
+	"ID", "IT", "JA", "KO", "LT", "LV", "NB", "NL", "PL", "PT", "RO", "RU",
+	"SK", "SL", "SV", "TR", "UK", "ZH", "HE", "VI",
 ]);
 
+// deno-fmt-ignore
 const TARGET_CODES: ReadonlySet<string> = new Set([
 	...SOURCE_CODES,
-	"EN-US",
-	"EN-GB",
-	"PT-BR",
-	"PT-PT",
-	"ZH-HANS",
-	"ZH-HANT",
-	"ES-419",
-	"DE-CH",
-	"FR-CA",
+	"EN-US", "EN-GB", "PT-BR", "PT-PT", "ZH-HANS", "ZH-HANT", "ES-419",
+	"DE-CH", "FR-CA",
 ]);
 
 export function isSupportedSourceLang(code: string): boolean {
@@ -75,18 +40,8 @@ export function isSupportedTargetLang(code: string): boolean {
 	return TARGET_CODES.has(code.toUpperCase());
 }
 
-function baseUrl(): string {
-	return getConfig().modules.deepl.baseUrl;
-}
-
-function apiKey(): string {
-	return getConfig().modules.deepl.apiKey;
-}
-
-function assertConfigured(): DeepLError | null {
-	if (!cfg("deepl")) return Errors.notConfigured();
-	if (!apiKey()) return Errors.notConfigured();
-	return null;
+function isRetryableError(status?: number): boolean {
+	return status === 429 || status === 503 || (status !== undefined && status >= 500);
 }
 
 async function request<T>(
@@ -94,74 +49,87 @@ async function request<T>(
 	path: string,
 	body?: URLSearchParams,
 ): Promise<Result<T, DeepLError>> {
-	const error = assertConfigured();
-	if (error) return err(error);
-
-	try {
-		const response = await withRetry(
-			async () => {
-				const response = await fetch(`${baseUrl()}${path}`, {
-					method,
-					headers: {
-						"Authorization": `DeepL-Auth-Key ${apiKey()}`,
-						...(body ? { "Content-Type": "application/x-www-form-urlencoded" } : {}),
-					},
-					body,
-					signal: AbortSignal.timeout(REQUEST_TIMEOUT_MS),
-				});
-
-				if (response.status === 429 || response.status === 503) {
-					throw new DeepLRetryableError(response.status);
-				}
-
-				return response;
-			},
-			{
-				retryIf: (e, attempt) => {
-					if (
-						!(e instanceof DeepLRetryableError) && !(e instanceof TypeError) &&
-						!(e instanceof DOMException && e.name === "TimeoutError")
-					) return false;
-					return attempt < 3;
-				},
-				onRetry: (attempt, delay) =>
-					console.warn(`  · deepl: retry ${attempt}, waiting ${delay}ms`),
-			},
-		);
-
-		const text = await response.text();
-
-		switch (response.status) {
-			case 200:
-			case 201:
-			case 204:
-				return ok(text.length ? JSON.parse(text) as T : undefined as T);
-			case 400:
-				return err(Errors.badRequest(text));
-			case 403:
-				return err(Errors.auth());
-			case 413:
-				return err(Errors.tooLarge());
-			case 429:
-				return err(Errors.rateLimited());
-			case 456:
-				return err(Errors.quotaExceeded());
-			case 503:
-				return err(Errors.unavailable());
-			default:
-				return err(Errors.unknown(response.status, text));
-		}
-	} catch (e) {
-		if (e instanceof DeepLRetryableError) {
-			return err(e.status === 429 ? Errors.rateLimited() : Errors.unavailable());
-		}
-		const message = e instanceof Error ? e.message : String(e);
-		return err(Errors.unknown(0, `request failed: ${message}`));
+	if (!cfg("deepl")) {
+		return err(Errors.notConfigured());
 	}
+
+	const key = config.modules.deepl.apiKey;
+	if (!key) {
+		return err(Errors.notConfigured());
+	}
+
+	const url = `${config.modules.deepl.baseUrl}${path}`;
+	const headers: HeadersInit = {
+		"Authorization": `DeepL-Auth-Key ${key}`,
+	};
+	if (body) {
+		headers["Content-Type"] = "application/x-www-form-urlencoded";
+	}
+
+	const options: FetchOptions = {
+		method,
+		headers,
+		body,
+		signal: AbortSignal.timeout(REQUEST_TIMEOUT_MS),
+		retry: {
+			maxAttempts: 4,
+			baseDelayMs: 500,
+			retryIf: (error) => {
+				const status = (error as { status?: number })?.status;
+
+				if (isRetryableError(status) || error instanceof TypeError) return true;
+				return error instanceof DOMException && error.name === "TimeoutError";
+			},
+			onRetry: (attempt, delay) => console.warn(`  · deepl: retry ${attempt}, waiting ${delay}ms`),
+		},
+	};
+
+	const result = await fetchWithRetry<string>(url, options);
+
+	if (!result.ok) {
+		const networkError = result.error;
+		if (networkError.tag === 429) {
+			return err(Errors.rateLimited());
+		}
+		if (networkError.tag === 503) {
+			return err(Errors.unavailable());
+		}
+		return err(Errors.unknown(0, networkError.message));
+	}
+
+	const data = result.value;
+
+	if (data && typeof data === "object" && "message" in data) {
+		return handleDeepLError(data);
+	} else if (data && typeof data === "object") {
+		return ok(data as T);
+	}
+
+	return err(Errors.unknown(0, `Unexpected response format: ${JSON.stringify(data, null, 4)}`));
 }
 
-class DeepLRetryableError {
-	constructor(readonly status: 429 | 503) {}
+function handleDeepLError(data: unknown): Result<never, DeepLError> {
+	const errorData = data as { message?: string; error?: string; detail?: string };
+	const errorMessage = errorData.message ?? errorData.error ?? errorData.detail ?? "Unknown error";
+
+	const msg = errorMessage.toLowerCase();
+	if (msg.includes("authentication") || msg.includes("auth") || msg.includes("invalid key")) {
+		return err(Errors.auth());
+	}
+	if (msg.includes("quota") || msg.includes("exceeded") || msg.includes("limit")) {
+		return err(Errors.quotaExceeded());
+	}
+	if (msg.includes("too large") || msg.includes("payload") || msg.includes("size")) {
+		return err(Errors.tooLarge());
+	}
+	if (msg.includes("rate") || msg.includes("too many")) {
+		return err(Errors.rateLimited());
+	}
+	if (msg.includes("unavailable") || msg.includes("temporary")) {
+		return err(Errors.unavailable());
+	}
+
+	return err(Errors.badRequest(errorMessage));
 }
 
 export async function translate(

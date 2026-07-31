@@ -4,12 +4,19 @@
  * SPDX-License-Identifier: AGPL-2.0-or-later
  */
 
-import { err, type Result, tryAsync, withRetry } from "@kuristina/core";
-import { Errors as tidalErrors } from "../errors.ts";
+import {
+	err,
+	type FetchOptions,
+	fetchWithRetry,
+	ok,
+	type Result,
+	withRetry,
+} from "@kuristina/core";
+import { Errors, type TidalApiErrorKind } from "../errors.ts";
 
 import { isTransient, type TidalError } from "../errors.ts";
 import { FIRE_TV_ID, FIRE_TV_UA } from "../auth.ts";
-import { Errors } from "@kuristina/errors";
+import { Errors as CoreErrors } from "@kuristina/errors";
 
 const API_BASE = "https://api.tidal.com/v1";
 
@@ -18,6 +25,37 @@ export type TidalResult<T> = Result<T, TidalError>;
 export interface TidalContext {
 	readonly accessToken: string;
 	readonly countryCode: string;
+}
+
+function isRetryableError(status?: number): boolean {
+	return status === 429 || status === 503 || (status !== undefined && status >= 500);
+}
+
+function mapTidalError(error: unknown, status?: number): TidalError {
+	if (error && typeof error === "object" && "kind" in error) {
+		return error as TidalError;
+	}
+
+	if (status !== undefined) {
+		switch (status) {
+			case 401:
+				return Errors.api(401, "Unauthorised");
+			case 402:
+				return Errors.api(402, "Subscription required");
+			case 403:
+				return Errors.api(403, "Forbidden");
+			case 404:
+				return Errors.api(404, "Not found");
+			case 429:
+				return Errors.api(429, "Rate limited");
+		}
+		if (status >= 500) {
+			return Errors.api(status as 500, `Server error ${status}`);
+		}
+	}
+
+	const message = error instanceof Error ? error.message : String(error);
+	return CoreErrors.network(message, status) as TidalError;
 }
 
 async function get<T>(
@@ -30,45 +68,53 @@ async function get<T>(
 		url.searchParams.set(k, String(v));
 	}
 
-	const response = await tryAsync(
-		() =>
-			fetch(url, {
-				headers: {
-					"Authorization": `Bearer ${ctx.accessToken}`,
-					"X-Tidal-Token": FIRE_TV_ID,
-					"Accept-Encoding": "gzip",
-					"User-Agent": FIRE_TV_UA,
-				},
-			}),
-		(e) => Errors.network(e instanceof Error ? e.message : String(e)),
-	);
-	if (!response.ok) return response;
+	const options: FetchOptions = {
+		method: "GET",
+		headers: {
+			"Authorization": `Bearer ${ctx.accessToken}`,
+			"X-Tidal-Token": FIRE_TV_ID,
+			"Accept-Encoding": "gzip",
+			"User-Agent": FIRE_TV_UA,
+		},
+		retry: {
+			maxAttempts: 4,
+			baseDelayMs: 1_000,
+			retryIf: (error) => {
+				const status = (error as { status?: number })?.status;
 
-	if (!response.value.ok) {
-		switch (response.value.status) {
-			case 401:
-				return err(tidalErrors.api(401, "Unauthorised"));
-			case 402:
-				return err(tidalErrors.api(402, "Subscription required"));
-			case 403:
-				return err(tidalErrors.api(403, "Forbidden"));
-			case 404:
-				return err(tidalErrors.api(404, "Not found"));
-			case 429:
-				return err(tidalErrors.api(429, "Rate limited"));
+				if (isRetryableError(status) || error instanceof TypeError) return true;
+				return error instanceof DOMException && error.name === "TimeoutError";
+			},
+		},
+	};
+
+	const result = await fetchWithRetry<string>(url.toString(), options);
+
+	if (!result.ok) {
+		const networkError = result.error;
+		const status = networkError.tag;
+		if (status === 429) {
+			return err(Errors.api(429, "Rate limited"));
 		}
-		if (response.value.status >= 500) {
-			return err(
-				tidalErrors.api(response.value.status as 500, `Server error ${response.value.status}`),
-			);
+		if (status === 503) {
+			return err(Errors.api(503, "Service unavailable"));
 		}
-		return err(Errors.network(`HTTP ${response.value.status}`, response.value.status));
+		if (status !== undefined && status >= 500) {
+			return err(Errors.api(status as 500, `Server error ${status}`));
+		}
+		return err(mapTidalError(networkError, status));
 	}
 
-	return tryAsync(
-		() => response.value.json() as Promise<T>,
-		() => Errors.network("Invalid JSON response"),
-	);
+	const data = result.value;
+
+	if (data && typeof data === "object" && "error" in data) {
+		const errorData = data as { error: { code: number; message: string } };
+		const code = errorData.error.code as TidalApiErrorKind;
+		const message = errorData.error.message;
+		return err(Errors.api(code, message));
+	}
+
+	return ok(data as T);
 }
 
 function retrying<T>(fn: () => Promise<TidalResult<T>>): Promise<TidalResult<T>> {
