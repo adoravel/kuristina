@@ -20,6 +20,14 @@ export type Result<T, E = never> = Ok<T> | Err<E>;
 
 export type AsyncResult<T, E = never> = Promise<Result<T, E>>;
 
+type DeepAwaited<T> = T extends Promise<infer U> ? DeepAwaited<U> : T;
+
+type DistributeOk<T> = T extends { readonly ok: true; readonly value: infer V } ? V : never;
+type DistributeErr<T> = T extends { readonly ok: false; readonly error: infer E } ? E : never;
+
+export type ExtractOk<R> = DistributeOk<DeepAwaited<R>>;
+export type ExtractErr<R> = DistributeErr<DeepAwaited<R>>;
+
 export const ok = <T>(value: T): Result<T, never> => ({
 	ok: true,
 	value,
