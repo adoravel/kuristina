@@ -14,7 +14,7 @@ export type HydratedMember = Member & { user: User };
 async function hydrate(member: Member): Promise<HydratedMember> {
 	if (!member.user) {
 		const user = await safePromise(discord.helpers.getUser(member.id));
-		tap((user) => (member as any).user = user)(user);
+		tap(user)((user) => member.user = user);
 	}
 	return member as HydratedMember;
 }
