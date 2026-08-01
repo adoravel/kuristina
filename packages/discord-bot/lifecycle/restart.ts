@@ -27,9 +27,15 @@ export async function confirmRestartIfPending(bot: typeof discord): Promise<void
 			channelId: string;
 			messageId: string;
 		};
-		await bot.helpers.editMessage(BigInt(channelId), BigInt(messageId), {
-			content: "haii we r so back,, <a:Mika67:1528181039070187612>",
-		});
+		try {
+			await bot.helpers.editMessage(BigInt(channelId), BigInt(messageId), {
+				content: "haii we r so back,, <a:Mika67:1528181039070187612>",
+			});
+		} catch {
+			await bot.helpers.sendMessage(BigInt(channelId), {
+				content: "haii we r so back,, <a:Mika67:1528181039070187612>",
+			});
+		}
 	} catch (e) {
 		console.error("  · restart: failed to confirm restart:", e);
 	} finally {

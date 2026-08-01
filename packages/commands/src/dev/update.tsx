@@ -60,9 +60,9 @@ export default defineCommand(["update", "up"], {}, async (ctx) => {
 	}
 
 	const sha = await git.currentSha();
-	const reply = await ctx.success(
-		`updated to \`${sha}\` (${behind} commit${behind > 1 ? "s" : ""} pulled), restarting...`,
-	);
+	const reply = await ctx.reply({
+		content: `updated to \`${sha}\` (${behind} commit${behind > 1 ? "s" : ""} pulled), restarting...`,
+	});
 
 	await requestRestart(reply.channelId, reply.id);
 }, {
