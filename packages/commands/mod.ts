@@ -32,6 +32,14 @@ export const commands = {
 		return cmd("markov/forget");
 	},
 	get all() {
-		return [this.help, this.ping, this.role, this.translate, this.whoknows, this.lastfm, this.forget];
+		return [
+			this.help,
+			this.ping,
+			this.role,
+			this.translate,
+			this.whoknows,
+			this.lastfm,
+			this.forget,
+		];
 	},
 };
