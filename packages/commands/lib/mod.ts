@@ -9,4 +9,5 @@ export * from "./primitives.ts";
 export * from "./definition.ts";
 export * from "./context.tsx";
 export * from "./registry.ts";
+export * from "./middleware.ts";
 export * from "./responses.tsx";
