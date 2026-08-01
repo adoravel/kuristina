@@ -6,10 +6,11 @@
 
 import { ok, type Result } from "@kuristina/core";
 import { decodeSnowflake, encodeSnowflake, type SqlError, tryQuery } from "@kuristina/database";
+import type { ScrobbleProviderName } from "@kuristina/services/scrobbling";
 import { Repository } from "./helper.ts";
 
 export interface ScrobbleAccount {
-	provider: string;
+	provider: ScrobbleProviderName;
 	username: string;
 	isDefault: boolean;
 }
@@ -17,7 +18,7 @@ export interface ScrobbleAccount {
 export class ScrobbleAccountRepository extends Repository {
 	async link(
 		discordId: bigint,
-		provider: string,
+		provider: ScrobbleProviderName,
 		username: string,
 		makeDefault: boolean,
 	): Promise<Result<void, SqlError>> {
@@ -49,7 +50,7 @@ export class ScrobbleAccountRepository extends Repository {
 		}).then((r) => (r.ok ? ok(undefined) : r));
 	}
 
-	async unlink(discordId: bigint, provider: string): Promise<Result<void, SqlError>> {
+	async unlink(discordId: bigint, provider: ScrobbleProviderName): Promise<Result<void, SqlError>> {
 		return await tryQuery(() =>
 			this.database.deleteFrom("scrobble_accounts")
 				.where("discord_id", "=", encodeSnowflake(discordId) as any)
@@ -68,14 +69,18 @@ export class ScrobbleAccountRepository extends Repository {
 				.executeTakeFirst();
 
 			return row
-				? { provider: row.provider, username: row.username, isDefault: !!row.is_default }
+				? {
+					provider: row.provider as ScrobbleProviderName,
+					username: row.username,
+					isDefault: !!row.is_default,
+				}
 				: null;
 		});
 	}
 
 	async getUsernamesForMembers(
 		discordIds: bigint[],
-		provider: string,
+		provider: ScrobbleProviderName,
 	): Promise<Result<Map<bigint, string>, SqlError>> {
 		if (!discordIds.length) return ok(new Map());
 		return await tryQuery(async () => {
@@ -86,6 +91,21 @@ export class ScrobbleAccountRepository extends Repository {
 				.where("discord_id", "in", encoded as any)
 				.execute();
 
+			return new Map(rows.map((r) => [decodeSnowflake(r.discord_id as Uint8Array), r.username]));
+		});
+	}
+
+	async getAllForProviderInGuild(
+		provider: ScrobbleProviderName,
+		guildId: bigint,
+	): Promise<Result<Map<bigint, string>, SqlError>> {
+		return await tryQuery(async () => {
+			const rows = await this.database.selectFrom("scrobble_accounts")
+				.innerJoin("guild_members", "guild_members.discord_id", "scrobble_accounts.discord_id")
+				.select(["scrobble_accounts.discord_id", "scrobble_accounts.username"])
+				.where("scrobble_accounts.provider", "=", provider)
+				.where("guild_members.guild_id", "=", encodeSnowflake(guildId) as any)
+				.execute();
 			return new Map(rows.map((r) => [decodeSnowflake(r.discord_id as Uint8Array), r.username]));
 		});
 	}

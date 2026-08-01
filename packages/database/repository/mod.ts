@@ -9,6 +9,7 @@ import { TidalRepository } from "./tidal.ts";
 import { ScrobbleAccountRepository } from "./scrobble.ts";
 import { IconRepository } from "./icon.ts";
 import { StateRepository } from "./state.ts";
+import { GuildMemberRepository } from "./members.ts";
 
 export const repositories = {
 	markov: new MarkovRepository(),
@@ -16,4 +17,5 @@ export const repositories = {
 	scrobble: new ScrobbleAccountRepository(),
 	icon: new IconRepository(),
 	state: new StateRepository(),
+	members: new GuildMemberRepository(),
 };
