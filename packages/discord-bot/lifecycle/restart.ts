@@ -5,7 +5,6 @@
  */
 
 import { repositories } from "@kuristina/database";
-import { SuccessMessage } from "@kuristina/discord-ui";
 import type discord from "../bot.ts";
 
 const STATE_KEY = "pending_restart";
@@ -29,7 +28,7 @@ export async function confirmRestartIfPending(bot: typeof discord): Promise<void
 			messageId: string;
 		};
 		await bot.helpers.editMessage(BigInt(channelId), BigInt(messageId), {
-			...SuccessMessage({ children: "haii we r so back,, <a:Mika67:1528181039070187612>" }),
+			content: "haii we r so back,, <a:Mika67:1528181039070187612>",
 		});
 	} catch (e) {
 		console.error("  · restart: failed to confirm restart:", e);
