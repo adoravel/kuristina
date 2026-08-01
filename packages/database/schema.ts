@@ -27,6 +27,11 @@ export interface KuristinaSchema {
 		is_default: Generated<number>;
 		linked_at: number;
 	};
+	guild_members: {
+		discord_id: Uint8Array;
+		guild_id: Uint8Array;
+		joined_at: number;
+	};
 	icon_emojis: {
 		name: string;
 		emoji_id: string;
