@@ -33,11 +33,25 @@ export interface LastFmArtist {
 	tags?: { tag: { name: string; url: string }[] };
 }
 
+const FALLBACK_IMAGE: LastFmImage = {
+	"#text": "https://lastfm.freetls.fastly.net/i/u/300x300/2a96cbd8b46e442fc41c2b86b821562f.png",
+	size: "mega",
+};
+
+export function getHighestQualityImage(images?: LastFmImage[]): LastFmImage {
+	if (!images || images.length === 0) return FALLBACK_IMAGE;
+
+	const sizePriority = ["mega", "extralarge", "large", "medium", "small", ""] as const;
+	return sizePriority
+		.map((size) => images.find((img) => img.size === size))
+		.find((img) => img?.["#text"]) ?? FALLBACK_IMAGE;
+}
+
 export async function getArtistInfo(
 	artist: string,
 	username?: string,
 	autocorrect = false,
-): AsyncResult<LastFmArtist, LastFmError> {
+): AsyncResult<LastFmArtist & { highestQualityImage: LastFmImage }, LastFmError> {
 	const params: Record<string, string | number> = { artist };
 
 	if (username) params.username = username;
@@ -45,15 +59,8 @@ export async function getArtistInfo(
 
 	type Response = { artist: LastFmArtist };
 
-	return map(await request<Response>("artist.getInfo", params))(($) => $.artist);
-}
-
-/**
- * get artist info for a specific user, including playcount
- */
-export function getArtistInfoForUser(
-	artist: string,
-	username: string,
-): AsyncResult<LastFmArtist, LastFmError> {
-	return getArtistInfo(artist, username);
+	return map(await request<Response>("artist.getInfo", params))(($) => ({
+		...$.artist,
+		highestQualityImage: getHighestQualityImage($.artist.image),
+	}));
 }

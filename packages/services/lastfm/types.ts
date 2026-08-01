@@ -5,6 +5,6 @@
  */
 
 export interface LastFmImage {
-	size: string;
-	text: string;
+	size: "mega" | "extralarge" | "large" | "medium" | "small";
+	"#text": string;
 }
