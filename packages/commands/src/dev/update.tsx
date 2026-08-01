@@ -7,6 +7,7 @@
 import { defineCommand, ownerOnly } from "@kuristina/commands/registry";
 import { requestRestart } from "@kuristina/discord-bot/restart";
 import { git } from "@kuristina/discord-bot/git";
+import { sleep } from "@kuristina/core";
 
 export default defineCommand(["update", "pull"], {}, async (ctx) => {
 	const fetched = await git.fetch();
@@ -63,9 +64,10 @@ export default defineCommand(["update", "pull"], {}, async (ctx) => {
 	const reply = await ctx.reply({
 		content: `updated to \`${sha}\` (${behind} commit${
 			behind > 1 ? "s" : ""
-		} pulled), restarting...`,
+		} pulled), restarting...[ᅟ](https://klipy.com/gifs/entrosar-resenhar)`,
 	});
 
+	await sleep(2_500);
 	await requestRestart(reply.channelId, reply.id);
 }, {
 	description: "Pulls the latest commits (fast-forward only, aborts on a dirty tree) and restarts.",

@@ -6,11 +6,13 @@
 
 import { defineCommand, ownerOnly } from "@kuristina/commands/registry";
 import { requestRestart } from "@kuristina/discord-bot/restart";
+import { sleep } from "@kuristina/core";
 
 export default defineCommand(["restart"], {}, async (ctx) => {
 	const reply = await ctx.reply({
-		content: "oki hold on[ᅟ](https://klipy.com/gifs/entrosar-resenhar)",
+		content: "okiie hold on[ᅟ](https://klipy.com/gifs/entrosar-resenhar)",
 	});
+	await sleep(2_500);
 	await requestRestart(reply.channelId, reply.id);
 }, {
 	description: "Restarts the bot without pulling.",
