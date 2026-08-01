@@ -1,3 +1,9 @@
+/**
+ * kuristina, a ~~kitchen~~ bathroom sink discord bot
+ * Copyright (c) 2025-2026 kyu.re
+ * SPDX-License-Identifier: AGPL-2.0-or-later
+ */
+
 import { type AsyncResult, mapAsync } from "@kuristina/core";
 import { getArtistInfo } from "@kuristina/services/lastfm";
 import type { ScrobbleError, ScrobbleProviderName } from "@kuristina/services/scrobbling";
