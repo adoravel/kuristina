@@ -111,4 +111,17 @@ export class MarkovRepository extends Repository {
 				.where("id", ">=", id).limit(1).execute()
 		);
 	}
+
+	async forget(pattern: string): Promise<Result<number, SqlError>> {
+		return await tryQuery(async () => {
+			const like = `%${pattern}%`;
+			const chainResult = await this.database.deleteFrom("markov_chain")
+				.where((eb) => eb.or([eb("prefix", "like", like), eb("suffix", "like", like)]))
+				.executeTakeFirst();
+			const wordResult = await this.database.deleteFrom("markov_words")
+				.where("word", "like", like)
+				.executeTakeFirst();
+			return Number(chainResult.numDeletedRows ?? 0n) + Number(wordResult.numDeletedRows ?? 0n);
+		});
+	}
 }
