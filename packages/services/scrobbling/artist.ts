@@ -53,7 +53,6 @@ export class LastfmArtistScrobbleProvider implements ArtistScrobbleProvider {
 		username?: string,
 	): AsyncResult<ScrobbleArtist | ExtendedScrobleArtist, ScrobbleError> {
 		if (username) {
-			console.log(`query ${query}, username ${username}, autocorrectg ${!exact}`)
 			return mapAsync(getArtistInfo(query, username, !exact))(($) => ({
 				name: $.name,
 				imageUrl: $.highestQualityImage["#text"],

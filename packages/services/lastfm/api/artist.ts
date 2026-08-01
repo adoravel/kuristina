@@ -50,12 +50,12 @@ export function getHighestQualityImage(images?: LastFmImage[]): LastFmImage {
 export async function getArtistInfo(
 	artist: string,
 	username?: string,
-	autocorrect = false,
+	autocorrect = true,
 ): AsyncResult<LastFmArtist & { highestQualityImage: LastFmImage }, LastFmError> {
 	const params: Record<string, string | number> = { artist };
 
 	if (username) params.username = username;
-	if (autocorrect) params.autocorrect = 1;
+	params.autocorrect = autocorrect ? 1 : 0;
 
 	type Response = { artist: LastFmArtist };
 
