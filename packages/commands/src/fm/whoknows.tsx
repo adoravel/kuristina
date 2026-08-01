@@ -189,7 +189,7 @@ export default defineCommand(["whoknows", "wk"], {
 
 	const ranked = mapAsync(hasAccounts)(async ({ linked }) => {
 		const entries = [...linked.entries()];
-		const settled = await fetchPlaycounts(provider, entries, artist.name);
+		const settled = await fetchPlaycounts(provider, entries, query);
 
 		return rankResults(settled, MAX_SHOWN);
 	});
