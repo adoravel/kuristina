@@ -8,10 +8,13 @@ import { intrinsicTags, md } from "./design/markdown.ts";
 import {
 	ActionRow,
 	type ActionRowProps,
+	Button,
+	type ButtonProps,
 	ComponentMessage,
 	type ComponentMessageProps,
 	Container,
 	type ContainerProps,
+	type RegisteredIconName,
 	Section,
 	type SectionProps,
 	Separator,
@@ -22,14 +25,18 @@ import {
 	type StringSelectProps,
 	TextDisplay,
 	type TextDisplayProps,
+	Thumbnail,
+	type ThumbnailProps,
 } from "@kuristina/discord-ui";
 import { childrenToArray, childrenToString, transformChildrenArray } from "./utils.ts";
+import { iconMarkdown } from "./icons/manifest.ts";
+import { MessageComponentTypes } from "@discordeno/types";
 
 export const Fragment = Symbol("JSX.Fragment");
 
-type Props = Record<string, unknown> & { children?: unknown; raw?: boolean };
+type Props = Record<string, unknown> & { children?: unknown; root?: boolean };
 type FunctionComponent = (props: Props) => unknown;
-type ElementType = string | typeof Fragment | FunctionComponent;
+type ElementType = keyof JSX.IntrinsicElements | typeof Fragment | FunctionComponent;
 
 function renderList(tag: "ul" | "ol", props: Props): string {
 	const raw = props.children;
@@ -42,14 +49,106 @@ function renderList(tag: "ul" | "ol", props: Props): string {
 }
 
 export function div({ children, ...props }: ContainerProps) {
-	const components = childrenToArray(children).map((child) =>
-		typeof child === "string" ? TextDisplay({ children: child }) : child
-	);
+	const components = childrenToArray(children).map((child) => toComponent(child));
 
 	return Container({
 		...props,
 		children: components,
 	});
+}
+
+function toComponent(child: any): any {
+	if (child == null) return null;
+	if (typeof child === "string" || typeof child === "number" || typeof child === "boolean") {
+		return TextDisplay({ children: String(child) });
+	}
+	if (Array.isArray(child)) {
+		return child.map(toComponent).filter(Boolean);
+	}
+	return child;
+}
+
+export function renderSection(props: Props): unknown {
+	const children = childrenToArray(props?.children)
+		.map(toComponent)
+		.flat()
+		.filter(Boolean);
+
+	const embeddedAccessory = children.find((child) => {
+		if (!child || typeof child !== "object" || !("type" in child)) return false;
+		return child.type === MessageComponentTypes.Thumbnail ||
+			child.type === MessageComponentTypes.Button;
+	});
+
+	const textComponents = children.filter((child) => {
+		if (!child || typeof child !== "object" || !("type" in child)) {
+			return false;
+		}
+		return child !== embeddedAccessory;
+	});
+
+	let text = textComponents;
+	if (textComponents.length > 3) {
+		const allowedComponents = textComponents.slice(0, 2);
+		const overflowComponents = textComponents.slice(2);
+
+		const mergedContent = overflowComponents
+			.map((comp) => comp.content || "")
+			.filter(Boolean)
+			.join("\n");
+
+		const consolidatedComponent = TextDisplay({ children: mergedContent });
+		text = [...allowedComponents, consolidatedComponent];
+	}
+
+	return Section({
+		...props,
+		children: text,
+		accessory: embeddedAccessory ?? props?.accessory,
+	});
+}
+
+export function renderAccessory(props: Props): unknown {
+	const children = childrenToArray(props?.children);
+	return children[0] ?? "";
+}
+
+export function renderMessage(props: Props): unknown {
+	const { root, ...p } = props;
+	if (!root) {
+		return ComponentMessage({
+			...(p as ComponentMessageProps),
+			children: [div({ children: p.children as any })],
+		});
+	}
+
+	const rawChildren = childrenToArray(p.children).flat().filter(Boolean);
+
+	const components = rawChildren
+		.map((child) => {
+			if (typeof child === "string" || typeof child === "number" || typeof child === "boolean") {
+				return div({
+					children: [TextDisplay({ children: String(child) })],
+				});
+			}
+
+			if (typeof child === "object" && "type" in child) {
+				if (child.type === MessageComponentTypes.TextDisplay) {
+					return div({ children: [child] });
+				}
+				if (child.type === MessageComponentTypes.Separator) {
+					return null;
+				}
+			}
+
+			return child;
+		})
+		.filter(Boolean);
+
+	return ComponentMessage({
+		...p,
+		children: components,
+	} as any);
 }
 
 export function jsx(type: ElementType, props?: Props | null) {
@@ -65,8 +164,6 @@ export function jsx(type: ElementType, props?: Props | null) {
 				return TextDisplay(props as TextDisplayProps);
 			case "div":
 				return div(props as ContainerProps);
-			case "section":
-				return Section(props as SectionProps);
 			case "hr":
 				return Separator(props as SeparatorProps);
 			case "row":
@@ -76,15 +173,22 @@ export function jsx(type: ElementType, props?: Props | null) {
 			case "option":
 				return StringOption(props as unknown as StringOptionProps);
 			case "message":
-				return props.raw ? ComponentMessage(props as ComponentMessageProps) : ComponentMessage({
-					...(props as ComponentMessageProps),
-					children: [div({ children: props.children as any })],
-				});
+				return renderMessage(props);
 			case "li":
 				return childrenToString("li", props.children) ?? "";
 			case "ul":
 			case "ol":
 				return renderList(type, props);
+			case "accessory":
+				return renderAccessory(props);
+			case "section":
+				return renderSection(props);
+			case "thumbnail":
+				return Thumbnail(props as ThumbnailProps);
+			case "button":
+				return Button(props as ButtonProps);
+			case "icon":
+				return iconMarkdown((props as JSX.IntrinsicElements["icon"]).name);
 			default: {
 				const render = intrinsicTags[type];
 				if (!render) {
@@ -110,15 +214,20 @@ export declare namespace JSX {
 	}
 
 	interface IntrinsicElements {
-		message: ComponentMessageProps & { raw?: boolean };
+		message: ComponentMessageProps & { root?: boolean };
 		div: ContainerProps;
 		p: TextDisplayProps;
 		span: TextDisplayProps;
-		section: SectionProps;
 		hr: SeparatorProps;
 		row: ActionRowProps;
 		select: StringSelectProps;
 		option: StringOptionProps;
+		icon: { name: RegisteredIconName };
+
+		section: Omit<SectionProps, "accessory">;
+		accessory: { children?: unknown };
+		thumbnail: ThumbnailProps;
+		button: ButtonProps;
 
 		br: Record<string, never>;
 		strong: { children?: unknown };
