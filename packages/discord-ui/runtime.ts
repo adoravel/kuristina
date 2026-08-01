@@ -115,6 +115,8 @@ export function renderAccessory(props: Props): unknown {
 
 export function renderMessage(props: Props): unknown {
 	const { root, ...p } = props;
+	p.allowedMentions ??= { parse: [], repliedUser: false };
+
 	if (!root) {
 		return ComponentMessage({
 			...(p as ComponentMessageProps),

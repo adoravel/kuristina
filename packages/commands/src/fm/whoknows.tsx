@@ -126,7 +126,7 @@ function WhoKnows({
 		: null;
 
 	return (
-		<message allowedMentions={{ parse: [], repliedUser: false }}>
+		<message>
 			<section>
 				<accessory>
 					<thumbnail url={artist.image} description={artist.name} />
