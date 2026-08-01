@@ -8,7 +8,7 @@ import { defineCommand, ownerOnly } from "@kuristina/commands/registry";
 import { requestRestart } from "@kuristina/discord-bot/restart";
 import { git } from "@kuristina/discord-bot/git";
 
-export default defineCommand(["update", "up"], {}, async (ctx) => {
+export default defineCommand(["update", "pull"], {}, async (ctx) => {
 	const fetched = await git.fetch();
 	if (!fetched.ok) {
 		return void await ctx.error(`\`git fetch\` failed:\n\`\`\`\n${fetched.stderr}\n\`\`\``);
@@ -61,7 +61,9 @@ export default defineCommand(["update", "up"], {}, async (ctx) => {
 
 	const sha = await git.currentSha();
 	const reply = await ctx.reply({
-		content: `updated to \`${sha}\` (${behind} commit${behind > 1 ? "s" : ""} pulled), restarting...`,
+		content: `updated to \`${sha}\` (${behind} commit${
+			behind > 1 ? "s" : ""
+		} pulled), restarting...`,
 	});
 
 	await requestRestart(reply.channelId, reply.id);

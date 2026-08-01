@@ -22,7 +22,8 @@ function HelpCard({
 	return (
 		<message>
 			<h3>List of commands</h3>
-			<section>
+			<hr spacing={2} />
+			<div>
 				<sub>
 					<ul>
 						{commands.map((cmd) => (
@@ -40,14 +41,15 @@ function HelpCard({
 					Use <kbd>{Theme.prefix}help &lt;name&gt;</kbd>{" "}
 					to view more information about a specific command.
 				</p>
-			</section>
-			<section>
+			</div>
+			<hr spacing={2} />
+			<div>
 				<sub>
 					<a href={Theme.branding.repoUrl}>{Theme.branding.name}</a>{" "}
 					is free source software licensed under the{" "}
 					<a href={Theme.branding.licenseUrl}>{Theme.branding.licenseName}</a>
 				</sub>
-			</section>
+			</div>
 		</message>
 	);
 }
