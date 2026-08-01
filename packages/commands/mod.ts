@@ -28,6 +28,9 @@ export const commands = {
 	get lastfm() {
 		return cmd("fm/login");
 	},
+	get forget() {
+		return cmd("markov/forget");
+	},
 	get all() {
 		return [this.help, this.ping, this.role, this.translate, this.whoknows, this.lastfm];
 	},
