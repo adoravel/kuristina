@@ -4,9 +4,9 @@
  * SPDX-License-Identifier: AGPL-2.0-or-later
  */
 
-import type { Result } from "@kuristina/core";
 import type { LastFmError } from "../lastfm/errors.ts";
-import { getArtistInfo } from "../lastfm/api/artist.ts";
+
+import { type ArtistScrobbleProvider, LastfmArtistScrobbleProvider } from "./artist.ts";
 
 export type ScrobbleProviderName = "lastfm" | "listenbrainz";
 export type ScrobbleError = LastFmError;
@@ -14,20 +14,12 @@ export type ScrobbleError = LastFmError;
 export interface ScrobbleProvider {
 	readonly name: ScrobbleProviderName;
 
-	getArtistPlaycount(
-		username: string,
-		artist: string,
-		exact: boolean,
-	): Promise<Result<number | undefined, ScrobbleError>>;
+	artist: ArtistScrobbleProvider;
 }
 
 const lastfm: ScrobbleProvider = {
 	name: "lastfm",
-	async getArtistPlaycount(username, artist, exact) {
-		const result = await getArtistInfo(artist, username, exact);
-		if (!result.ok) return result;
-		return { ok: true, value: result.value.stats?.userplaycount };
-	},
+	artist: new LastfmArtistScrobbleProvider(),
 };
 
 const providers: Partial<Record<ScrobbleProviderName, ScrobbleProvider>> = { lastfm };
@@ -37,3 +29,5 @@ export function getScrobbleProvider(name: ScrobbleProviderName): ScrobbleProvide
 	if (!provider) throw new Error(`scrobble provider "${name}" is not yet implemented`);
 	return provider;
 }
+
+export * from "./artist.ts";
