@@ -7,7 +7,7 @@
 import { safePromise, tap, withRetry } from "@kuristina/core";
 import discord from "@kuristina/discord-bot";
 import type { Channel, Guild, Member, Role, User } from "@kuristina/discord-bot";
-import { getConfig } from "@kuristina/config";
+import { config } from "@kuristina/config";
 
 export type HydratedMember = Member & { user: User };
 
@@ -30,7 +30,7 @@ export async function resolveUser(
 
 export async function resolveMember(
 	id: bigint,
-	guildId = getConfig().discord.guildId,
+	guildId = config.discord.guildId,
 ): Promise<HydratedMember | undefined> {
 	const cached = await discord.cache.members.get(id, guildId);
 	if (cached) return hydrate(cached);
@@ -44,7 +44,7 @@ export async function resolveMember(
 
 export async function resolveRole(
 	id: bigint,
-	guildId = getConfig().discord.guildId,
+	guildId = config.discord.guildId,
 ): Promise<Role | undefined> {
 	const cached = await discord.cache.roles.get(id, guildId);
 	if (cached) return cached;
@@ -62,7 +62,7 @@ export async function resolveChannel(id: bigint): Promise<Channel | undefined> {
 }
 
 export async function resolveGuild(
-	id: bigint = getConfig().discord.guildId,
+	id: bigint = config.discord.guildId,
 ): Promise<Guild> {
 	const cached = await discord.cache.guilds.get(id);
 	if (cached) return cached as unknown as Guild;
@@ -74,7 +74,7 @@ export async function resolveGuild(
 
 export async function resolveMembers(
 	ids: bigint[],
-	guildId = getConfig().discord.guildId,
+	guildId = config.discord.guildId,
 ): Promise<HydratedMember[]> {
 	if (!ids.length) return [];
 	if (ids.length === 1) {

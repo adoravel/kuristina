@@ -24,6 +24,7 @@ import type { AppError } from "@kuristina/errors";
 import { events } from "./events/mod.ts";
 import { reconcileIcons } from "./lifecycle/icons.ts";
 import { confirmRestartIfPending } from "./lifecycle/restart.ts";
+import { schedulePresenceReconciliation } from "./lifecycle/presence.ts";
 
 const desiredProperties = createDesiredPropertiesObject({
 	user: {
@@ -160,6 +161,14 @@ const bot = createBot({
 		GatewayIntents.DirectMessageReactions |
 		GatewayIntents.GuildMessageReactions,
 	loggerFactory: (name) => createLogger({ logLevel: LogLevels.Info, name }),
+	gateway: {
+		cache: {
+			requestMembers: {
+				// https://github.com/discordeno/discordeno/blob/4c9522f14d0f8ea1c667d5e9ae688f18888d97d5/packages/gateway/src/manager.ts#L475
+				enabled: true,
+			},
+		},
+	},
 });
 
 export type Bot = typeof bot;
@@ -184,6 +193,8 @@ export async function initialise(): Promise<Result<void, AppError>> {
 	await discord.start();
 	await confirmRestartIfPending(discord);
 	await reconcileIcons(discord);
+	schedulePresenceReconciliation(discord);
+
 	await Promise.all(commands.all.map(async (cmd) => commandRegistry.register(await cmd)));
 
 	return ok(undefined);

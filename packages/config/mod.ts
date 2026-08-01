@@ -30,6 +30,9 @@ export const configSchema = {
 	cache: {
 		contextTtlMs: field.positiveInt(45_000),
 	},
+	presence: {
+		reconcileIntervalMs: field.positiveInt(6 * 60 * 60 * 1000),
+	},
 	modules: {
 		commands: field.record(field.boolean(false)),
 		markov: {
