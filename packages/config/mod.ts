@@ -21,7 +21,7 @@ export const configSchema = {
 		id: field.snowflake(),
 	},
 	sqlite: {
-		path: field.stringOr("./data/kuristina.sqlite"),
+		path: field.stringOr("~/.kuristina/data/kuristina.sqlite"),
 	},
 	commands: {
 		defaultCooldownMs: field.positiveInt(3_000),

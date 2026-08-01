@@ -12,19 +12,29 @@ import { config } from "@kuristina/config";
 
 import type { SqlError } from "./errors.ts";
 
-import { dirname } from "@std/path";
+import { dirname, join } from "@std/path";
 import { DenoSqlite3Dialect } from "./adapter/dialect.ts";
 import { Database, type KuristinaSchema } from "./schema.ts";
 import { migrate } from "./migrations/mod.ts";
 
 export let database: Kysely<KuristinaSchema>;
 
+function expand(path: string): string {
+	if (path.startsWith("~/") || path === "~") {
+		const home = Deno.env.get("HOME") ?? Deno.env.get("USERPROFILE");
+		if (!home) throw new Error("Could not find the home directory.");
+		return join(home, path.slice(1));
+	}
+	return path;
+}
+
 export async function initialiseDatabase(): Promise<Result<void, SqlError>> {
-	Deno.mkdirSync(dirname(config.sqlite.path), { recursive: true });
+	const path = expand(config.sqlite.path);
+	Deno.mkdirSync(dirname(path), { recursive: true });
 
 	database = new Kysely({
 		dialect: new DenoSqlite3Dialect({
-			database: new Database(config.sqlite.path),
+			database: new Database(path),
 		}),
 	});
 
