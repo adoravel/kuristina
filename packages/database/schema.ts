@@ -34,6 +34,7 @@ export interface KuristinaSchema {
 		source_hash: string;
 		uploaded_at: number;
 	};
+	bot_state: { key: string; value: string };
 }
 
 export type SchemaContext = Kysely<KuristinaSchema>;

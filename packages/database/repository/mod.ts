@@ -8,10 +8,12 @@ import { MarkovRepository } from "./markov.ts";
 import { TidalRepository } from "./tidal.ts";
 import { ScrobbleAccountRepository } from "./scrobble.ts";
 import { IconRepository } from "./icon.ts";
+import { StateRepository } from "./state.ts";
 
 export const repositories = {
 	markov: new MarkovRepository(),
 	tidal: new TidalRepository(),
 	scrobble: new ScrobbleAccountRepository(),
 	icon: new IconRepository(),
+	state: new StateRepository(),
 };
