@@ -22,7 +22,8 @@ import { ok, type Result } from "@kuristina/core";
 import type { AppError } from "@kuristina/errors";
 
 import { events } from "./events/mod.ts";
-import { reconcileIcons } from "./icons.ts";
+import { reconcileIcons } from "./lifecycle/icons.ts";
+import { confirmRestartIfPending } from "./lifecycle/restart.ts";
 
 const desiredProperties = createDesiredPropertiesObject({
 	user: {
@@ -181,6 +182,7 @@ export async function initialise(): Promise<Result<void, AppError>> {
 	if (!result.ok) return result;
 
 	await discord.start();
+	await confirmRestartIfPending(discord);
 	await reconcileIcons(discord);
 	await Promise.all(commands.all.map(async (cmd) => commandRegistry.register(await cmd)));
 

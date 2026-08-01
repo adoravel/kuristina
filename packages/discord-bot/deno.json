@@ -1,4 +1,8 @@
 {
 	"name": "@kuristina/discord-bot",
-	"exports": "./mod.ts"
+	"exports": {
+		".": "./mod.ts",
+		"./git": "./lifecycle/git.ts",
+		"./restart": "./lifecycle/restart.ts"
+	}
 }
