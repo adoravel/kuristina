@@ -18,8 +18,8 @@ const AuthMessage = ({ authUrl }: { authUrl: string }) => (
 	<message>
 		<h3>Link your Last.fm account</h3>
 		<p>
-			<a href={authUrl}>Click here to authorise ${Theme.branding.name}</a>, then come back. I'll
-			pick it up for you automatically, sweetie~ &lt;3<br></br>
+			<a href={authUrl}>Click here to authorise {Theme.branding.name}</a>, then come back. I'll pick
+			it up for you automatically, sweetie~ &lt;3<br></br>
 			<sub>This link expires in a few minutes.</sub>
 		</p>
 	</message>
