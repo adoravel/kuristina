@@ -4,7 +4,7 @@
  * SPDX-License-Identifier: AGPL-2.0-or-later
  */
 
-import { ok, type Result } from "@kuristina/core";
+import { type AsyncResult, map } from "@kuristina/core";
 import type { LastFmError } from "../errors.ts";
 import type { LastFmImage } from "../types.ts";
 import { request } from "../http.ts";
@@ -37,16 +37,15 @@ export async function getArtistInfo(
 	artist: string,
 	username?: string,
 	autocorrect = false,
-): Promise<Result<LastFmArtist, LastFmError>> {
+): AsyncResult<LastFmArtist, LastFmError> {
 	const params: Record<string, string | number> = { artist };
 
 	if (username) params.username = username;
 	if (autocorrect) params.autocorrect = 1;
 
-	const result = await request<{ artist: LastFmArtist }>("artist.getInfo", params);
-	if (!result.ok) return result;
+	type Response = { artist: LastFmArtist };
 
-	return ok(result.value.artist);
+	return map(await request<Response>("artist.getInfo", params))(($) => $.artist);
 }
 
 /**
@@ -55,6 +54,6 @@ export async function getArtistInfo(
 export function getArtistInfoForUser(
 	artist: string,
 	username: string,
-): Promise<Result<LastFmArtist, LastFmError>> {
+): AsyncResult<LastFmArtist, LastFmError> {
 	return getArtistInfo(artist, username);
 }
