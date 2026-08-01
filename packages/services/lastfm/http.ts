@@ -104,6 +104,7 @@ export async function request<T>(
 			onRetry: (attempt, delay) => console.warn(`  · lastfm: retry ${attempt}, waiting ${delay}ms`),
 		},
 		mapError: mapLastFmError,
+		json: true,
 	});
 
 	if (!result.ok) {
