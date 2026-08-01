@@ -211,20 +211,16 @@ export default defineCommand([
 				<blockquote>{truncated}</blockquote>
 			</p>
 			<hr spacing={2} />
-			<div>
-				<p>
-					<sub>↓ {formatLanguage(target)}</sub>
-				</p>
-				<p>
-					<blockquote>{translated}</blockquote>
-				</p>
-			</div>
+			<p>
+				<sub>↓ {formatLanguage(target)}</sub>
+			</p>
+			<p>
+				<blockquote>{translated}</blockquote>
+			</p>
 			<hr spacing={2} />
-			<div>
-				<p>
-					<sub>{tuning.join(" · ")}</sub>
-				</p>
-			</div>
+			<p>
+				<sub>{tuning.join(" · ")}</sub>
+			</p>
 		</message>,
 	);
 }, {
