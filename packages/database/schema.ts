@@ -27,6 +27,13 @@ export interface KuristinaSchema {
 		is_default: Generated<number>;
 		linked_at: number;
 	};
+	icon_emojis: {
+		name: string;
+		emoji_id: string;
+		animated: Generated<number>;
+		source_hash: string;
+		uploaded_at: number;
+	};
 }
 
 export type SchemaContext = Kysely<KuristinaSchema>;
