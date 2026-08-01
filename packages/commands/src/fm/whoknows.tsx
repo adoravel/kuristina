@@ -10,7 +10,6 @@ import { type AsyncResult, mapAsync, mapWithConcurrency, ok, tapErrorAsync } fro
 import { repositories } from "@kuristina/database";
 import { Theme } from "@kuristina/discord-ui";
 import { type AppError, describe } from "@kuristina/errors";
-import { getArtistInfo } from "@kuristina/services/lastfm";
 import {
 	type ExtendedScrobleArtist,
 	getScrobbleProvider,
@@ -49,7 +48,7 @@ async function fetchPlaycounts(
 	artist: string,
 ): Promise<PromiseSettledResult<PlaycountResult>[]> {
 	return await mapWithConcurrency(entries, CONCURRENCY_LIMIT, async ([discordId, username]) => {
-		const result = await provider.artist.getArtistInfo(artist, true, username);
+		const result = await provider.artist.getInfo(artist, true, username);
 		return {
 			discordId,
 			data: result.ok ? result.value : undefined,
@@ -115,6 +114,7 @@ function WhoKnows({
 	errors: number;
 	artist: {
 		name: string;
+		href: string;
 		tags?: string[];
 		image: string;
 	};
@@ -131,10 +131,11 @@ function WhoKnows({
 				<accessory>
 					<thumbnail url={artist.image} description={artist.name} />
 				</accessory>
-				<h2>
+				<h3>
 					<icon name="artist" />
-					{`  Top listeners of ${artist.name}`}
-				</h2>
+					{`  Top listeners of `}
+					<a href={artist.href}>{artist.name} ↗</a>
+				</h3>
 				{tags && <sub>{tags}</sub>}
 				<blockquote>
 					<ol>
@@ -169,10 +170,12 @@ export default defineCommand(["whoknows", "wk"], {
 		);
 	}
 
-	const artistInfo = await mapAsync(getArtistInfo(query, undefined, true))((info) => {
+	const provider = getScrobbleProvider(PROVIDER);
+
+	const artistInfo = await mapAsync(provider.artist.getInfo(query, false))((info) => {
 		const name = info.name || query;
-		const tags = info.tags?.tag?.slice(0, 5).map((t) => t.name);
-		return { name, tags, image: info.highestQualityImage["#text"] };
+		const tags = info.tags?.slice(0, 5).map((t) => t.name);
+		return { name, tags, image: info.imageUrl, href: info.href };
 	});
 
 	if (!artistInfo.ok) {
@@ -190,8 +193,6 @@ export default defineCommand(["whoknows", "wk"], {
 
 	const ranked = mapAsync(hasAccounts)(async ({ linked }) => {
 		const entries = [...linked.entries()];
-
-		const provider = getScrobbleProvider(PROVIDER);
 		const settled = await fetchPlaycounts(provider, entries, artist.name);
 
 		return rankResults(settled, MAX_SHOWN);
