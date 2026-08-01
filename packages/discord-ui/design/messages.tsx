@@ -30,9 +30,12 @@ export function ErrorMessage({
 			<hr spacing={2} />
 			<p>{children}</p>
 			{suggestion && (
-				<section spacing={2}>
-					<p>{Theme.emoji.error} {suggestion}</p>
-				</section>
+				<>
+					<hr spacing={2} />
+					<div>
+						<p>{Theme.emoji.error} {suggestion}</p>
+					</div>
+				</>
 			)}
 		</message>
 	);
