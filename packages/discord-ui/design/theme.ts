@@ -22,5 +22,8 @@ export const Theme = {
 		const [name, id] = raw.split(":");
 		return id ? `<:${name}:${id}>` : raw;
 	},
-	prefix: "/",
+	get prefix(): string {
+		const lut = ["!", "/", "kuristina", "kuri", "kurii", "kuriii", "kurie", "kuris", ":3", ":3c"];
+		return lut[Math.floor(Math.random() * lut.length)];
+	},
 } as const;
