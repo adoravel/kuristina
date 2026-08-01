@@ -18,7 +18,7 @@ const cfg = {
 		/node_modules/,
 		/\.git/,
 		/copyright\.ts$/,
-		/(generate|loc)\.ts$/,
+		/generate-icons\.ts$/,
 		/(static|assets)\//,
 	],
 };
