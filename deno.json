@@ -14,7 +14,8 @@
 			"write": true,
 			"env": true,
 			"net": true,
-			"ffi": true
+			"ffi": true,
+			"run": true
 		}
 	},
 	"imports": {
