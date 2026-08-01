@@ -35,3 +35,5 @@ export const registeredIcons = {
 } as const satisfies Record<string, IconRegistration>;
 
 export type RegisteredIconName = keyof typeof registeredIcons;
+
+export const VENDORED_ICONS_DIR = new URL("./vendored/", import.meta.url);
