@@ -4,10 +4,12 @@
  * SPDX-License-Identifier: AGPL-2.0-or-later
  */
 
-import { messageCreate, messageDelete, messageUpdate } from "./messageHandling.ts";
+import { messageCreate, messageDelete, messageUpdate } from "./message.ts";
 import interactionCreate from "./interactionCreate.ts";
 
 import type { Events } from "@kuristina/discord-bot";
+import { guildMemberAdd, guildMemberRemove } from "./member.ts";
+import { guildCreate, guildDelete } from "./guild.ts";
 
 function guarded<K extends keyof Events>(
 	name: K,
@@ -27,6 +29,10 @@ export const events = {
 	messageUpdate: guarded("messageUpdate", messageUpdate),
 	messageDelete: guarded("messageDelete", messageDelete),
 	interactionCreate: guarded("interactionCreate", interactionCreate),
+	guildMemberAdd: guarded("guildMemberAdd", guildMemberAdd),
+	guildMemberRemove: guarded("guildMemberRemove", guildMemberRemove),
+	guildCreate: guarded("guildCreate", guildCreate),
+	guildDelete: guarded("guildDelete", guildDelete),
 };
 
 export { setupInteractionHandler } from "./interactionCreate.ts";
