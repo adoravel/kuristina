@@ -33,13 +33,9 @@ interface RankedResult {
 
 async function fetchLinkedAccounts(
 	ctx: CommandExecutionContext<Record<PropertyKey, never>, Parser<string>>,
-): AsyncResult<Map<bigint, string>, AppError> {
-	const guild = await ctx.getGuild();
-
-	if (!guild) return ok(new Map());
-
-	const memberIds = [...guild.members.keys()];
-	return repositories.scrobble.getUsernamesForMembers(memberIds, PROVIDER);
+): AsyncResult<Map<bigint, string> | undefined, AppError> {
+	if (!ctx.message.guildId) return ok(undefined);
+	return await repositories.scrobble.getAllForProviderInGuild(PROVIDER, ctx.message.guildId);
 }
 
 async function fetchPlaycounts(
@@ -185,7 +181,7 @@ export default defineCommand(["whoknows", "wk"], {
 	const { value: artist } = artistInfo;
 
 	const hasAccounts = mapAsync(fetchLinkedAccounts(ctx))((result) => {
-		if (!result.size) {
+		if (!result || result.size === 0) {
 			throw new Error("no one has linked an account yet");
 		}
 		return { linked: result, artist: query };

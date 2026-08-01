@@ -21,7 +21,9 @@ export default defineCommand(["update", "up"], {}, async (ctx) => {
 		);
 	}
 	if (behind === 0) {
-		return void await ctx.reply({ content: "already up to date ig <:snackstare:1508480379198111764>" });
+		return void await ctx.reply({
+			content: "already up to date ig <:snackstare:1508480379198111764>",
+		});
 	}
 
 	if (await git.isDirty()) {
