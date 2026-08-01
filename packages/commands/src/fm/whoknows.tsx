@@ -6,11 +6,16 @@
 
 import { greedyString, type Parser } from "@kuristina/commands";
 import { type CommandExecutionContext, defineCommand } from "@kuristina/commands/registry";
-import { type AsyncResult, mapAsync, mapWithConcurrency, ok } from "@kuristina/core";
+import { type AsyncResult, mapAsync, mapWithConcurrency, ok, tapErrorAsync } from "@kuristina/core";
 import { repositories } from "@kuristina/database";
 import { Theme } from "@kuristina/discord-ui";
-import { getScrobbleProvider, type ScrobbleProvider } from "@kuristina/services/scrobbling";
-import type { AppError } from "@kuristina/errors";
+import { type AppError, describe } from "@kuristina/errors";
+import { getArtistInfo } from "@kuristina/services/lastfm";
+import {
+	type ExtendedScrobleArtist,
+	getScrobbleProvider,
+	type ScrobbleProvider,
+} from "@kuristina/services/scrobbling";
 
 const PROVIDER = "lastfm" as const;
 const MAX_SHOWN = 15;
@@ -18,13 +23,13 @@ const CONCURRENCY_LIMIT = 5;
 
 interface PlaycountResult {
 	discordId: bigint;
-	playcount: number;
-	ok: boolean;
+	data?: ExtendedScrobleArtist;
 }
 
 interface RankedResult {
 	discordId: bigint;
 	playcount: number;
+	imageUrl: string;
 }
 
 async function fetchLinkedAccounts(
@@ -39,16 +44,15 @@ async function fetchLinkedAccounts(
 }
 
 async function fetchPlaycounts(
+	provider: ScrobbleProvider,
 	entries: [bigint, string][],
 	artist: string,
-	provider: ScrobbleProvider,
 ): Promise<PromiseSettledResult<PlaycountResult>[]> {
 	return await mapWithConcurrency(entries, CONCURRENCY_LIMIT, async ([discordId, username]) => {
-		const result = await provider.getArtistPlaycount(username, artist);
+		const result = await provider.artist.getArtistInfo(artist, true, username);
 		return {
 			discordId,
-			playcount: result.ok ? result.value ?? 0 : 0,
-			ok: result.ok,
+			data: result.ok ? result.value : undefined,
 		};
 	});
 }
@@ -56,9 +60,9 @@ async function fetchPlaycounts(
 function rankResults(
 	settled: PromiseSettledResult<PlaycountResult>[],
 	maxShown: number,
-): { ranked: RankedResult[]; errors: number } {
+): { ranked: RankedResult[]; errors: number; imageUrl?: string } {
 	const results = settled.filter((r) => r.status === "fulfilled").map((r) => r.value);
-	const totalErrors = settled.filter((r) => r.status === "fulfilled" && !r.value.ok).length;
+	const errors = settled.filter((r) => r.status === "fulfilled" && !r.value.data).length;
 
 	for (const r of settled) {
 		if (r.status === "rejected") {
@@ -67,23 +71,34 @@ function rankResults(
 	}
 
 	const ranked = results
-		.filter((r) => r.playcount > 0)
-		.sort((a, b) => b.playcount - a.playcount)
+		.filter((r) => r.data && r.data.individualUserScrobbles > 0)
+		.sort((a, b) => b.data!.individualUserScrobbles - a.data!.individualUserScrobbles)
 		.slice(0, maxShown);
 
 	return {
-		ranked,
-		errors: totalErrors + settled.filter((r) => r.status === "rejected").length,
+		ranked: ranked.map(($) => ({
+			discordId: $.discordId,
+			imageUrl: $.data!.imageUrl,
+			playcount: $.data!.individualUserScrobbles,
+		})),
+		errors: errors + settled.filter((r) => r.status === "rejected").length,
+		imageUrl: ranked.findLast((x) => x.data?.imageUrl)?.data?.imageUrl,
 	};
 }
 
 function NoPlaysMessage({ artist, errors }: { artist: string; errors: number }) {
-	const errorSuffix = errors > 0 ? ` (${errors} requests failed)` : "";
 	return (
 		<message>
 			<h3>No plays found</h3>
 			<p>
-				No one here has scrobbled <strong>{artist}</strong>.{errorSuffix}
+				No one here has scrobbled <strong>{artist}</strong>.
+				{errors > 0 && (
+					<>
+						<br />
+						<br />
+						<sub>${errors} requests failed</sub>
+					</>
+				)}
 			</p>
 		</message>
 	);
@@ -98,35 +113,48 @@ function WhoKnows({
 	ranked: RankedResult[];
 	totalLinked: number;
 	errors: number;
-	artist: string;
+	artist: {
+		name: string;
+		tags?: string[];
+		image: string;
+	};
 }) {
 	const maxCount = ranked[0]?.playcount ?? 0;
 
+	const tags = artist?.tags?.length
+		? artist.tags.slice(0, 4).map((tag) => `#${tag}`).join("  ")
+		: null;
+
 	return (
-		<message>
-			<h3>Who knows {artist}?</h3>
+		<message allowedMentions={{ parse: [], repliedUser: false }}>
 			<section>
-				<p>
-					<ul>
+				<accessory>
+					<thumbnail url={artist.image} description={artist.name} />
+				</accessory>
+				<h2>
+					<icon name="artist" />
+					{`  Top listeners of ${artist.name}`}
+				</h2>
+				{tags && <sub>{tags}</sub>}
+				<blockquote>
+					<ol>
 						{ranked.map((r, i) => (
 							<li>
-								{i === 0 ? "👑" : `${i + 1}.`} <strong>{`<@${r.discordId}>`}</strong>
-								{" — "}
-								<strong>{r.playcount.toLocaleString()}</strong> plays{" "}
-								{i === 0 ? "🎉" : r.playcount === maxCount ? "👏" : ""}
+								<br />
+								{(i === 0 || r.playcount === maxCount) && <icon name="crown" />}
+								{` <@${r.discordId}>`} — <strong>{r.playcount.toLocaleString()}</strong> plays
 							</li>
 						))}
-					</ul>
-				</p>
-				<p>
-					<sub>
-						{ranked.length} of {totalLinked} linked members shown
-						{errors > 0 ? ` · ⚠️ ${errors} request${errors > 1 ? "s" : ""} failed` : ""}
-						{" · "}
-						{PROVIDER}
-					</sub>
-				</p>
+					</ol>
+				</blockquote>
 			</section>
+			<hr spacing={2} />
+			<sub>
+				{ranked.length} of {totalLinked} linked members shown
+				{errors > 0 ? ` · ⚠️ ${errors} request${errors > 1 ? "s" : ""} failed` : ""}
+				{" · "}
+				{PROVIDER}
+			</sub>
 		</message>
 	);
 }
@@ -134,44 +162,58 @@ function WhoKnows({
 export default defineCommand(["whoknows", "wk"], {
 	$: greedyString,
 }, async (ctx) => {
-	const artist = ctx.remaining?.trim();
-	if (!artist) {
+	const query = ctx.remaining?.trim();
+	if (!query) {
 		return void await ctx.error(
 			`give me an artist name, e.g. \`${Theme.prefix}whoknows Katelyn Bleh\``,
 		);
 	}
 
+	const artistInfo = await mapAsync(getArtistInfo(query, undefined, true))((info) => {
+		const name = info.name || query;
+		const tags = info.tags?.tag?.slice(0, 5).map((t) => t.name);
+		return { name, tags, image: info.highestQualityImage["#text"] };
+	});
+
+	if (!artistInfo.ok) {
+		return void await ctx.error("artist not found");
+	}
+
+	const { value: artist } = artistInfo;
+
 	const hasAccounts = mapAsync(fetchLinkedAccounts(ctx))((result) => {
 		if (!result.size) {
 			throw new Error("no one has linked an account yet");
 		}
-		return { linked: result, artist };
+		return { linked: result, artist: query };
 	});
 
-	const ranked = mapAsync(hasAccounts)(async ({ linked, artist: artistName }) => {
-		const provider = getScrobbleProvider(PROVIDER);
+	const ranked = mapAsync(hasAccounts)(async ({ linked }) => {
 		const entries = [...linked.entries()];
-		const settled = await fetchPlaycounts(entries, artistName, provider);
-		const { ranked, errors } = rankResults(settled, MAX_SHOWN);
 
-		return { ranked, errors, totalLinked: linked.size, artist: artistName };
+		const provider = getScrobbleProvider(PROVIDER);
+		const settled = await fetchPlaycounts(provider, entries, artist.name);
+
+		return rankResults(settled, MAX_SHOWN);
 	});
 
-	mapAsync(ranked)(async ({ ranked, errors, totalLinked, artist: artistName }) => {
+	const result = mapAsync(ranked)(async ({ ranked, errors, imageUrl }) => {
 		if (!ranked.length) {
-			await ctx.reply(<NoPlaysMessage artist={artistName} errors={errors} />);
+			await ctx.reply(<NoPlaysMessage artist={artist.name} errors={errors} />);
 			return;
 		}
-
+		if (imageUrl && imageUrl !== artist.image) artist.image = imageUrl;
 		await ctx.reply(
 			<WhoKnows
 				ranked={ranked}
-				totalLinked={totalLinked}
+				totalLinked={ranked.length}
 				errors={errors}
-				artist={artistName}
+				artist={artist}
 			/>,
 		);
 	});
+
+	await tapErrorAsync(result)(async (error) => void await ctx.error(describe(error)));
 }, {
 	description:
 		"Shows who in this server has scrobbled a given artist the most, ranked by playcount. Requires a linked Last.fm account.",
