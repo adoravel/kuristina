@@ -4,14 +4,76 @@
  * SPDX-License-Identifier: AGPL-2.0-or-later
  */
 
+import { type AsyncResult, flatMapAsync, mapAsync, tapErrorAsync } from "@kuristina/core";
 import { identifier, optional } from "@kuristina/commands";
-import { defineCommand } from "@kuristina/commands/registry";
+import { type CommandExecutionContext, defineCommand } from "@kuristina/commands/registry";
 import { repositories } from "@kuristina/database";
 import { getAuthToken, pollForSession } from "@kuristina/services/lastfm";
-import { describe } from "@kuristina/errors";
+import { type AppError, describe } from "@kuristina/errors";
 import { Theme } from "@kuristina/discord-ui";
 
 const PROVIDER = "lastfm" as const;
+
+const AuthMessage = ({ authUrl }: { authUrl: string }) => (
+	<message>
+		<h3>Link your Last.fm account</h3>
+		<p>
+			<a href={authUrl}>Click here to authorise ${Theme.branding.name}</a>, then come back. I'll
+			pick it up for you automatically, sweetie~ &lt;3<br></br>
+			<sub>This link expires in a few minutes.</sub>
+		</p>
+	</message>
+);
+
+function logout(
+	ctx: CommandExecutionContext<{ $?: string | null }, string>,
+): AsyncResult<void, AppError> {
+	const unlink = repositories.scrobble.unlink(ctx.user.id, PROVIDER);
+	return mapAsync(unlink)(
+		async () => void await ctx.success("unlinked your last.fm account"),
+	);
+}
+
+function login(
+	ctx: CommandExecutionContext<{ $?: string | null }, string>,
+): AsyncResult<void, AppError> {
+	const login = flatMapAsync(getAuthToken())(async ({ token, authUrl }) => {
+		await ctx.reply(<AuthMessage authUrl={authUrl} />);
+		return await pollForSession(token);
+	});
+
+	return flatMapAsync(login)(({ username }) => {
+		const link = repositories.scrobble.link(ctx.user.id, PROVIDER, username, true);
+		return mapAsync<void, any>(link)(async () => void await ctx.success(`linked as ${username}`));
+	});
+}
+
+function showLinkedAccount(
+	ctx: CommandExecutionContext<{ $?: string | null }, string>,
+): AsyncResult<void, AppError> {
+	const current = repositories.scrobble.getDefault(ctx.user.id);
+
+	return mapAsync(current)(async (account) => {
+		if (!account) {
+			return void await ctx.reply(
+				<message>
+					<h3>No account linked</h3>
+					<p>
+						Run <kbd>{Theme.prefix}lastfm login</kbd> to get started.
+					</p>
+				</message>,
+			);
+		}
+		await ctx.reply(
+			<message>
+				<h3>Linked account</h3>
+				<p>
+					<strong>{account.provider}</strong>: {account.username}
+				</p>
+			</message>,
+		);
+	});
+}
 
 export default defineCommand(["lastfm", "fm"], {
 	$: optional(identifier),
@@ -19,63 +81,15 @@ export default defineCommand(["lastfm", "fm"], {
 	const sub = ctx.remaining?.trim().toLowerCase();
 
 	if (sub === "logout") {
-		const result = await repositories.scrobble.unlink(ctx.user.id, PROVIDER);
-		if (!result.ok) {
-			return void await ctx.error("failed to unlink your account, try again in a moment");
-		}
-		return void await ctx.success("unlinked your last.fm account");
+		return void tapErrorAsync(logout(ctx))(async (error) => void await ctx.error(describe(error)));
 	}
 
 	if (sub === "login") {
-		const tokenResult = await getAuthToken();
-		if (!tokenResult.ok) return void await ctx.error(describe(tokenResult.error));
-
-		const { token, authUrl } = tokenResult.value;
-
-		await ctx.reply(
-			<message>
-				<h3>Link your Last.fm account</h3>
-				<p>
-					<a href={authUrl}>Click here to authorise kuristina</a>, then come back. I'll pick it up
-					for you automatically, sweetie~ &lt;3<br></br>
-					<sub>This link expires in a few minutes.</sub>
-				</p>
-			</message>,
-		);
-
-		const sessionResult = await pollForSession(token);
-		if (!sessionResult.ok) return void await ctx.error(describe(sessionResult.error));
-
-		const { username } = sessionResult.value;
-		const linkResult = await repositories.scrobble.link(ctx.user.id, PROVIDER, username, true);
-		if (!linkResult.ok) {
-			return void await ctx.error("authenticated, but failed to save your account. try again");
-		}
-
-		return void await ctx.success(`linked as **${username}**`);
+		return void tapErrorAsync(login(ctx))(async (error) => void await ctx.error(describe(error)));
 	}
 
-	const current = await repositories.scrobble.getDefault(ctx.user.id);
-	if (!current.ok) return void await ctx.error("failed to look up your linked account");
-
-	if (!current.value) {
-		return void await ctx.reply(
-			<message>
-				<h3>No account linked</h3>
-				<p>
-					Run <kbd>{Theme.prefix}lastfm login</kbd> to get started.
-				</p>
-			</message>,
-		);
-	}
-
-	await ctx.reply(
-		<message>
-			<h3>Linked account</h3>
-			<p>
-				<strong>{current.value.provider}</strong>: {current.value.username}
-			</p>
-		</message>,
+	await tapErrorAsync(showLinkedAccount(ctx))(async (error) =>
+		void await ctx.error(describe(error))
 	);
 }, {
 	description:
