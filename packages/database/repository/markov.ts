@@ -132,4 +132,13 @@ export class MarkovRepository extends Repository {
 			return Number(chainResult.numDeletedRows ?? 0n) + Number(wordResult.numDeletedRows ?? 0n);
 		});
 	}
+
+	async pruneNoise(minCount: number): Promise<Result<number, SqlError>> {
+		return await tryQuery(async () => {
+			const result = await this.database.deleteFrom("markov_chain")
+				.where("count", "<=", minCount)
+				.executeTakeFirst();
+			return Number(result.numDeletedRows ?? 0n);
+		});
+	}
 }

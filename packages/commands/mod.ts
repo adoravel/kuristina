@@ -22,14 +22,21 @@ export const commands = {
 	get translate() {
 		return cmd("translate");
 	},
-	get whoknows() {
-		return cmd("fm/whoknows");
+	fm: {
+		get whoknows() {
+			return cmd("fm/whoknows");
+		},
+		get auth() {
+			return cmd("fm/login");
+		},
 	},
-	get lastfm() {
-		return cmd("fm/login");
-	},
-	get forget() {
-		return cmd("markov/forget");
+	markov: {
+		get forget() {
+			return cmd("markov/forget");
+		},
+		get prune() {
+			return cmd("markov/prune");
+		},
 	},
 	get all() {
 		return [
@@ -37,9 +44,10 @@ export const commands = {
 			this.ping,
 			this.role,
 			this.translate,
-			this.whoknows,
-			this.lastfm,
-			this.forget,
+			this.fm.whoknows,
+			this.fm.auth,
+			this.markov.forget,
+			this.markov.prune,
 		];
 	},
 };
