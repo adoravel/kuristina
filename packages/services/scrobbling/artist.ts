@@ -4,6 +4,8 @@ import type { ScrobbleError, ScrobbleProviderName } from "@kuristina/services/sc
 
 export interface ScrobbleArtist {
 	name: string;
+	href: string;
+	tags?: { name: string; url?: string }[];
 	imageUrl: string;
 }
 
@@ -14,45 +16,49 @@ export interface ExtendedScrobleArtist extends ScrobbleArtist {
 export interface ArtistScrobbleProvider {
 	readonly name: ScrobbleProviderName;
 
-	getArtistInfo(
+	getInfo(
 		query: string,
 		exact: boolean,
 		username: string,
-	): AsyncResult<ExtendedScrobleArtist | undefined, ScrobbleError>;
+	): AsyncResult<ExtendedScrobleArtist, ScrobbleError>;
 
-	getArtistInfo(
+	getInfo(
 		query: string,
 		exact: boolean,
-	): AsyncResult<ScrobbleArtist | undefined, ScrobbleError>;
+	): AsyncResult<ScrobbleArtist, ScrobbleError>;
 }
 
 export class LastfmArtistScrobbleProvider implements ArtistScrobbleProvider {
 	readonly name = "lastfm" as ScrobbleProviderName;
 
-	getArtistInfo(
+	getInfo(
 		query: string,
 		exact: boolean,
-	): AsyncResult<ExtendedScrobleArtist | undefined, ScrobbleError>;
-	getArtistInfo(
+	): AsyncResult<ExtendedScrobleArtist, ScrobbleError>;
+	getInfo(
 		artist: string,
 		exact: boolean,
 		username: string,
-	): AsyncResult<ScrobbleArtist | undefined, ScrobbleError>;
+	): AsyncResult<ScrobbleArtist, ScrobbleError>;
 
-	getArtistInfo(
+	getInfo(
 		query: string,
 		exact: boolean,
 		username?: string,
-	): AsyncResult<ScrobbleArtist | ExtendedScrobleArtist | undefined, ScrobbleError> {
+	): AsyncResult<ScrobbleArtist | ExtendedScrobleArtist, ScrobbleError> {
 		if (username) {
-			return mapAsync(getArtistInfo(query, username, exact))(($) => ({
+			return mapAsync(getArtistInfo(query, username, !exact))(($) => ({
 				name: $.name,
 				imageUrl: $.highestQualityImage["#text"],
+				tags: $.tags?.tag,
+				href: $.url,
 				individualUserScrobbles: Number($.stats?.userplaycount ?? 0),
 			}));
 		}
-		return mapAsync(getArtistInfo(query, undefined, exact))(($) => ({
+		return mapAsync(getArtistInfo(query, undefined, !exact))(($) => ({
 			name: $.name,
+			href: $.url,
+			tags: $.tags?.tag,
 			imageUrl: $.highestQualityImage["#text"],
 		}));
 	}
