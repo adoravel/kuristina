@@ -104,7 +104,16 @@ async function getTranslationText(
 	return { text, source };
 }
 
-export default defineCommand("translate", {
+export default defineCommand([
+	"translate",
+	"trans",
+	"tr",
+	"t",
+	"übersetzen",
+	"ubersetzen",
+	"traduzir",
+	"traduz",
+], {
 	to: optional(identifier),
 	from: optional(identifier),
 	formality: optional(identifier),
@@ -201,19 +210,21 @@ export default defineCommand("translate", {
 			<p>
 				<blockquote>{truncated}</blockquote>
 			</p>
-			<section>
+			<hr spacing={2} />
+			<div>
 				<p>
 					<sub>↓ {formatLanguage(target)}</sub>
 				</p>
 				<p>
 					<blockquote>{translated}</blockquote>
 				</p>
-			</section>
-			<section>
+			</div>
+			<hr spacing={2} />
+			<div>
 				<p>
 					<sub>{tuning.join(" · ")}</sub>
 				</p>
-			</section>
+			</div>
 		</message>,
 	);
 }, {
