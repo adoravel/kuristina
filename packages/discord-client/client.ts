@@ -14,7 +14,7 @@ import * as events from "./events.ts";
 
 const desiredProperties = createDesiredPropertiesObject({
 	user: { id: true, username: true, discriminator: true },
-	member: { id: true },
+	member: { id: true, guildId: true, user: true },
 	guild: { id: true },
 	message: {
 		id: true,
