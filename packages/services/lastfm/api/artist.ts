@@ -36,7 +36,7 @@ export interface LastFmArtist {
 export async function getArtistInfo(
 	artist: string,
 	username?: string,
-	autocorrect = true,
+	autocorrect = false,
 ): Promise<Result<LastFmArtist, LastFmError>> {
 	const params: Record<string, string | number> = { artist };
 
