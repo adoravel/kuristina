@@ -39,31 +39,3 @@ export function log(
 		console.log(output);
 	}
 }
-
-export function logInfo(message: string, prefix = ""): void {
-	log(message, { level: "info", prefix });
-}
-
-export function logSuccess(message: string, prefix = ""): void {
-	log(message, { level: "success", prefix });
-}
-
-export function logWarn(message: string, prefix = ""): void {
-	log(message, { level: "warn", prefix });
-}
-
-export function logError(message: string, prefix = ""): void {
-	log(message, { level: "error", prefix });
-}
-
-export function logDebug(message: string, prefix = ""): void {
-	log(message, { level: "debug", prefix });
-}
-
-export function logWithPrefix(
-	prefix: string,
-	level: LogLevel = "info",
-	message: string,
-): void {
-	log(message, { level, prefix });
-}

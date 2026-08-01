@@ -16,7 +16,7 @@ if (import.meta.main) {
 
 	for (const signal of ["SIGINT", "SIGTERM"] as const) {
 		Deno.addSignalListener(signal, async () => {
-			console.log(`\nreceived ${signal}, shutting down...`);
+			logger.info(`\nreceived ${signal}, shutting down...`);
 			await shutdown();
 			await client?.shutdown();
 			Deno.exit(0);
