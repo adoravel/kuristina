@@ -14,24 +14,77 @@ import { Theme } from "@kuristina/discord-ui";
 
 const PROVIDER = "lastfm" as const;
 
-const AuthMessage = ({ authUrl }: { authUrl: string }) => (
-	<message>
-		<h3>Link your Last.fm account</h3>
-		<p>
-			<a href={authUrl}>Click here to authorise {Theme.branding.name}</a>, then come back. I'll pick
-			it up for you automatically, sweetie~ &lt;3<br></br>
+function AuthMessage({ authUrl }: { authUrl: string }) {
+	return (
+		<message>
+			<h3>
+				<icon name="link" /> Link your Last.fm account
+			</h3>
+			<p>
+				<a href={authUrl}>Click here ↗</a> to authorise{" "}
+				{Theme.branding.name}, then come back. I'll pick it up for you automatically, sweetie~ &lt;3
+			</p>
+			<hr spacing={2} />
 			<sub>This link expires in a few minutes.</sub>
-		</p>
-	</message>
-);
+		</message>
+	);
+}
+
+function LinkedMessage({ username }: { username: string }) {
+	return (
+		<message>
+			<h3>
+				<icon name="check" /> Linked to Last.fm
+			</h3>
+			<p>
+				Linked as <strong>{username}</strong>.
+			</p>
+		</message>
+	);
+}
+
+function UnlinkedMessage() {
+	return (
+		<message>
+			<h3>
+				<icon name="x" /> Unlinked
+			</h3>
+			<p>Removed your Last.fm account link.</p>
+		</message>
+	);
+}
+
+function NoAccountMessage() {
+	return (
+		<message>
+			<h3>
+				<icon name="link" /> No account linked
+			</h3>
+			<p>
+				Run <kbd>{Theme.prefix}lastfm login</kbd> to get started.
+			</p>
+		</message>
+	);
+}
+
+function AccountMessage({ provider, username }: { provider: string; username: string }) {
+	return (
+		<message>
+			<h3>
+				<icon name="music" /> Linked account
+			</h3>
+			<p>
+				<strong>{provider}</strong>: {username}
+			</p>
+		</message>
+	);
+}
 
 function logout(
 	ctx: CommandExecutionContext<{ $?: string | null }, string>,
 ): AsyncResult<void, AppError> {
 	const unlink = repositories.scrobble.unlink(ctx.user.id, PROVIDER);
-	return mapAsync(unlink)(
-		async () => void await ctx.success("unlinked your last.fm account"),
-	);
+	return mapAsync(unlink)(async () => void await ctx.reply(<UnlinkedMessage />));
 }
 
 function login(
@@ -44,7 +97,9 @@ function login(
 
 	return flatMapAsync(login)(({ username }) => {
 		const link = repositories.scrobble.link(ctx.user.id, PROVIDER, username, true);
-		return mapAsync<void, any>(link)(async () => void await ctx.success(`linked as ${username}`));
+		return mapAsync<void, any>(link)(
+			async () => void await ctx.reply(<LinkedMessage username={username} />),
+		);
 	});
 }
 
@@ -55,23 +110,9 @@ function showLinkedAccount(
 
 	return mapAsync(current)(async (account) => {
 		if (!account) {
-			return void await ctx.reply(
-				<message>
-					<h3>No account linked</h3>
-					<p>
-						Run <kbd>{Theme.prefix}lastfm login</kbd> to get started.
-					</p>
-				</message>,
-			);
+			return void await ctx.reply(<NoAccountMessage />);
 		}
-		await ctx.reply(
-			<message>
-				<h3>Linked account</h3>
-				<p>
-					<strong>{account.provider}</strong>: {account.username}
-				</p>
-			</message>,
-		);
+		await ctx.reply(<AccountMessage provider={account.provider} username={account.username} />);
 	});
 }
 
