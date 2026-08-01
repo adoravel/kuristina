@@ -14,3 +14,4 @@ export * from "./design/primitives.tsx";
 export * from "./design/messages.tsx";
 export * from "./design/theme.ts";
 export * from "./design/markdown.ts";
+export * from "./icons/registry.ts";
