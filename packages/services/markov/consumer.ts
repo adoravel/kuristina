@@ -7,7 +7,8 @@
 import { repositories } from "@kuristina/database";
 import { ok, type Result } from "@kuristina/core";
 import type { SqlError } from "@kuristina/database";
-import { getConfig } from "@kuristina/config";
+import { config } from "@kuristina/config";
+import { TimedMap } from "@kuristina/core";
 
 import { buildChain, generateSentence, sanitise, shouldLearn, tokenize } from "./core.ts";
 
@@ -18,6 +19,7 @@ export interface MarkovLink {
 }
 
 const { markov } = repositories;
+const linkCache = new TimedMap<string, MarkovLink[]>(30_000);
 
 export async function learn(text: string): Promise<Result<void, SqlError>> {
 	if (!shouldLearn(text)) return ok(undefined);
@@ -63,7 +65,7 @@ export async function sampleWord(): Promise<Result<string, SqlError>> {
 export async function generate(
 	bias?: string,
 ): Promise<Result<string, SqlError>> {
-	const maxLength = getConfig().modules.markov.maxGenerationLength;
+	const maxLength = config.modules.markov.maxGenerationLength;
 	const repo = markov;
 
 	let seedPrefix: string | undefined;
@@ -90,8 +92,12 @@ export async function generate(
 	}
 
 	const getLinks = async (prefix: string): Promise<MarkovLink[]> => {
+		const cached = linkCache.get(prefix);
+		if (cached) return cached;
 		const res = await repo.findLinksByPrefix(prefix);
-		return res.ok ? res.value : [];
+		const value = res.ok ? res.value : [];
+		linkCache.set(prefix, value);
+		return value;
 	};
 
 	const sentence = await generateSentence(seedPrefix, getLinks, maxLength);

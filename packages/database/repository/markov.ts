@@ -88,13 +88,21 @@ export class MarkovRepository extends Repository {
 	}
 
 	async findRandomSeedContaining(word: string): Promise<Result<MarkovLink[], SqlError>> {
-		return await tryQuery(() =>
-			this.database.selectFrom("markov_chain").select(["prefix", "suffix", "count"])
-				.where("prefix", "like", `%${word}%`)
-				.orderBy(sql`RANDOM()`)
-				.limit(1)
-				.execute()
-		);
+		return await tryQuery(async () => {
+			const matches = await sql<{ id: number }>`
+				SELECT rowid as id FROM markov_chain_fts
+				WHERE markov_chain_fts MATCH ${word + "*"}
+				ORDER BY RANDOM() LIMIT 1
+			`.execute(this.database);
+
+			const id = matches.rows[0]?.id;
+			if (!id) return [];
+
+			return await this.database.selectFrom("markov_chain")
+				.select(["prefix", "suffix", "count"])
+				.where("id", "=", id)
+				.execute();
+		});
 	}
 
 	async maxChainId(): Promise<Result<number | null, SqlError>> {
