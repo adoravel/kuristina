@@ -2,7 +2,6 @@ import { encodeBase64 } from "@std/encoding/base64";
 import { encodeHex } from "@std/encoding/hex";
 import { repositories } from "@kuristina/database";
 import {
-	// @ts-types="@kuristina/discord-ui"
 	getEmojiName,
 	type IconManifestEntry,
 	registeredIcons,
@@ -82,8 +81,10 @@ export async function reconcileIcons(bot: typeof discord): Promise<void> {
 		}
 	}
 
+	const paddedRegisteredNames = [...registeredNames].map(getEmojiName);
+
 	for (const [name, remote] of remotes) {
-		if (!registeredNames.has(name!)) {
+		if (!paddedRegisteredNames.includes(name!)) {
 			try {
 				await bot.helpers.deleteApplicationEmoji(remote.id);
 				console.log(`  · icons: deleted orphaned "${name}" (${remote.id})`);
