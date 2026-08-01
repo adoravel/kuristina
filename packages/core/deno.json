@@ -5,6 +5,7 @@
 		".": "./mod.ts"
 	},
 	"imports": {
+		"@std/fmt": "jsr:@std/fmt@^1.0.10",
 		"@types/culori": "npm:@types/culori@^4.0.1",
 		"culori": "npm:culori@^4.0.2"
 	}

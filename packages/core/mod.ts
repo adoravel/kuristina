@@ -6,6 +6,7 @@
 
 export * from "./result.ts";
 export * from "./errors.ts";
+export * from "./logger/mod.ts";
 export * from "./util/map.ts";
 export * from "./util/retry.ts";
 export * from "./util/types.ts";
