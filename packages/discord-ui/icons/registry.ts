@@ -32,6 +32,7 @@ export const registeredIcons = {
 	x: { provider: "heroicons", name: "x-mark", variant: "danger", style: "outline" },
 	users: { provider: "heroicons", name: "users", style: "solid" },
 	crown: { provider: "lucide", name: "crown" },
+	artist: { provider: "lucide", name: "mic-vocal", strokeWidth: 2 },
 } as const satisfies Record<string, IconRegistration>;
 
 export type RegisteredIconName = keyof typeof registeredIcons;
