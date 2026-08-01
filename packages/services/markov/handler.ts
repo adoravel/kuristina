@@ -139,6 +139,8 @@ async function produce(
 
 	value = applyReplacements(value, message.guildId);
 
+	await safePromise(client.helpers.triggerTypingIndicator(message.channelId));
+
 	const sent = await safePromise(
 		client.helpers.sendMessage(message.channelId, {
 			content: value,
