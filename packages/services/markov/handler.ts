@@ -108,7 +108,7 @@ async function produce(
 
 	if (Math.random() * 100 < singleWordChance) {
 		console.log("  · markov: generating single word...");
-		result = await orAsync(markov.generate)(await markov.sampleWord());
+		result = await orAsync(await markov.sampleWord())(markov.generate);
 	} else {
 		console.log("  · markov: triggering generation...");
 		result = await markov.generate();
