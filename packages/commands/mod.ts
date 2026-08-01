@@ -38,6 +38,14 @@ export const commands = {
 			return cmd("markov/prune");
 		},
 	},
+	dev: {
+		get restart() {
+			return cmd("dev/restart");
+		},
+		get update() {
+			return cmd("dev/update");
+		},
+	},
 	get all() {
 		return [
 			this.help,
@@ -48,6 +56,8 @@ export const commands = {
 			this.fm.auth,
 			this.markov.forget,
 			this.markov.prune,
+			this.dev.restart,
+			this.dev.update,
 		];
 	},
 };
