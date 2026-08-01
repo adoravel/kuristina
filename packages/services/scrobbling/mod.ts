@@ -6,7 +6,7 @@
 
 import type { Result } from "@kuristina/core";
 import type { LastFmError } from "../lastfm/errors.ts";
-import { getArtistInfoForUser } from "../lastfm/api/artist.ts";
+import { getArtistInfo } from "../lastfm/api/artist.ts";
 
 export type ScrobbleProviderName = "lastfm" | "listenbrainz";
 export type ScrobbleError = LastFmError;
@@ -17,13 +17,14 @@ export interface ScrobbleProvider {
 	getArtistPlaycount(
 		username: string,
 		artist: string,
+		exact: boolean,
 	): Promise<Result<number | undefined, ScrobbleError>>;
 }
 
 const lastfm: ScrobbleProvider = {
 	name: "lastfm",
-	async getArtistPlaycount(username, artist) {
-		const result = await getArtistInfoForUser(artist, username);
+	async getArtistPlaycount(username, artist, exact) {
+		const result = await getArtistInfo(artist, username, exact);
 		if (!result.ok) return result;
 		return { ok: true, value: result.value.stats?.userplaycount };
 	},
