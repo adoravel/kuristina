@@ -7,6 +7,7 @@
 		"./translation": "./translation/mod.ts",
 		"./deepl": "./deepl/mod.ts",
 		"./lastfm": "./lastfm/mod.ts",
+		"./musicbrainz": "./musicbrainz/mod.ts",
 		"./scrobbling": "./scrobbling/mod.ts",
 		"./google/batchexecute": "./google/batchexecute/mod.ts"
 	},
