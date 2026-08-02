@@ -47,7 +47,7 @@ export const registeredIcons = {
 	check: { provider: "lucide", name: "check", variant: "success" },
 	x: { provider: "heroicons", name: "x-mark", variant: "danger", style: "outline" },
 	users: { provider: "heroicons", name: "users", style: "solid" },
-	crown: { provider: "lucide", name: "crown" },
+	crown: { provider: "lucide", name: "crown", variant: "warn" },
 	artist: { provider: "lucide", name: "mic-vocal", strokeWidth: 2 },
 	help: { provider: "lucide", name: "circle-question-mark" },
 	translate: { provider: "lucide", name: "languages" },
