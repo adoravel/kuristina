@@ -8,7 +8,21 @@ import { ok, type Result } from "@kuristina/core";
 import { type SqlError, tryQuery } from "@kuristina/database";
 import { Repository } from "./helper.ts";
 
-export type CompanionKind = "command" | "richlink";
+export type RichLinkProvider = "github" | "codeberg" | "twitter" | "fediverse" | "musiclinks";
+
+export type CompanionKind = "command" | `richlink:${RichLinkProvider}`;
+
+export const isRichLinkKind = (kind: string): boolean => kind.startsWith("richlink:");
+
+function toCompanion(
+	row: { response_message_id: string; channel_id: string; kind: string },
+): MessageCompanion {
+	return {
+		responseMessageId: BigInt(row.response_message_id),
+		channelId: BigInt(row.channel_id),
+		kind: row.kind as CompanionKind,
+	};
+}
 
 export interface MessageCompanion {
 	responseMessageId: bigint;
@@ -48,12 +62,35 @@ export class MessageCompanionRepository extends Repository {
 			if (kind) query = query.where("kind", "=", kind);
 
 			const rows = await query.execute();
-			return rows.map((r) => ({
-				responseMessageId: BigInt(r.response_message_id),
-				channelId: BigInt(r.channel_id),
-				kind: r.kind as CompanionKind,
-			}));
+			return rows.map(toCompanion);
 		});
+	}
+
+	async getForSourceByPrefix(
+		sourceId: bigint,
+		kindPrefix: string,
+	): Promise<Result<MessageCompanion[], SqlError>> {
+		return await tryQuery(async () => {
+			const rows = await this.database.selectFrom("message_companions")
+				.select(["response_message_id", "channel_id", "kind"])
+				.where("source_message_id", "=", sourceId.toString())
+				.where("kind", "like", `${kindPrefix}%`)
+				.execute();
+			return rows.map(toCompanion);
+		});
+	}
+
+	async deleteResponses(
+		sourceId: bigint,
+		responseIds: bigint[],
+	): Promise<Result<void, SqlError>> {
+		if (!responseIds.length) return ok(undefined);
+		return await tryQuery(() =>
+			this.database.deleteFrom("message_companions")
+				.where("source_message_id", "=", sourceId.toString())
+				.where("response_message_id", "in", responseIds.map(($) => $.toString()))
+				.execute()
+		).then((r) => (r.ok ? ok(undefined) : r));
 	}
 
 	async deleteForSource(sourceId: bigint, kind?: CompanionKind): Promise<Result<void, SqlError>> {
