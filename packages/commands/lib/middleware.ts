@@ -10,8 +10,7 @@ import type { StringStream } from "@kuristina/commands";
 import type { CommandMetadata } from "./definition.ts";
 import { config } from "@kuristina/config";
 import { sendBlockedMessage } from "./responses.tsx";
-import { badge } from "@kuristina/core";
-import { black, brightBlue } from "@std/fmt/colors";
+import { badge, bg, fg } from "@kuristina/core";
 
 export interface Middleware {
 	readonly name: string;
@@ -33,7 +32,7 @@ export type MiddlewareResult =
 	| { type: "stop"; reason?: string }
 	| { type: "error"; error: Error };
 
-const loggingBadge = badge({ label: "command", bg: brightBlue, fg: black });
+const loggingBadge = badge({ label: "command", bg: bg("#ec4899"), fg: fg("#00000") });
 
 export const logging: Middleware = {
 	name: "logging",

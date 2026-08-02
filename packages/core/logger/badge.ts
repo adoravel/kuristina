@@ -7,11 +7,11 @@
 import { bgRgb24, rgb24 } from "@std/fmt/colors";
 import { bold } from "./colours.ts";
 
-const bg = (hex: string) => {
+export const bg = (hex: string) => {
 	const numericHex = parseInt(hex.replace("#", ""), 16);
 	return (text: string) => bgRgb24(text, numericHex);
 };
-const fg = (hex: string) => {
+export const fg = (hex: string) => {
 	const numericHex = parseInt(hex.replace("#", ""), 16);
 	return (text: string) => rgb24(text, numericHex);
 };
