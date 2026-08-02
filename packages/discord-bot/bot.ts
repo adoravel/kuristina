@@ -4,7 +4,7 @@
  * SPDX-License-Identifier: AGPL-2.0-or-later
  */
 
-import { commandRegistry, commands } from "@kuristina/commands/registry";
+import { commandRegistry, commands, logging } from "@kuristina/commands/registry";
 
 import { createProxyCache } from "dd-cache-proxy";
 import {
@@ -206,6 +206,7 @@ export async function initialise(): Promise<Result<void, AppError>> {
 	if (maintenanceInterval > 0) setInterval(() => void runMaintenance(), maintenanceInterval);
 	schedulePresenceReconciliation(discord);
 
+	commandRegistry.use(logging);
 	await Promise.all(commands.all.map(async (cmd) => commandRegistry.register(await cmd)));
 
 	return ok(undefined);
