@@ -4,31 +4,9 @@
  * SPDX-License-Identifier: AGPL-2.0-or-later
  */
 
-import {
-	bgBlack,
-	bgCyan,
-	bgGreen,
-	bgRed,
-	bgYellow,
-	bold,
-	dim,
-	green,
-	red,
-	yellow,
-} from "./colours.ts";
+import { badges } from "./badge.ts";
 
 export type LogLevel = "debug" | "info" | "warn" | "error" | "success";
-
-export const levelStyles: Record<
-	LogLevel,
-	{ bg: (s: string) => string; fg: (s: string) => string }
-> = {
-	debug: { bg: bgBlack, fg: dim },
-	info: { bg: bgCyan, fg: bold },
-	warn: { bg: bgYellow, fg: yellow },
-	error: { bg: bgRed, fg: red },
-	success: { bg: bgGreen, fg: green },
-};
 
 export const levelIcons: Record<LogLevel, string> = {
 	debug: "🐛",
@@ -38,9 +16,6 @@ export const levelIcons: Record<LogLevel, string> = {
 	success: "✔",
 };
 
-export function levelBadge(level: LogLevel, icon = true): string {
-	const { bg, fg } = levelStyles[level];
-	const label = level.toUpperCase();
-	const coloured = bg(fg(` ${label} `));
-	return icon ? `${levelIcons[level]} ${coloured}` : coloured;
+export function levelBadge(level: LogLevel, icon: boolean = true): string {
+	return icon ? `${levelIcons[level]} ${badges[level]}` : badges[level];
 }

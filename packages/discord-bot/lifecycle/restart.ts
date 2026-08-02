@@ -14,7 +14,7 @@ export async function requestRestart(channelId: bigint, messageId: bigint): Prom
 		STATE_KEY,
 		JSON.stringify({ channelId: channelId.toString(), messageId: messageId.toString() }),
 	);
-	console.log("  · restart: state saved, exiting for supervisor restart");
+	logger.yay("  · restart: state saved, exiting for supervisor restart");
 	Deno.exit(0);
 }
 
@@ -37,7 +37,7 @@ export async function confirmRestartIfPending(bot: typeof discord): Promise<void
 			});
 		}
 	} catch (e) {
-		console.error("  · restart: failed to confirm restart:", e);
+		logger.boo("  · restart: failed to confirm restart: " + e);
 	} finally {
 		await repositories.state.delete(STATE_KEY);
 	}

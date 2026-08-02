@@ -5,12 +5,17 @@
  */
 
 import { repositories } from "@kuristina/database";
-import { ok, type Result } from "@kuristina/core";
+import { badge as createBadge, ok, type Result } from "@kuristina/core";
 import type { SqlError } from "@kuristina/database";
 import { config } from "@kuristina/config";
 import { TimedMap } from "@kuristina/core";
+import { bgYellow, black } from "@std/fmt/colors";
 
 import { buildChain, generateSentence, sanitise, shouldLearn, tokenize } from "./core.ts";
+
+const badge = createBadge({ label: "markov", bg: bgYellow, fg: black });
+
+export const log = (msg: string) => logger.prefixed(badge, msg);
 
 export interface MarkovLink {
 	prefix: string;

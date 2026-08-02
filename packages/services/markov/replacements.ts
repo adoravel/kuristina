@@ -5,6 +5,7 @@
  */
 
 import { config } from "@kuristina/config";
+import { log } from "./consumer.ts";
 
 export function applyReplacements(text: string, guildId?: bigint): string {
 	const { replacements, serverReplacements } = config.modules.markov;
@@ -25,7 +26,7 @@ function run(text: string, rules: Record<string, string>): string {
 		try {
 			result = result.replace(new RegExp(pattern, "ig"), replacement);
 		} catch (e) {
-			console.error(`  · markov: invalid replacement pattern "${pattern}":`, e);
+			log(`invalid replacement pattern "${pattern}": ` + e);
 		}
 	}
 	return result;

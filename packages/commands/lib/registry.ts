@@ -40,13 +40,13 @@ class CommandRegistry {
 			}
 			this._commands.set(alias, cmd);
 		}
-		console.info(`registered command: ${cmd.aliases.join(", ")}`);
+		logger.info(`registered command: ${cmd.aliases.join(", ")}`);
 	}
 
 	use(middleware: Middleware): void {
 		this.globalMiddleware.push(middleware);
 		this.globalMiddleware.sort((a, b) => (a.priority ?? 100) - (b.priority ?? 100));
-		console.info(`registered middleware: ${middleware.name}`);
+		logger.info(`registered middleware: ${middleware.name}`);
 	}
 
 	async execute(message: Message, stream: StringStream): Promise<void> {
@@ -60,7 +60,7 @@ class CommandRegistry {
 		const mid = await this.runMiddlewares(this.globalMiddleware, middlewareCtx);
 		if (mid.type !== "continue") {
 			if (mid.type === "error") {
-				console.error("global middleware error:", mid.error);
+				logger.boo("global middleware error: " + mid.error);
 			}
 			return;
 		}
@@ -84,7 +84,7 @@ class CommandRegistry {
 			const cmdMid = await this.runMiddlewares(cmd.middleware, middlewareCtx);
 			if (cmdMid.type !== "continue") {
 				if (cmdMid.type === "error") {
-					console.error("middleware error:", cmdMid.error);
+					logger.boo("middleware error: " + cmdMid.error);
 				}
 				return;
 			}
@@ -109,7 +109,7 @@ class CommandRegistry {
 				this.cooldowns.set(message.author.id, cmd.aliases[0], cmd.cooldownMs);
 			}
 		} catch (error) {
-			console.error(`Command execution error (${cmd.aliases[0]}):`, error);
+			logger.boo(`command execution error (${cmd.aliases[0]}): ` + error);
 			await sendExecutionError(message, error);
 		}
 	}
@@ -125,7 +125,7 @@ class CommandRegistry {
 					return result;
 				}
 			} catch (error) {
-				console.error(`Middleware error (${middleware.name}):`, error);
+				logger.boo(`middleware error (${middleware.name}): ` + error);
 				return { type: "error", error: error as Error };
 			}
 		}

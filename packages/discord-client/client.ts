@@ -55,7 +55,7 @@ export function initialiseClient() {
 	monkeyPatchUserAppSupport(client);
 
 	client.events = {
-		ready: ({ user }) => console.log(`markov client meowing as ${user.tag} :3`),
+		ready: ({ user }) => logger.info(`markov client meowing as ${user.tag} :3`),
 		...events,
 	};
 

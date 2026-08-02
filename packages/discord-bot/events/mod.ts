@@ -19,7 +19,7 @@ function guarded<K extends keyof Events>(
 		try {
 			return await (handler as any)?.(...args);
 		} catch (e) {
-			console.error(`[${String(name)}] unhandled error:`, e);
+			logger.boo(`[${String(name)}] unhandled error: ` + e);
 		}
 	};
 }

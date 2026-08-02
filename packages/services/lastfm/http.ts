@@ -101,7 +101,7 @@ export async function request<T>(
 				const status = (error as { status?: number })?.status;
 				return isRetryableError(status);
 			},
-			onRetry: (attempt, delay) => console.warn(`  · lastfm: retry ${attempt}, waiting ${delay}ms`),
+			onRetry: (attempt, delay) => logger.warn(`lastfm: retry ${attempt}, waiting ${delay}ms`),
 		},
 		mapError: mapLastFmError,
 		json: true,

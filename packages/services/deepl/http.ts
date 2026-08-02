@@ -80,7 +80,7 @@ async function request<T>(
 				if (isRetryableError(status) || error instanceof TypeError) return true;
 				return error instanceof DOMException && error.name === "TimeoutError";
 			},
-			onRetry: (attempt, delay) => console.warn(`  · deepl: retry ${attempt}, waiting ${delay}ms`),
+			onRetry: (attempt, delay) => logger.warn(`deepl: retry ${attempt}, waiting ${delay}ms`),
 		},
 	};
 

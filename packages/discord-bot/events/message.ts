@@ -29,7 +29,7 @@ export const messageDelete: typeof discord.events.messageDelete = async (message
 				"command deletion request",
 			);
 		} catch (error) {
-			console.error("failed to delete command response:", error);
+			logger.boo("failed to delete command response: " + error);
 		}
 		contextCache.delete(message.id);
 	}

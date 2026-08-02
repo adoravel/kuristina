@@ -4,28 +4,35 @@
  * SPDX-License-Identifier: AGPL-2.0-or-later
  */
 
-import { bgBlack, bgCyan, bgGreen, bgMagenta, bgRed, bgYellow, bold } from "./colours.ts";
+import { bgRgb24, rgb24 } from "@std/fmt/colors";
+import { bold } from "./colours.ts";
+
+const bg = (hex: string) => {
+	const numericHex = parseInt(hex.replace("#", ""), 16);
+	return (text: string) => bgRgb24(text, numericHex);
+};
+const fg = (hex: string) => {
+	const numericHex = parseInt(hex.replace("#", ""), 16);
+	return (text: string) => rgb24(text, numericHex);
+};
 
 export interface BadgeOptions {
 	label: string;
-	icon?: string;
 	bg: (s: string) => string;
 	fg?: (s: string) => string;
 }
 
-export function badge({ label, icon, bg, fg = bold }: BadgeOptions): string {
-	const coloured = bg(fg(` ${label} `));
-	return icon ? `${icon} ${coloured}` : coloured;
+export function badge({ label, bg, fg = bold }: BadgeOptions): string {
+	return bg(fg(` ${label} `));
 }
 
 export const badges = {
-	fetch: (icon = "⬇") => badge({ label: "FETCH", bg: bgCyan, icon }),
-	warn: (icon = "⚠") => badge({ label: "WARN", bg: bgYellow, icon }),
-	build: (icon = "🔨") => badge({ label: "BUILD", bg: bgMagenta, icon }),
-	success: (icon = "✔") => badge({ label: "SUCCESS", bg: bgGreen, icon }),
-	error: (icon = "✘") => badge({ label: "ERROR", bg: bgRed, icon }),
-	info: (icon = "ℹ") => badge({ label: "INFO", bg: bgBlack, icon }),
-	debug: (icon = "🐛") => badge({ label: "DEBUG", bg: bgBlack, icon }),
+	warn: badge({ label: "WARN", bg: bg("#f59e0b"), fg: fg("#000000") }),
+	build: badge({ label: "BUILD", bg: bg("#a855f7"), fg: fg("#000000") }),
+	success: badge({ label: "SUCCESS", bg: bg("#22c55e"), fg: fg("#000000") }),
+	error: badge({ label: "ERROR", bg: bg("#ef4444"), fg: fg("#000000") }),
+	info: badge({ label: "INFO", bg: bg("#3b82f6"), fg: fg("#000000") }),
+	debug: badge({ label: "DEBUG", bg: bg("#3f3f46"), fg: fg("#d4d4d8") }),
 };
 
 export type BadgeName = keyof typeof badges;

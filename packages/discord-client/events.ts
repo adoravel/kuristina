@@ -9,10 +9,10 @@ import * as markov from "@kuristina/services/markov";
 
 export const reactionAdd: typeof client.events.reactionAdd = async (reaction) => {
 	const result = await markov.reactionAdd(client, reaction);
-	if (!result.ok) console.error(result.error);
+	if (!result.ok) logger.boo("[markov:reactionAdd] " + result.error);
 };
 
 export const messageCreate: typeof client.events.messageCreate = async (message) => {
 	const result = await markov.messageCreate(client, message);
-	if (!result.ok) console.error("[markov:messageCreate]", result.error);
+	if (!result.ok) logger.boo("[markov:messageCreate] " + result.error);
 };

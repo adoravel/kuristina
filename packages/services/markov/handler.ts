@@ -19,6 +19,7 @@ import * as markov from "./consumer.ts";
 import discord from "@kuristina/discord-bot";
 
 const TRANSLATION_DEBOUNCE_MS = 10_000;
+const { log } = markov;
 
 interface ChannelState {
 	messageCount: number;
@@ -49,7 +50,7 @@ function resetTrigger(state: ChannelState): void {
 	const { min, max } = config.modules.markov.triggerThreshold;
 	state.messageCount = 0;
 	state.triggerThreshold = Math.floor(Math.random() * (max - min + 1)) + min;
-	console.log(`  · markov: next message in ${state.triggerThreshold} messages.`);
+	log(`next message in ${state.triggerThreshold} messages`);
 }
 
 function getCooldown(channelId: bigint): number {
@@ -93,11 +94,11 @@ async function produce(
 
 	if (!shouldTrigger && isReplyToBot) {
 		if (now - state.lastReplyAt > cooldown) {
-			console.log("  · markov: valid reply detected");
+			log("valid reply detected");
 			shouldTrigger = true;
 			state.lastReplyAt = now;
 		} else {
-			console.log("  · markov: reply ignored (cooldown active)");
+			log("reply ignored (cooldown active)");
 			return ok(undefined);
 		}
 	}
@@ -107,15 +108,15 @@ async function produce(
 	let result: Result<string, SqlError>;
 
 	if (Math.random() * 100 < singleWordChance) {
-		console.log("  · markov: generating single word...");
+		log("generating single word...");
 		result = await orAsync(await markov.sampleWord())(markov.generate);
 	} else {
-		console.log("  · markov: triggering generation...");
+		log("triggering generation...");
 		result = await markov.generate();
 	}
 
 	if (!result.ok) return result;
-	console.log(`  · markov: "${result.value}" -${state.triggerThreshold - state.messageCount}`);
+	log(`"${result.value}" -${state.triggerThreshold - state.messageCount}`);
 
 	if (!shouldTrigger) {
 		return ok(undefined);
@@ -125,11 +126,11 @@ async function produce(
 	const roll = Math.random() * 1000;
 
 	if (roll < urlConcatChance) {
-		console.log("  · markov: triggering url concat...");
+		log("triggering url concat...");
 		const urlResult = await markov.generate("https://");
 		if (urlResult.ok) value += " " + urlResult.value;
 	} else if (roll < urlOnlyChance) {
-		console.log("  · markov: triggering url only...");
+		log("triggering url only...");
 		const urlResult = await markov.generate("https://");
 		if (urlResult.ok) value = urlResult.value;
 	} else {
@@ -156,9 +157,9 @@ async function produce(
 	);
 
 	if (!sent.ok) {
-		console.error("  · markov: send failed:", sent.error.message);
+		log(`send ✌️ failed: ${sent.error.message}`);
 	} else {
-		console.log(`  · markov: sent "${value}"`);
+		log(`markov: sent "${value}"`);
 	}
 
 	resetTrigger(state);
@@ -188,7 +189,6 @@ export async function reactionAdd(
 
 	const lastTranslated = translationTimestamps.get(reaction.messageId);
 	if (lastTranslated && Date.now() - lastTranslated < TRANSLATION_DEBOUNCE_MS) {
-		console.log("  · markov(translate): message was recently translated, skipping...");
 		return ok(undefined);
 	}
 
@@ -197,7 +197,6 @@ export async function reactionAdd(
 	const cooldown = getCooldown(reaction.channelId);
 
 	if (now - state.lastReactionAt < cooldown) {
-		console.log("  · markov(translate): reaction ignored (cooldown active).");
 		return ok(undefined);
 	}
 
@@ -209,7 +208,7 @@ export async function reactionAdd(
 	);
 
 	if (!messageResult.ok) {
-		console.error("  · markov(translate): failed to fetch message:", messageResult.error);
+		log("failed to fetch message: " + messageResult.error);
 		return ok(undefined);
 	}
 
@@ -219,7 +218,7 @@ export async function reactionAdd(
 	)?.count ?? 0;
 
 	if (reactionCount > 1) {
-		console.log(`  · markov(translate): skipping - ${reactionCount} reactions of this type exist`);
+		log(`skipping translation; ${reactionCount} reactions of this type exist`);
 		return ok(undefined);
 	}
 
@@ -258,7 +257,7 @@ export async function reactionAdd(
 		? `@${reaction.user.username}, snowflake(${reaction.userId})`
 		: `snowflake(${reaction.userId})`;
 
-	console.log(`  · markov(translate): "${message.content}" → "${text}", requested by ${requester}`);
+	log(`"${message.content}" → "${text}", requested by ${requester}`);
 
 	const edited = await safePromise(
 		client.helpers.editMessage(reaction.channelId, reaction.messageId, {
@@ -267,7 +266,7 @@ export async function reactionAdd(
 	);
 
 	if (!edited.ok) {
-		console.error("  · markov(translate): edit failed:", edited.error.message);
+		log("edit failed: " + edited.error.message);
 	}
 
 	return discard(edited) as Result<void, AppError>;

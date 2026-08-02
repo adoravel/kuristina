@@ -20,16 +20,16 @@ async function collectMemberIds(bot: typeof discord, guildId: bigint): Promise<S
 export async function reconcileGuild(bot: typeof discord, guildId: bigint): Promise<void> {
 	const memberIds = await collectMemberIds(bot, guildId);
 	if (!memberIds.size) {
-		console.warn(`  · presence: chunk for guild ${guildId} returned no members, skipping`);
+		logger.warn(`presence: chunk for guild ${guildId} returned no members, skipping`);
 		return;
 	}
 	const result = await repositories.members.reconcileGuild(guildId, memberIds);
 	if (!result.ok) {
-		console.error(`  · presence: reconciliation failed for guild ${guildId}:`, result.error);
+		logger.boo(`presence: reconciliation failed for guild ${guildId}: ` + result.error);
 		return;
 	}
-	console.log(
-		`  · presence: guild ${guildId} reconciled (+${result.value.added} / -${result.value.removed})`,
+	logger.yay(
+		`presence: guild ${guildId} reconciled (+${result.value.added} / -${result.value.removed})`,
 	);
 }
 

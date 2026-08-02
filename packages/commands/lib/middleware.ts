@@ -10,6 +10,8 @@ import type { StringStream } from "@kuristina/commands";
 import type { CommandMetadata } from "./definition.ts";
 import { config } from "@kuristina/config";
 import { sendBlockedMessage } from "./responses.tsx";
+import { badge } from "@kuristina/core";
+import { black, brightBlue } from "@std/fmt/colors";
 
 export interface Middleware {
 	readonly name: string;
@@ -31,12 +33,17 @@ export type MiddlewareResult =
 	| { type: "stop"; reason?: string }
 	| { type: "error"; error: Error };
 
+const loggingBadge = badge({ label: "command", bg: brightBlue, fg: black });
+
 export const logging: Middleware = {
 	name: "logging",
 	priority: 0,
 
 	execute(ctx): Promise<MiddlewareResult> {
-		console.log(`[${ctx.message.author.username}:${ctx.message.author.id}] ${ctx.message.content}`);
+		logger.prefixed(
+			loggingBadge,
+			`[${ctx.message.author.username}:${ctx.message.author.id}] ${ctx.message.content}`,
+		);
 		return Promise.resolve({ type: "continue" });
 	},
 };

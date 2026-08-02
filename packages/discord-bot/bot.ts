@@ -175,7 +175,7 @@ export type Bot = typeof bot;
 
 bot.events = {
 	ready: ({ user }) => {
-		console.log(`meowing as ${user.tag} :3`);
+		logger.info(`meowing as ${user.tag} :3`);
 	},
 	...events,
 };
@@ -203,7 +203,7 @@ export async function initialise(): Promise<Result<void, AppError>> {
 export async function shutdown(): Promise<void> {
 	closeDatabaseConnection();
 	await discord.shutdown();
-	console.log("goodbye :3");
+	logger.info("goodbye :3");
 }
 
 export default discord;

@@ -23,7 +23,7 @@ async function hash(bytes: Uint8Array<ArrayBuffer>): Promise<string> {
 export async function reconcileIcons(bot: typeof discord): Promise<void> {
 	const existing = await repositories.icon.getAll();
 	if (!existing.ok) {
-		console.error("  · icons: failed to read icon_emojis:", existing.error);
+		logger.boo("icons: failed to read icon_emojis: " + existing.error);
 		return;
 	}
 
@@ -31,7 +31,7 @@ export async function reconcileIcons(bot: typeof discord): Promise<void> {
 	try {
 		emojis = (await bot.helpers.getApplicationEmojis()).items;
 	} catch (e) {
-		console.error("  · icons: failed to list application emojis:", e);
+		logger.boo("icons: failed to list application emojis: " + e);
 		return;
 	}
 
@@ -46,7 +46,7 @@ export async function reconcileIcons(bot: typeof discord): Promise<void> {
 		try {
 			bytes = await Deno.readFile(new URL(`${key}.png`, VENDORED_ICONS_DIR));
 		} catch {
-			console.warn(`  · icons: no vendored PNG for "${key}", skipping`);
+			logger.boo(`icons: no vendored PNG for "${key}", skipping`);
 			continue;
 		}
 
@@ -63,9 +63,9 @@ export async function reconcileIcons(bot: typeof discord): Promise<void> {
 		if (remote) {
 			try {
 				await bot.helpers.deleteApplicationEmoji(remote.id!);
-				console.log(`  · icons: deleted old "${key}" (${remote.id})`);
+				logger.yay(`icons: deleted old "${key}" (${remote.id})`);
 			} catch (e) {
-				console.error(`  · icons: failed to delete old "${key}":`, e);
+				logger.boo(`icons: failed to delete old "${key}": ` + e);
 				if (row) {
 					manifest[key] = { id: row.emojiId, animated: row.animated };
 				}
@@ -78,9 +78,9 @@ export async function reconcileIcons(bot: typeof discord): Promise<void> {
 			const emoji = await bot.helpers.createApplicationEmoji({ name, image });
 			await repositories.icon.upsert(key, emoji.id!.toString(), !!emoji.animated, hashed);
 			manifest[key] = { id: emoji.id!, animated: !!emoji.animated };
-			console.log(`  · icons: uploaded "${key}" as "${name}" -> ${emoji.id}`);
+			logger.yay(`icons: uploaded "${key}" as "${name}" -> ${emoji.id}`);
 		} catch (e) {
-			console.error(`  · icons: failed to upload "${key}":`, e);
+			logger.boo(`icons: failed to upload "${key}": ` + e);
 			if (row) {
 				manifest[key] = { id: row.emojiId, animated: row.animated };
 			}
@@ -93,9 +93,9 @@ export async function reconcileIcons(bot: typeof discord): Promise<void> {
 		if (!paddedRegisteredNames.includes(name!)) {
 			try {
 				await bot.helpers.deleteApplicationEmoji(remote.id);
-				console.log(`  · icons: deleted orphaned "${name}" (${remote.id})`);
+				logger.yay(`icons: deleted orphaned "${name}" (${remote.id})`);
 			} catch (e) {
-				console.error(`  · icons: failed to delete orphaned "${name}":`, e);
+				logger.boo(`icons: failed to delete orphaned "${name}": ` + e);
 			}
 		}
 	}

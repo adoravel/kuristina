@@ -111,7 +111,7 @@ export async function resolveMembers(
 	);
 
 	if (!fetched.ok) {
-		console.error("  · resolve: failed to fetch members:", fetched.error.message);
+		logger.boo("resolve: failed to fetch members: " + fetched.error.message);
 		return cached;
 	}
 

@@ -61,7 +61,7 @@ function rankResults(
 
 	for (const r of settled) {
 		if (r.status === "rejected") {
-			console.warn("  · whoknows: request failed:", r.reason);
+			logger.boo("whoknows: request failed: " + r.reason);
 		}
 	}
 

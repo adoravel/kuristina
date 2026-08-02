@@ -20,7 +20,7 @@ async function sendError(message: Message, node: ReturnType<typeof ErrorMessage>
 			...node,
 		});
 	} catch (error) {
-		console.error("failed to send command error:", error);
+		logger.boo("failed to send command error: " + error);
 	}
 }
 

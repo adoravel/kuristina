@@ -33,11 +33,11 @@ function migrator(db: Kysely<KuristinaSchema>): Migrator {
 
 function report(results: readonly { migrationName: string; status: string }[] | undefined) {
 	for (const r of results ?? []) {
-		console.log(
-			r.status === "Success"
-				? ` ·  migration ${r.migrationName} applied :3`
-				: ` · migration ${r.migrationName} failed qwq`,
-		);
+		if (r.status === "Success") {
+			logger.yay(` ·  migration ${r.migrationName} applied :3`)
+		} else {
+			logger.boo( ` · migration ${r.migrationName} failed qwq`);
+		}
 	}
 }
 

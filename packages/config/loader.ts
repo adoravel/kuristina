@@ -41,7 +41,7 @@ export function loadConfig(path = DEFAULT_CONFIG_PATH): Result<KuristinaConfig, 
 export function requireConfig(path = DEFAULT_CONFIG_PATH): KuristinaConfig {
 	const result = loadConfig(path);
 	if (!result.ok) {
-		console.error(`\nfailed to load config:\n  ${result.error.message}\n`);
+		logger.boo(`\nfailed to load config:\n  ${result.error.message}\n`);
 		Deno.exit(1);
 	}
 	return result.value;

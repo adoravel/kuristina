@@ -21,7 +21,7 @@ interface Logger {
 	warn(message: string, prefix?: string): void;
 	boo(message: string, prefix?: string): void;
 	debug(message: string, prefix?: string): void;
-	prefixed(prefix: string, level?: LogLevel, message?: string): void;
+	prefixed(prefix: string, message?: string, level?: LogLevel): void;
 }
 
 declare global {
@@ -46,8 +46,8 @@ globalThis.logger = {
 	},
 	prefixed(
 		prefix: string,
-		level: LogLevel = "info",
 		message: string = "",
+		level: LogLevel = "info",
 	): void {
 		log(message, { level, prefix });
 	},
