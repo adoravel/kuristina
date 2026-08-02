@@ -11,5 +11,24 @@ export interface TweetInfo {
 	url: string;
 	likes: number;
 	retweets: number;
-	mediaUrls: string[];
+	replies: number;
+	mediaURLs: string[];
+	mediaExtended: MediaExtended[];
+	hashtags: string[];
+	date: string;
+	dateEpoch: number;
+	tweetID: string;
+	tweetURL: string;
+}
+
+export interface MediaExtended {
+	altText?: string;
+	durationMillis?: number;
+	size?: {
+		height: number;
+		width: number;
+	};
+	thumbnail_url?: string;
+	type: "image" | "video" | "gif";
+	url: string;
 }

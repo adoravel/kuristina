@@ -7,4 +7,4 @@
 export * from "./types.ts";
 export * from "./extractor.ts";
 export * from "./client.ts";
-export * from "./format.ts";
+export * from "./format.tsx";

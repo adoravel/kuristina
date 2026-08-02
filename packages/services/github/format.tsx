@@ -6,10 +6,22 @@
 
 import type { GitHubBlobRef, GitHubSnippet } from "./types.ts";
 
-export function renderSnippet(ref: GitHubBlobRef, snippet: GitHubSnippet): string {
+export function renderSnippet(ref: GitHubBlobRef, snippet: GitHubSnippet) {
 	const range = ref.startLine
 		? ` L${ref.startLine}${ref.endLine && ref.endLine !== ref.startLine ? `-L${ref.endLine}` : ""}`
 		: "";
-	const truncatedNote = snippet.truncated ? `\n-# truncated to 25 lines` : "";
-	return `**${ref.owner}/${ref.repo}** \`${ref.path}\`${range}\n\`\`\`${snippet.language}\n${snippet.text}\n\`\`\`${truncatedNote}`;
+	return (
+		<message>
+			<h3>
+				<icon name="github" /> <strong>{ref.owner}/</strong>
+				{ref.repo}
+			</h3>
+			<p>
+				<kbd>{ref.path}</kbd>
+				{range}
+			</p>
+			<pre lang={snippet.language}>{snippet.text}</pre>
+			{snippet.truncated && <sub>truncated to 25 lines</sub>}
+		</message>
+	);
 }
