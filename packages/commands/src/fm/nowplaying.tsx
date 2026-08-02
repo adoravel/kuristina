@@ -14,7 +14,7 @@ import { repositories } from "@kuristina/database";
 import { NoAccountMessage } from "./login.tsx";
 import { optional } from "@kuristina/commands";
 import { md } from "@kuristina/discord-ui";
-import { renderPlatformLinks, resolveSongLinkByQuery } from "@kuristina/services/song_links";
+import { renderPlatformLinks, resolveSongLinkByQuery } from "@kuristina/services/musiclinks";
 
 function NoScrobbles() {
 	return (

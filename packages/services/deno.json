@@ -10,7 +10,7 @@
 		"./musicbrainz": "./musicbrainz/mod.ts",
 		"./scrobbling": "./scrobbling/mod.ts",
 		"./google/batchexecute": "./google/batchexecute/mod.ts",
-		"./song_links": "./song_links/mod.ts",
+		"./musiclinks": "./musiclinks/mod.ts",
 		"./github": "./github/mod.ts",
 		"./twitter": "./twitter/mod.ts",
 		"./fediverse": "./fediverse/mod.ts"
