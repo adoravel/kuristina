@@ -22,7 +22,7 @@ export async function handleMusicLinks(bot: typeof discord, message: Message): P
 	for (const url of urls) {
 		const resolved = await resolveSongLink(url);
 		if (!resolved.ok) continue;
-		await sendCompanion(bot, message, renderMusicLinkCard(resolved.value), "richlink");
+		await sendCompanion(bot, message, renderMusicLinkCard(resolved.value), "richlink:musiclinks");
 		sent++;
 	}
 	if (sent) await suppressOriginalEmbed(bot, message);

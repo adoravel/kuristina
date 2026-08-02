@@ -19,7 +19,7 @@ export async function handleTwitterLinks(bot: typeof discord, message: Message):
 	for (const url of urls) {
 		const tweet = await fetchTweet(url);
 		if (!tweet.ok) continue;
-		await sendCompanion(bot, message, renderTweet(tweet.value), "richlink");
+		await sendCompanion(bot, message, renderTweet(tweet.value), "richlink:twitter");
 		sent++;
 	}
 	if (sent) await suppressOriginalEmbed(bot, message);

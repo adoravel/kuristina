@@ -19,7 +19,7 @@ export async function handleFediverseLinks(bot: typeof discord, message: Message
 	for (const url of urls) {
 		const post = await fetchFediPost(url);
 		if (!post.ok) continue;
-		await sendCompanion(bot, message, renderFediPost(post.value), "richlink");
+		await sendCompanion(bot, message, renderFediPost(post.value), "richlink:fediverse");
 		sent++;
 	}
 	if (sent) await suppressOriginalEmbed(bot, message);
