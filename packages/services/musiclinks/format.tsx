@@ -34,7 +34,7 @@ export function renderMusicLinkCard(result: MusicLinkResult) {
 					<icon name="music" />
 					{`  `}
 					{result.title}
-					{result.artist ? ` by ${result.artist}` : ""} ↗
+					{result.artist ? ` by ${result.artist}` : ""}
 				</h3>
 				<ul>
 					{Object.entries(result.links).map(([platform, url]) => {
