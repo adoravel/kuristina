@@ -42,7 +42,7 @@ function HelpCard({
 			<hr spacing={2} />
 			<sub>
 				<a href={Theme.branding.repoUrl}>{Theme.branding.name}</a>{" "}
-				is free source software licensed under the{" "}
+				is free and open-source software licensed under the{" "}
 				<a href={Theme.branding.licenseUrl}>{Theme.branding.licenseName}</a>
 			</sub>
 		</message>
