@@ -223,7 +223,7 @@ export declare namespace JSX {
 		hr: SeparatorProps;
 		row: ActionRowProps;
 		select: StringSelectProps;
-		option: StringOptionProps;
+		"option": StringOptionProps;
 		icon: { name: RegisteredIconName };
 
 		section: Omit<SectionProps, "accessory">;

@@ -9,6 +9,8 @@ export * from "./components/ComponentMessage.tsx";
 export * from "./components/Container.tsx";
 export * from "./components/Separator.tsx";
 export * from "./components/StringSelect.tsx";
+export * from "./components/ChannelSelect.tsx";
+export * from "./components/RoleSelect.tsx";
 export * from "./components/TextDisplay.tsx";
 export * from "./components/Button.tsx";
 export * from "./components/Thumbnail.tsx";

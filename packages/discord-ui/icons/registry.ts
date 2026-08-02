@@ -4,7 +4,7 @@
  * SPDX-License-Identifier: AGPL-2.0-or-later
  */
 
-export type IconProvider = "lucide" | "heroicons";
+export type IconProvider = "lucide" | "heroicons" | "simpleicons";
 export type IconVariant = "default" | "success" | "danger";
 
 interface BaseIconRegistration {
@@ -23,7 +23,14 @@ export interface LucideIconRegistration extends BaseIconRegistration {
 	readonly strokeWidth?: number;
 }
 
-export type IconRegistration = LucideIconRegistration | HeroiconRegistration;
+export interface SimpleIconRegistration extends BaseIconRegistration {
+	readonly provider: "simpleicons";
+}
+
+export type IconRegistration =
+	| LucideIconRegistration
+	| HeroiconRegistration
+	| SimpleIconRegistration;
 
 export const registeredIcons = {
 	music: { provider: "lucide", name: "music", strokeWidth: 2 },
@@ -33,6 +40,17 @@ export const registeredIcons = {
 	users: { provider: "heroicons", name: "users", style: "solid" },
 	crown: { provider: "lucide", name: "crown" },
 	artist: { provider: "lucide", name: "mic-vocal", strokeWidth: 2 },
+	help: { provider: "lucide", name: "circle-question-mark" },
+	translate: { provider: "lucide", name: "languages" },
+	clock: { provider: "lucide", name: "clock", strokeWidth: 2 },
+	heart: { provider: "heroicons", name: "heart", variant: "danger", style: "solid" },
+	spotify: { provider: "simpleicons", name: "spotify" },
+	appleMusic: { provider: "simpleicons", name: "applemusic" },
+	youtubeMusic: { provider: "simpleicons", name: "youtubemusic" },
+	tidal: { provider: "simpleicons", name: "tidal" },
+	deezer: { provider: "simpleicons", name: "deezer" },
+	disc: { provider: "lucide", name: "disc-3" },
+	waveform: { provider: "lucide", name: "audio-waveform", strokeWidth: 2 },
 } as const satisfies Record<string, IconRegistration>;
 
 export type RegisteredIconName = keyof typeof registeredIcons;

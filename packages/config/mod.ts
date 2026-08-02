@@ -64,6 +64,12 @@ export const configSchema = {
 			apiKey: field.stringOr(""),
 			secret: field.stringOr(""),
 		},
+		linkEmbeds: {
+			github: field.boolean(true),
+			twitter: field.boolean(true),
+			fediverse: field.boolean(true),
+			maxPerMessage: field.positiveInt(3),
+		},
 	},
 	design: {
 		colours: {

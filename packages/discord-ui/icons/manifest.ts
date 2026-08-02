@@ -35,3 +35,10 @@ export function iconMarkdown(name: RegisteredIconName): string {
 	}
 	return `<${entry.animated ? "a" : ""}:${getEmojiName(name)}:${entry.id}>`;
 }
+
+export function tryIconMarkdown(name: RegisteredIconName): string | undefined {
+	if (!populated) return undefined;
+	const entry = manifest[name];
+	if (!entry) return undefined;
+	return `<${entry.animated ? "a" : ""}:${getEmojiName(name)}:${entry.id}>`;
+}
