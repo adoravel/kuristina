@@ -137,7 +137,7 @@ class CommandRegistry {
 		}
 
 		try {
-			const ctx = new CommandExecutionContext(
+			const ctx = CommandExecutionContext.create<any, any>(
 				cmd,
 				result.data.args,
 				result.data.remaining,
@@ -145,7 +145,7 @@ class CommandRegistry {
 				middlewareCtx.data,
 			);
 
-			await cmd.exec(ctx);
+			await cmd.exec(ctx as any);
 			if (cmd.cooldownMs) {
 				this.cooldowns.set(message.author.id, cooldownKey, cmd.cooldownMs);
 			}

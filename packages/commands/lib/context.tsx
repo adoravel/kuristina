@@ -36,6 +36,29 @@ export class CommandExecutionContext<
 		public readonly middlewareData: Map<string, unknown>,
 	) {}
 
+	static async create<A extends BaseArgs, Rem>(
+		command: CommandMetadata<A>,
+		args: CommandArgs<A>,
+		remaining: CommandRemaining<Rem>,
+		message: Message,
+		middlewareData: Map<string, unknown>,
+	): Promise<CommandExecutionContext<A, Rem>> {
+		const ctx = new CommandExecutionContext<A, Rem>(
+			command,
+			args,
+			remaining,
+			message,
+			middlewareData,
+		);
+
+		const prior = await repositories.messageCompanions.getForSource(message.id, "command");
+		if (prior.ok && prior.value.length) {
+			ctx._responseId = prior.value[0].responseMessageId;
+		}
+
+		return ctx;
+	}
+
 	get platform(): DiscordPlatform {
 		return discord;
 	}
