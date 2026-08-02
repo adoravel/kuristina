@@ -9,7 +9,11 @@
 		"./lastfm": "./lastfm/mod.ts",
 		"./musicbrainz": "./musicbrainz/mod.ts",
 		"./scrobbling": "./scrobbling/mod.ts",
-		"./google/batchexecute": "./google/batchexecute/mod.ts"
+		"./google/batchexecute": "./google/batchexecute/mod.ts",
+		"./song_links": "./song_links/mod.ts",
+		"./github": "./github/mod.ts",
+		"./twitter": "./twitter/mod.ts",
+		"./fediverse": "./fediverse/mod.ts"
 	},
 	"test": {
 		"include": ["tests/*.ts"]
