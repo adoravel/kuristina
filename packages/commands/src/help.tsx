@@ -23,33 +23,28 @@ function HelpCard({
 		<message>
 			<h3>List of commands</h3>
 			<hr spacing={2} />
-			<div>
-				<sub>
-					<ul>
-						{commands.map((cmd) => (
-							<li>
-								<strong>
-									<code>{cmd.name.padEnd(len, " ")}</code>
-								</strong>
-								{"    " + cmd.description}
-							</li>
-						))}
-					</ul>
-				</sub>
-
-				<p>
-					Use <kbd>{Theme.prefix}help &lt;name&gt;</kbd>{" "}
-					to view more information about a specific command.
-				</p>
-			</div>
+			<sub>
+				<ul>
+					{commands.map((cmd) => (
+						<li>
+							<strong>
+								<code>{cmd.name.padEnd(len, " ")}</code>
+							</strong>
+							{"    " + cmd.description}
+						</li>
+					))}
+				</ul>
+			</sub>
+			<p>
+				Use <kbd>{Theme.prefix}help &lt;name&gt;</kbd>{" "}
+				to view more information about a specific command.
+			</p>
 			<hr spacing={2} />
-			<div>
-				<sub>
-					<a href={Theme.branding.repoUrl}>{Theme.branding.name}</a>{" "}
-					is free source software licensed under the{" "}
-					<a href={Theme.branding.licenseUrl}>{Theme.branding.licenseName}</a>
-				</sub>
-			</div>
+			<sub>
+				<a href={Theme.branding.repoUrl}>{Theme.branding.name}</a>{" "}
+				is free source software licensed under the{" "}
+				<a href={Theme.branding.licenseUrl}>{Theme.branding.licenseName}</a>
+			</sub>
 		</message>
 	);
 }
@@ -78,29 +73,30 @@ function CommandDetail({
 					<kbd>{name}</kbd>
 				</strong>
 			</h3>
-			<section>
-				<p>{description}</p>
-				{usage && (
-					<>
-						<p>
-							<strong>Usage:</strong> <kbd>{usage}</kbd>
-						</p>
-					</>
-				)}
-				{aliases && aliases.length > 0 && (
-					<>
-						<p>
-							<strong>Aliases</strong>
-							{aliases.map((a) =>
-								// deno-lint-ignore jsx-key
-								<kbd>{a}</kbd>
-							).join(" ")}
-						</p>
-					</>
-				)}
-			</section>
+			<hr spacing={2} />
+			<p>{description}</p>
+			{usage && (
+				<>
+					<p>
+						<strong>Usage:</strong> <kbd>{usage}</kbd>
+					</p>
+				</>
+			)}
+			{aliases && aliases.length > 0 && (
+				<>
+					<p>
+						<strong>Aliases</strong>
+						{aliases.map((a) =>
+							// deno-lint-ignore jsx-key
+							<kbd>{a}</kbd>
+						).join(" ")}
+					</p>
+				</>
+			)}
+			<hr spacing={2} />
 			{examples && examples.length > 0 && (
-				<section>
+				<>
+					<hr spacing={2} />
 					<p>
 						<strong>Examples:</strong>
 					</p>
@@ -111,12 +107,13 @@ function CommandDetail({
 							</li>
 						))}
 					</ul>
-				</section>
+				</>
 			)}
 			{permissions && permissions.length > 0 && (
-				<section>
+				<>
+					<hr spacing={2} />
 					<sub>Required permissions: {permissions.join(", ")}</sub>
-				</section>
+				</>
 			)}
 		</message>
 	);

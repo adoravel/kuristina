@@ -34,9 +34,9 @@ function migrator(db: Kysely<KuristinaSchema>): Migrator {
 function report(results: readonly { migrationName: string; status: string }[] | undefined) {
 	for (const r of results ?? []) {
 		if (r.status === "Success") {
-			logger.yay(` ·  migration ${r.migrationName} applied :3`)
+			logger.yay(` ·  migration ${r.migrationName} applied :3`);
 		} else {
-			logger.boo( ` · migration ${r.migrationName} failed qwq`);
+			logger.boo(` · migration ${r.migrationName} failed qwq`);
 		}
 	}
 }
