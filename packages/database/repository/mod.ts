@@ -10,7 +10,7 @@ import { ScrobbleAccountRepository } from "./scrobble.ts";
 import { IconRepository } from "./icon.ts";
 import { StateRepository } from "./state.ts";
 import { GuildMemberRepository } from "./members.ts";
-import { MusicLinkRepository } from "./music_links.ts";
+import { MusicLinkRepository } from "./musiclinks.ts";
 import { MessageCompanionRepository } from "./message_companions.ts";
 
 export const repositories = {

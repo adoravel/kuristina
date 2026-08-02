@@ -52,8 +52,8 @@ export async function deletePendingDeviceAuth(deviceCode: string): Promise<Resul
 	return await repositories.tidal.deletePendingDeviceAuth(deviceCode);
 }
 
-export async function pruneExpiredDeviceAuth(): Promise<Result<void, SqlError>> {
-	return await repositories.tidal.pruneExpiredDeviceAuth(DEVICE_TTL);
+export async function pruneExpiredDeviceAuth(): Promise<Result<number, SqlError>> {
+	return await repositories.tidal.purgeExpiredDeviceAuth(DEVICE_TTL);
 }
 
 export function isTidalSessionExpired(session: StoredTidalSession): boolean {
