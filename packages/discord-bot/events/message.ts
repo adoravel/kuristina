@@ -9,10 +9,11 @@ import { infer, StringStream } from "@kuristina/commands";
 import { commandRegistry, prefix } from "@kuristina/commands/registry";
 import { handleRichLinks } from "./richlinks/mod.ts";
 import { repositories } from "@kuristina/database";
-import { unsuppressOriginalEmbed } from "./richlinks/shared.ts";
 
 export const messageCreate: typeof discord.events.messageCreate = async (message) => {
 	if (message.author.bot || !message.guildId) return;
+
+	handleRichLinks(discord, message);
 
 	const stream = new StringStream(message.content);
 	const prefixResult = prefix(stream);
@@ -20,8 +21,6 @@ export const messageCreate: typeof discord.events.messageCreate = async (message
 	if (infer("success")(prefixResult)) {
 		await commandRegistry.execute(message, stream);
 	}
-
-	await handleRichLinks(discord, message);
 };
 
 export const messageDelete: typeof discord.events.messageDelete = async (message) => {
@@ -39,28 +38,22 @@ export const messageDelete: typeof discord.events.messageDelete = async (message
 export const messageUpdate: typeof discord.events.messageUpdate = async (message) => {
 	if (message.author.bot) return;
 
-	const existing = await repositories.messageCompanions.getForSource(message.id, "richlink");
-	if (!existing.ok) return;
+	handleRichLinks(discord, message);
 
-	if (existing.value.length) {
-		for (const companion of existing.value) {
+	const stream = new StringStream(message.content);
+	const prefixResult = prefix(stream);
+	if (infer("success")(prefixResult)) {
+		await commandRegistry.execute(message, stream);
+		return;
+	}
+
+	const stale = await repositories.messageCompanions.getForSource(message.id, "command");
+	if (stale.ok && stale.value.length) {
+		for (const companion of stale.value) {
 			await discord.helpers.deleteMessage(companion.channelId, companion.responseMessageId).catch(
 				() => {},
 			);
 		}
-		await repositories.messageCompanions.deleteForSource(message.id, "richlink");
+		await repositories.messageCompanions.deleteForSource(message.id, "command");
 	}
-
-	await handleRichLinks(discord, message);
-
-	const after = await repositories.messageCompanions.getForSource(message.id, "richlink");
-	if (after.ok && !after.value.length) {
-		await unsuppressOriginalEmbed(discord, message);
-	}
-	// const stream = new StringStream(message.content);
-
-	// const prefixResult = prefix(stream);
-	// if (!infer("success")(prefixResult)) return;
-
-	// await commandRegistry.execute(message, stream);
 };
