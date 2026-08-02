@@ -19,6 +19,8 @@ import type { CommandArgs, CommandRemaining } from "./parser.ts";
 import type { CommandMetadata } from "./definition.ts";
 import { ErrorMessage, SuccessMessage } from "@kuristina/discord-ui";
 import { repositories } from "@kuristina/database";
+import { type AppError, describe } from "@kuristina/errors";
+import type { AsyncResult, Result } from "@kuristina/core";
 
 type BaseArgs = Record<string, any>;
 
@@ -57,6 +59,17 @@ export class CommandExecutionContext<
 		}
 
 		return ctx;
+	}
+
+	async resolve<T, E extends AppError>(
+		result: AsyncResult<T, E> | Result<T, E>,
+	): Promise<T | undefined> {
+		const resolved = await result;
+		if (!resolved.ok) {
+			await this.error(describe(resolved.error));
+			return undefined;
+		}
+		return resolved.value;
 	}
 
 	get platform(): DiscordPlatform {
