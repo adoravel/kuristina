@@ -6,9 +6,9 @@
 
 import { fetchWithRetry, ok, type Result } from "@kuristina/core";
 import type { NetworkError } from "@kuristina/core";
+import { config } from "@kuristina/config";
 
 const BASE = "https://musicbrainz.org/ws/2";
-const USER_AGENT = "kuristina/0.1.0 (https://kyu.re/~kuristina)";
 
 export interface MusicBrainzArtist {
 	id: string;
@@ -26,7 +26,7 @@ export async function searchArtist(
 	url.searchParams.set("limit", "1");
 
 	const result = await fetchWithRetry<{ artists: MusicBrainzArtist[] }>(url.toString(), {
-		headers: { "User-Agent": USER_AGENT },
+		headers: { "User-Agent": config.network.userAgent },
 		retry: { maxAttempts: 5, baseDelayMs: 1100 },
 	});
 	if (!result.ok) return result;

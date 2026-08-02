@@ -91,7 +91,7 @@ export async function request<T>(
 		body,
 		signal: AbortSignal.timeout(REQUEST_TIMEOUT_MS),
 		headers: {
-			"User-Agent": `kuristina/0.1.0 (https://kyu.re/~kuristina)`,
+			"User-Agent": config.network.userAgent,
 			...(body ? { "Content-Type": "application/x-www-form-urlencoded" } : {}),
 		},
 		retry: {
