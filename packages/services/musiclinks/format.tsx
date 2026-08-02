@@ -42,7 +42,7 @@ export function renderMusicLinkCard(result: MusicLinkResult) {
 						return (
 							<li>
 								{icon}
-								<a href={url}>{label}</a>
+								<a href={url}>{label} ↗</a>
 							</li>
 						);
 					})}
