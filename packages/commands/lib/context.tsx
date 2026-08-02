@@ -4,7 +4,6 @@
  * SPDX-License-Identifier: AGPL-2.0-or-later
  */
 
-import { TimedMap } from "@kuristina/core";
 import discord, { resolveChannel, resolveGuild, resolveMember } from "@kuristina/discord-bot";
 import type {
 	Channel,
@@ -19,12 +18,9 @@ import type {
 import type { CommandArgs, CommandRemaining } from "./parser.ts";
 import type { CommandMetadata } from "./definition.ts";
 import { ErrorMessage, SuccessMessage } from "@kuristina/discord-ui";
+import { repositories } from "@kuristina/database";
 
 type BaseArgs = Record<string, any>;
-
-export const contextCache = new TimedMap<bigint, CommandExecutionContext<any, any>>(
-	5 * 60 * 1000,
-);
 
 export class CommandExecutionContext<
 	Args extends BaseArgs = BaseArgs,
@@ -94,16 +90,28 @@ export class CommandExecutionContext<
 			);
 			this._responseId = response.id;
 
-			contextCache.set(this.message.id, this);
+			await repositories.messageCompanions.add(
+				this.message.id,
+				response.id,
+				this.message.channelId,
+				"command",
+			);
 			return response;
 		}
 
 		try {
-			return await this.platform.helpers.editMessage(
+			const edit = await this.platform.helpers.editMessage(
 				this.message.channelId,
 				this._responseId,
 				opts,
 			);
+			await repositories.messageCompanions.add(
+				this.message.id,
+				edit.id,
+				this.message.channelId,
+				"command",
+			);
+			return edit;
 		} catch (e) {
 			if ((e as any)?.code === 10008 /* unknown message */) {
 				return this._responseId = undefined, this.sendOrEdit(opts);

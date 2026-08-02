@@ -18,7 +18,14 @@ export interface CommandMetadata<Args extends BaseArgs = BaseArgs, R = string> {
 	readonly cooldownMs?: number;
 	readonly middleware?: Middleware[];
 
+	readonly subcommands?: Map<string, CommandMetadata<any, any>>;
+
 	exec(ctx: CommandExecutionContext<Args, R>): Promise<void>;
+}
+
+export interface DefineCommandOptions<Args extends BaseArgs = BaseArgs, R = string>
+	extends Partial<Omit<CommandMetadata<Args, R>, "subcommands">> {
+	subcommands?: CommandMetadata<any, any>[];
 }
 
 export function defineCommand<Args extends BaseArgs>(
@@ -27,7 +34,7 @@ export function defineCommand<Args extends BaseArgs>(
 	exec: (
 		ctx: CommandExecutionContext<Omit<Args, "$">, Args["$"]>,
 	) => Promise<void>,
-	options?: Partial<CommandMetadata<Omit<Args, "$">, Args["$"]>>,
+	options?: DefineCommandOptions<Omit<Args, "$">, Args["$"]>,
 ): CommandMetadata<Omit<Args, "$">, Args["$"]> {
 	aliases = typeof aliases === "string" ? [aliases] : aliases;
 
@@ -38,10 +45,17 @@ export function defineCommand<Args extends BaseArgs>(
 		remaining,
 	) as CommandParser<Omit<Args, "$">, Args["$"]>;
 
+	const { subcommands: sub, ...rest } = options ?? {};
+
+	const subcommands = sub?.length
+		? new Map(sub.flatMap((s) => s.aliases.map((alias) => [alias, s] as const)))
+		: undefined;
+
 	return {
 		aliases,
 		parse: parser,
 		exec,
-		...options,
+		...rest,
+		subcommands,
 	};
 }

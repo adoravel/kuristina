@@ -10,6 +10,8 @@ import { ScrobbleAccountRepository } from "./scrobble.ts";
 import { IconRepository } from "./icon.ts";
 import { StateRepository } from "./state.ts";
 import { GuildMemberRepository } from "./members.ts";
+import { MusicLinkRepository } from "./music_links.ts";
+import { MessageCompanionRepository } from "./message_companions.ts";
 
 export const repositories = {
 	markov: new MarkovRepository(),
@@ -18,4 +20,8 @@ export const repositories = {
 	icon: new IconRepository(),
 	state: new StateRepository(),
 	members: new GuildMemberRepository(),
+	musicLinks: new MusicLinkRepository(),
+	messageCompanions: new MessageCompanionRepository(),
 };
+
+export { type CompanionKind } from "./message_companions.ts";

@@ -17,6 +17,7 @@ export class CooldownTracker {
 	}
 
 	set(userId: bigint, commandName: string, cooldownMs: number): void {
+		if (this.check(userId, commandName, cooldownMs)) return;
 		const key = this.key(userId, commandName);
 		this.timestamps.set(key, Date.now());
 		setTimeout(() => this.timestamps.delete(key), cooldownMs);

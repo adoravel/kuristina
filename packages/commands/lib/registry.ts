@@ -16,6 +16,14 @@ import type { Middleware, MiddlewareContext, MiddlewareResult } from "./middlewa
 import { CooldownTracker } from "./cooldown.ts";
 import { sendCooldownMessage, sendExecutionError, sendParseError } from "./responses.tsx";
 
+interface ResolvedCommand {
+	cmd: CommandMetadata;
+	/** first alias of every command visited on the way down, e.g. ["fm", "login"] */
+	path: string[];
+	/** middleware from the whole chain, root to leaf, in order */
+	middleware: Middleware[];
+}
+
 class CommandRegistry {
 	private readonly _commands = new Map<string, CommandMetadata>();
 	private readonly globalMiddleware: Middleware[] = [];
@@ -49,6 +57,36 @@ class CommandRegistry {
 		logger.info(`registered middleware: ${middleware.name}`);
 	}
 
+	private resolve(root: CommandMetadata, stream: StringStream): ResolvedCommand {
+		let cmd = root;
+		const path = [root.aliases[0]];
+		const middleware = [...(root.middleware ?? [])];
+
+		while (cmd.subcommands?.size) {
+			stream.push();
+			stream.skipWhitespace();
+
+			const name = word(stream);
+			if (!infer("success")(name)) {
+				stream.restore();
+				break;
+			}
+
+			const sub = cmd.subcommands.get(name.data.toLowerCase());
+			if (!sub) {
+				stream.restore();
+				break;
+			}
+
+			stream.pop();
+			cmd = sub;
+			path.push(sub.aliases[0]);
+			if (sub.middleware?.length) middleware.push(...sub.middleware);
+		}
+
+		return { cmd, path, middleware };
+	}
+
 	async execute(message: Message, stream: StringStream): Promise<void> {
 		const middlewareCtx: MiddlewareContext = {
 			message,
@@ -68,20 +106,23 @@ class CommandRegistry {
 		const name = word(stream);
 		if (!infer("success")(name)) return;
 
-		const cmd = this._commands.get(name.data.toLowerCase());
-		if (!cmd) return;
+		const root = this._commands.get(name.data.toLowerCase());
+		if (!root) return;
+
+		const { cmd, path, middleware } = this.resolve(root, stream);
+		const cooldownKey = path.join(" ");
 
 		middlewareCtx.metadata = cmd;
 
 		if (
 			cmd.cooldownMs &&
-			!this.cooldowns.check(message.author.id, cmd.aliases[0], cmd.cooldownMs)
+			!this.cooldowns.check(message.author.id, cooldownKey, cmd.cooldownMs)
 		) {
 			return await sendCooldownMessage(message);
 		}
 
-		if (cmd.middleware?.length) {
-			const cmdMid = await this.runMiddlewares(cmd.middleware, middlewareCtx);
+		if (middleware.length) {
+			const cmdMid = await this.runMiddlewares(middleware, middlewareCtx);
 			if (cmdMid.type !== "continue") {
 				if (cmdMid.type === "error") {
 					logger.boo("middleware error: " + cmdMid.error);
@@ -106,10 +147,10 @@ class CommandRegistry {
 
 			await cmd.exec(ctx);
 			if (cmd.cooldownMs) {
-				this.cooldowns.set(message.author.id, cmd.aliases[0], cmd.cooldownMs);
+				this.cooldowns.set(message.author.id, cooldownKey, cmd.cooldownMs);
 			}
 		} catch (error) {
-			logger.boo(`command execution error (${cmd.aliases[0]}): ` + error);
+			logger.boo(`command execution error (${cooldownKey}): ` + error);
 			await sendExecutionError(message, error);
 		}
 	}
