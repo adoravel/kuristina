@@ -4,9 +4,9 @@
  * SPDX-License-Identifier: AGPL-2.0-or-later
  */
 
-import { ok, type Result } from "@kuristina/core";
+import { type AsyncResult, map, ok } from "@kuristina/core";
 import type { LastFmError } from "../errors.ts";
-import type { LastFmArtistSummary } from "./artist.ts";
+import { getHighestQualityImage, type LastFmArtistSummary } from "./artist.ts";
 import type { LastFmImage } from "../types.ts";
 import { request } from "../http.ts";
 
@@ -43,7 +43,7 @@ export interface ScrobbleResponse {
 export async function scrobble(
 	sessionKey: string,
 	tracks: ScrobbleTrack[],
-): Promise<Result<ScrobbleResponse, LastFmError>> {
+): AsyncResult<ScrobbleResponse, LastFmError> {
 	const params: Record<string, string | number> = {};
 
 	for (let i = 0; i < tracks.length; i++) {
@@ -77,7 +77,7 @@ export async function updateNowPlaying(
 		streamId?: string;
 		duration?: number;
 	},
-): Promise<Result<void, LastFmError>> {
+): AsyncResult<void, LastFmError> {
 	const params: Record<string, string | number> = {
 		artist: track.artist,
 		track: track.track,
@@ -101,7 +101,7 @@ export async function loveTrack(
 	sessionKey: string,
 	artist: string,
 	track: string,
-): Promise<Result<void, LastFmError>> {
+): AsyncResult<void, LastFmError> {
 	const params = { artist, track };
 	const result = await request<{ loved: string }>("track.love", params, sessionKey);
 	if (!result.ok) return result;
@@ -113,10 +113,29 @@ export async function unloveTrack(
 	sessionKey: string,
 	artist: string,
 	track: string,
-): Promise<Result<void, LastFmError>> {
+): AsyncResult<void, LastFmError> {
 	const params = { artist, track };
 	const result = await request<{ loved: string }>("track.unlove", params, sessionKey);
 	if (!result.ok) return result;
 
 	return ok(undefined);
+}
+
+export async function getTrackInfo(
+	artist: string,
+	track: string,
+	username?: string,
+	autocorrect = true,
+): AsyncResult<LastFmTrack & { highestQualityImage: LastFmImage }, LastFmError> {
+	const params: Record<string, string | number> = { artist, track };
+
+	if (username) params.username = username;
+	params.autocorrect = autocorrect ? 1 : 0;
+
+	type Response = { track: LastFmTrack };
+
+	return map(await request<Response>("track.getInfo", params))(($) => ({
+		...$.track,
+		highestQualityImage: getHighestQualityImage($.track.image),
+	}));
 }

@@ -21,49 +21,42 @@ import {
 	rankResults,
 } from "./whoknows-shared.ts";
 
-function NoPlaysMessage({ artist }: { artist: string }) {
+function NoPlaysMessage(
+	{ artist, album }: { artist: string; album: string },
+) {
 	return (
 		<message>
 			<h3>No plays found</h3>
 			<p>
-				No one here has scrobbled <strong>{artist}</strong>.
+				No one here has scrobbled <strong>{album} ↗</strong> by <strong>{artist} ↗</strong>.
 			</p>
 		</message>
 	);
 }
 
-function WhoKnows({
+function WhoKnowsAlbum({
 	ranked,
 	totalLinked,
-	artist,
+	album,
 }: {
 	ranked: RankedResult[];
 	totalLinked: number;
-	artist: {
-		name: string;
-		href: string;
-		tags?: string[];
-		image: string;
-	};
+	album: { name: string; artist: string; href: string; image: string };
 }) {
 	const maxCount = ranked[0]?.playcount ?? 0;
-
-	const tags = artist?.tags?.length
-		? artist.tags.slice(0, 4).map((tag) => `#${tag}`).join("  ")
-		: null;
 
 	return (
 		<message>
 			<section>
 				<accessory>
-					<thumbnail url={artist.image} description={artist.name} />
+					<thumbnail url={album.image} description={album.name} />
 				</accessory>
 				<h3>
-					<icon name="artist" />
+					<icon name="disc" />
 					{`  Top listeners of `}
-					<a href={artist.href}>{artist.name} ↗</a>
+					<a href={album.href}>{album.name} ↗</a>
 				</h3>
-				{tags && <sub>{tags}</sub>}
+				<sub>by {album.artist}</sub>
 				<blockquote>
 					<ol>
 						{ranked.map((r, i) => (
@@ -86,68 +79,80 @@ function WhoKnows({
 	);
 }
 
-export default defineCommand(["whoknows", "wk"], {
+export default defineCommand(["whoknowsalbum", "wka"], {
 	$: greedyString,
 }, async (ctx) => {
-	let query = ctx.remaining?.trim();
+	const query = ctx.remaining?.trim();
+	let artist: string | undefined;
+	let album: string | undefined;
 
-	if (!query) {
+	if (query) {
+		const parts = query.split("|").map((p) => p.trim()).filter(Boolean);
+		if (parts.length === 2) [artist, album] = parts;
+	}
+
+	if (!artist || !album) {
 		const own = await repositories.scrobble.getDefault(ctx.user.id);
 		if (own.ok && own.value) {
 			const recent = await getRecentTracks(own.value.username, { limit: 1 });
-			if (recent.ok && recent.value.track[0]) {
-				query = recent.value.track[0].artist["#text"] ?? recent.value.track[0].name;
+			const track = recent.ok ? recent.value.track[0] : undefined;
+			if (track?.album?.["#text"]) {
+				artist = track.artist["#text"] ?? track.artist.name;
+				album = track.album["#text"];
 			}
 		}
 	}
-	if (!query) {
+
+	if (!artist || !album) {
 		return void await ctx.error(
-			`Give me an artist name, e.g. \`${Theme.prefix}whoknows Katelyn Bleh\``,
+			`give me an artist and album, e.g. \`${Theme.prefix}whoknowsalbum Radiohead | OK Computer\``,
 		);
 	}
 
 	const provider = getScrobbleProvider(PROVIDER);
 
-	const artistInfo = await mapAsync(provider.artist.getInfo(query, false))((info) => {
-		const name = info.name || query;
-		const tags = info.tags?.slice(0, 5).map((t) => t.name);
-		return { name, tags, image: info.imageUrl, href: info.href };
-	});
+	const albumInfo = await mapAsync(provider.album.getInfo(artist, album, false))((info) => ({
+		name: info.name,
+		artist: info.artist,
+		image: info.imageUrl,
+		href: info.href,
+	}));
 
-	if (!artistInfo.ok) {
-		return void await ctx.error("Artist not found");
+	if (!albumInfo.ok) {
+		return void await ctx.error("album not found");
 	}
 
-	const { value: artist } = artistInfo;
+	const { value: resolvedAlbum } = albumInfo;
 
 	const hasAccounts = mapAsync(fetchLinkedAccounts(ctx))((result) => {
 		if (!result || result.size === 0) {
 			throw new Error("no one has linked an account yet");
 		}
-		return { linked: result, artist: query };
+		return { linked: result };
 	});
 
 	const ranked = mapAsync(hasAccounts)(async ({ linked }) => {
 		const entries = [...linked.entries()];
 		const settled = await fetchPlaycounts(
 			entries,
-			(username) => provider.artist.getInfo(query!, true, username),
+			(username) => provider.album.getInfo(artist!, album!, true, username),
 		);
-
 		return rankResults(settled, MAX_SHOWN);
 	});
 
 	const result = mapAsync(ranked)(async ({ ranked, imageUrl }) => {
 		if (!ranked.length) {
-			await ctx.reply(<NoPlaysMessage artist={artist.name} />);
+			await ctx.reply(
+				<NoPlaysMessage artist={resolvedAlbum.artist} album={resolvedAlbum.name} />,
+			);
 			return;
 		}
-		if (imageUrl && imageUrl !== artist.image) artist.image = imageUrl;
+		if (imageUrl && imageUrl !== resolvedAlbum.image) resolvedAlbum.image = imageUrl;
 		await ctx.reply(
-			<WhoKnows
+			<WhoKnowsAlbum
 				ranked={ranked}
 				totalLinked={ranked.length}
-				artist={artist}
+				album={resolvedAlbum}
 			/>,
 		);
 	});
@@ -155,7 +160,7 @@ export default defineCommand(["whoknows", "wk"], {
 	await tapErrorAsync(result)(async (error) => void await ctx.error(describe(error)));
 }, {
 	description:
-		"Shows who in this server has scrobbled a given artist the most, ranked by playcount. Requires a linked Last.fm account.",
-	category: "fm",
+		"Shows who in this server has scrobbled a given album the most. Use `artist | album`, or omit to use your last played album. Requires a linked Last.fm account.",
+	category: "lastfm",
 	cooldownMs: 5000,
 });

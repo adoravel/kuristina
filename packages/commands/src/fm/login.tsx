@@ -4,15 +4,11 @@
  * SPDX-License-Identifier: AGPL-2.0-or-later
  */
 
-import { type AsyncResult, flatMapAsync, mapAsync, tapErrorAsync } from "@kuristina/core";
-import { identifier, optional } from "@kuristina/commands";
-import { type CommandExecutionContext, defineCommand } from "@kuristina/commands/registry";
+import { defineCommand } from "@kuristina/commands/registry";
+import { flatMapAsync, mapAsync } from "@kuristina/core";
 import { repositories } from "@kuristina/database";
-import { getAuthToken, pollForSession } from "@kuristina/services/lastfm";
-import { type AppError, describe } from "@kuristina/errors";
 import { Theme } from "@kuristina/discord-ui";
-
-const PROVIDER = "lastfm" as const;
+import { getAuthToken, type LastFmSession, pollForSession } from "@kuristina/services/lastfm";
 
 function AuthMessage({ authUrl }: { authUrl: string }) {
 	return (
@@ -54,14 +50,14 @@ function UnlinkedMessage() {
 	);
 }
 
-function NoAccountMessage() {
+export function NoAccountMessage() {
 	return (
 		<message>
 			<h3>
 				<icon name="link" /> No account linked
 			</h3>
 			<p>
-				Run <kbd>{Theme.prefix}lastfm login</kbd> to get started.
+				Run <kbd>{Theme.prefix}fm login</kbd> to get started.
 			</p>
 		</message>
 	);
@@ -80,61 +76,40 @@ function AccountMessage({ provider, username }: { provider: string; username: st
 	);
 }
 
-function logout(
-	ctx: CommandExecutionContext<{ $?: string | null }, string>,
-): AsyncResult<void, AppError> {
-	const unlink = repositories.scrobble.unlink(ctx.user.id, PROVIDER);
-	return mapAsync(unlink)(async () => void await ctx.reply(<UnlinkedMessage />));
-}
-
-function login(
-	ctx: CommandExecutionContext<{ $?: string | null }, string>,
-): AsyncResult<void, AppError> {
-	const login = flatMapAsync(getAuthToken())(async ({ token, authUrl }) => {
+export const login = defineCommand("login", {}, async (ctx) => {
+	const result = flatMapAsync(getAuthToken())(async ({ token, authUrl }) => {
 		await ctx.reply(<AuthMessage authUrl={authUrl} />);
 		return await pollForSession(token);
 	});
-
-	return flatMapAsync(login)(({ username }) => {
-		const link = repositories.scrobble.link(ctx.user.id, PROVIDER, username, true);
-		return mapAsync<void, any>(link)(
-			async () => void await ctx.reply(<LinkedMessage username={username} />),
-		);
+	await flatMapAsync<LastFmSession, unknown>(result)(({ username }) => {
+		const link = repositories.scrobble.link(ctx.user.id, "last.fm", username, true);
+		return mapAsync(link)(async () => void await ctx.reply(<LinkedMessage username={username} />));
 	});
-}
+}, {
+	description: "Links your Last.fm account to the bot.",
+	category: "lastfm",
+	cooldownMs: 5000,
+});
 
-function showLinkedAccount(
-	ctx: CommandExecutionContext<{ $?: string | null }, string>,
-): AsyncResult<void, AppError> {
+export const logout = defineCommand("logout", {}, async (ctx) => {
+	const unlink = repositories.scrobble.unlink(ctx.user.id, "last.fm");
+	await mapAsync(unlink)(async () => void await ctx.reply(<UnlinkedMessage />));
+}, {
+	description: "Unlinks your Last.fm account from the bot.",
+	category: "lastfm",
+	cooldownMs: 3000,
+});
+
+export const status = defineCommand("status", {}, async (ctx) => {
 	const current = repositories.scrobble.getDefault(ctx.user.id);
-
-	return mapAsync(current)(async (account) => {
+	await mapAsync(current)(async (account) => {
 		if (!account) {
 			return void await ctx.reply(<NoAccountMessage />);
 		}
 		await ctx.reply(<AccountMessage provider={account.provider} username={account.username} />);
 	});
-}
-
-export default defineCommand(["lastfm", "fm"], {
-	$: optional(identifier),
-}, async (ctx) => {
-	const sub = ctx.remaining?.trim().toLowerCase();
-
-	if (sub === "logout") {
-		return void tapErrorAsync(logout(ctx))(async (error) => void await ctx.error(describe(error)));
-	}
-
-	if (sub === "login") {
-		return void tapErrorAsync(login(ctx))(async (error) => void await ctx.error(describe(error)));
-	}
-
-	await tapErrorAsync(showLinkedAccount(ctx))(async (error) =>
-		void await ctx.error(describe(error))
-	);
 }, {
-	description:
-		"Links, unlinks, or shows your Last.fm account. Use `login`/`logout` as a subcommand.",
+	description: "Shows your linked Last.fm account.",
 	category: "lastfm",
-	cooldownMs: 5000,
+	cooldownMs: 3000,
 });

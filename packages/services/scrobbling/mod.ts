@@ -7,22 +7,28 @@
 import type { LastFmError } from "../lastfm/errors.ts";
 
 import { type ArtistScrobbleProvider, LastfmArtistScrobbleProvider } from "./artist.ts";
+import { type AlbumScrobbleProvider, LastfmAlbumScrobbleProvider } from "./album.ts";
+import { LastfmTrackScrobbleProvider, type TrackScrobbleProvider } from "./track.ts";
 
-export type ScrobbleProviderName = "lastfm" | "listenbrainz";
+export type ScrobbleProviderName = "last.fm" | "listenbrainz";
 export type ScrobbleError = LastFmError;
 
 export interface ScrobbleProvider {
 	readonly name: ScrobbleProviderName;
 
 	artist: ArtistScrobbleProvider;
+	album: AlbumScrobbleProvider;
+	track: TrackScrobbleProvider;
 }
 
-const lastfm: ScrobbleProvider = {
-	name: "lastfm",
-	artist: new LastfmArtistScrobbleProvider(),
+const providers: Partial<Record<ScrobbleProviderName, ScrobbleProvider>> = {
+	"last.fm": {
+		name: "last.fm",
+		artist: new LastfmArtistScrobbleProvider(),
+		album: new LastfmAlbumScrobbleProvider(),
+		track: new LastfmTrackScrobbleProvider(),
+	},
 };
-
-const providers: Partial<Record<ScrobbleProviderName, ScrobbleProvider>> = { lastfm };
 
 export function getScrobbleProvider(name: ScrobbleProviderName): ScrobbleProvider {
 	const provider = providers[name];
@@ -31,3 +37,5 @@ export function getScrobbleProvider(name: ScrobbleProviderName): ScrobbleProvide
 }
 
 export * from "./artist.ts";
+export * from "./album.ts";
+export * from "./track.ts";

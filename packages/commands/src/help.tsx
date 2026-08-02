@@ -6,7 +6,11 @@
 
 import { identifier, optional } from "@kuristina/commands";
 import { ErrorMessage, Theme } from "@kuristina/discord-ui";
-import { commandRegistry, defineCommand } from "@kuristina/commands/registry";
+import { type CommandMetadata, commandRegistry, defineCommand } from "@kuristina/commands/registry";
+
+function isOwnerOnly(cmd: CommandMetadata): boolean {
+	return cmd.middleware?.some((m) => m.name === "owner-only") ?? false;
+}
 
 interface HelpCardProps {
 	commands: Array<{ name: string; description: string }>;
@@ -21,7 +25,9 @@ function HelpCard({
 
 	return (
 		<message>
-			<h3>List of commands</h3>
+			<h3>
+				<icon name="help" /> List of commands
+			</h3>
 			<hr spacing={2} />
 			<sub>
 				<ul>
@@ -56,6 +62,7 @@ interface CommandDetailProps {
 	examples?: string[];
 	aliases?: string[];
 	permissions?: string[];
+	subcommands?: string[];
 }
 
 function CommandDetail({
@@ -65,10 +72,12 @@ function CommandDetail({
 	examples,
 	aliases,
 	permissions,
+	subcommands,
 }: CommandDetailProps) {
 	return (
 		<message>
 			<h3>
+				<icon name="help" />
 				<strong>
 					<kbd>{name}</kbd>
 				</strong>
@@ -89,6 +98,17 @@ function CommandDetail({
 						{aliases.map((a) =>
 							// deno-lint-ignore jsx-key
 							<kbd>{a}</kbd>
+						).join(" ")}
+					</p>
+				</>
+			)}
+			{subcommands && subcommands.length > 0 && (
+				<>
+					<p>
+						<strong>{`Subcommands `}</strong>
+						{subcommands.map((s) =>
+							// deno-lint-ignore jsx-key
+							<kbd>{s}</kbd>
 						).join(" ")}
 					</p>
 				</>
@@ -125,7 +145,7 @@ export default defineCommand("help", {
 		const needle = ctx.remaining.toLowerCase();
 
 		const cmd = commandRegistry.commands.find((c) =>
-			c.aliases.some((a) => a.toLowerCase() === needle)
+			!isOwnerOnly(c) && c.aliases.some((a) => a.toLowerCase() === needle)
 		);
 
 		if (!cmd) {
@@ -145,16 +165,23 @@ export default defineCommand("help", {
 				name={cmd.aliases[0]}
 				description={cmd.description || "No description available"}
 				aliases={cmd.aliases.slice(1)}
+				subcommands={cmd.subcommands
+					? [...new Set(cmd.subcommands.values())]
+						.filter((s) => !isOwnerOnly(s))
+						.map((s) => s.aliases[0])
+					: undefined}
 			/>,
 		);
 	}
 
 	await ctx.reply(
 		<HelpCard
-			commands={commandRegistry.commands.map((cmd) => ({
-				name: cmd.aliases[0],
-				description: cmd.description || "No description available",
-			}))}
+			commands={commandRegistry.commands
+				.filter((cmd) => !isOwnerOnly(cmd))
+				.map((cmd) => ({
+					name: cmd.aliases[0],
+					description: cmd.description || "No description available",
+				}))}
 		/>,
 	);
 });
