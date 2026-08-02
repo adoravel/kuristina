@@ -8,37 +8,44 @@ import type { BigString } from "@discordeno/types";
 import type { RegisteredIconName } from "./registry.ts";
 
 export interface IconManifestEntry {
-	id: BigString;
-	animated: boolean;
+	readonly id: BigString;
+	readonly animated: boolean;
 }
 
-let manifest: Record<string, IconManifestEntry> = {};
-let populated = false;
+let manifest: Readonly<Record<string, IconManifestEntry>> | null = null;
 
-export function setIconManifest(entries: Record<string, IconManifestEntry>): void {
-	manifest = entries;
-	populated = true;
-}
+export const getEmojiName = (registeredKey: string): string =>
+	registeredKey.length === 1 ? `${registeredKey}_` : registeredKey.slice(0, 32);
 
-export function getEmojiName(registeredKey: string): string {
-	if (registeredKey.length === 1) return registeredKey + "_";
-	return registeredKey.slice(0, 32);
-}
+const formatDiscordEmoji = (name: string, id: BigString, animated: boolean): string =>
+	`<${animated ? "a" : ""}:${name}:${id}>`;
 
-export function iconMarkdown(name: RegisteredIconName): string {
-	if (!populated) {
-		throw new Error(`icon "${name}" requested before reconcileIcons() completed`);
-	}
-	const entry = manifest[name];
-	if (!entry) {
-		throw new Error(`icon "${name}" is registered but wasn't uploaded`);
-	}
-	return `<${entry.animated ? "a" : ""}:${getEmojiName(name)}:${entry.id}>`;
-}
+export const setIconManifest = (entries: Record<string, IconManifestEntry>): void => {
+	manifest = Object.freeze({ ...entries });
+};
 
-export function tryIconMarkdown(name: RegisteredIconName): string | undefined {
-	if (!populated) return undefined;
+export const tryIconMarkdown = (name: RegisteredIconName): string | undefined => {
+	if (!manifest) return undefined;
+
 	const entry = manifest[name];
 	if (!entry) return undefined;
-	return `<${entry.animated ? "a" : ""}:${getEmojiName(name)}:${entry.id}>`;
-}
+
+	return formatDiscordEmoji(getEmojiName(name), entry.id, entry.animated);
+};
+
+export const iconMarkdown = (name: RegisteredIconName): string => {
+	if (!manifest) {
+		throw new Error(
+			`icon manifest not loaded: icon "${name}" was requested before setIconManifest() was called`,
+		);
+	}
+
+	const markdown = tryIconMarkdown(name);
+	if (!markdown) {
+		throw new Error(
+			`icon missing: "${name}" is registered in code but wasn't found in the uploaded manifest`,
+		);
+	}
+
+	return markdown;
+};

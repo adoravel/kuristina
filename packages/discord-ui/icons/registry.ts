@@ -4,11 +4,11 @@
  * SPDX-License-Identifier: AGPL-2.0-or-later
  */
 
-export type IconProvider = "lucide" | "heroicons" | "simpleicons";
-export type IconVariant = "default" | "success" | "danger";
+export type IconVariant = "default" | "success" | "danger" | "warn";
+
+export type HttpUrl = `http://${string}` | `https://${string}`;
 
 interface BaseIconRegistration {
-	readonly provider: IconProvider;
 	readonly name: string;
 	readonly variant?: IconVariant;
 }
@@ -27,10 +27,19 @@ export interface SimpleIconRegistration extends BaseIconRegistration {
 	readonly provider: "simpleicons";
 }
 
+export interface UrlIconRegistration extends BaseIconRegistration {
+	readonly provider: HttpUrl;
+	readonly style?: "solid" | "outline";
+	readonly strokeWidth?: number;
+}
+
 export type IconRegistration =
 	| LucideIconRegistration
 	| HeroiconRegistration
-	| SimpleIconRegistration;
+	| SimpleIconRegistration
+	| UrlIconRegistration;
+
+export type IconProvider = IconRegistration["provider"];
 
 export const registeredIcons = {
 	music: { provider: "lucide", name: "music", strokeWidth: 2 },
@@ -46,11 +55,26 @@ export const registeredIcons = {
 	heart: { provider: "heroicons", name: "heart", variant: "danger", style: "solid" },
 	spotify: { provider: "simpleicons", name: "spotify" },
 	appleMusic: { provider: "simpleicons", name: "applemusic" },
+	amazonMusic: {
+		provider: "https://cdn.jsdelivr.net/npm/simple-icons@v11.0.0/icons",
+		name: "amazonmusic",
+	},
 	youtubeMusic: { provider: "simpleicons", name: "youtubemusic" },
+	youtube: { provider: "simpleicons", name: "youtube" },
+	soundcloud: { provider: "simpleicons", name: "soundcloud" },
 	tidal: { provider: "simpleicons", name: "tidal" },
 	deezer: { provider: "simpleicons", name: "deezer" },
 	disc: { provider: "lucide", name: "disc-3" },
 	waveform: { provider: "lucide", name: "audio-waveform", strokeWidth: 2 },
+	twitter: {
+		provider: "https://cdn.jsdelivr.net/npm/simple-icons@v11.0.0/icons",
+		name: "twitter",
+	},
+	mastodon: { provider: "simpleicons", name: "mastodon" },
+	github: { provider: "simpleicons", name: "github" },
+	repeat: { provider: "lucide", name: "repeat-2", variant: "success" },
+	comment: { provider: "lucide", name: "message-circle" },
+	star: { provider: "lucide", name: "star", variant: "warn" },
 } as const satisfies Record<string, IconRegistration>;
 
 export type RegisteredIconName = keyof typeof registeredIcons;
