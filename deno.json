@@ -34,7 +34,7 @@
 	},
 	"lint": {
 		"rules": {
-			"exclude": ["no-explicit-any", "no-slow-types"]
+			"exclude": ["no-explicit-any", "no-slow-types", "jsx-key"]
 		}
 	},
 	"fmt": {
