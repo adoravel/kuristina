@@ -13,6 +13,7 @@ export interface LastFmArtistSummary {
 	name: string;
 	mbid?: string;
 	url: string;
+	"#text"?: string;
 }
 
 export interface LastFmArtist {

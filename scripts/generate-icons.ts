@@ -34,7 +34,10 @@ function compose(glyphInner: string, config: IconRegistration): string {
 	const fg = variant === "default" ? PALETTE.fg : PALETTE[variant];
 	let groupAttributes: string;
 
-	if (config.provider === "heroicons" && config.style === "solid") {
+	if (
+		(config.provider === "heroicons" && config.style === "solid") ||
+		config.provider === "simpleicons"
+	) {
 		groupAttributes = `fill="${fg}"`;
 	} else {
 		const strokeWidth = config.provider === "lucide" && config.strokeWidth ? config.strokeWidth : 2;
@@ -60,6 +63,8 @@ async function fetchIconContent(config: IconRegistration): Promise<string> {
 		const style = config.style ?? "outline";
 		const directory = style === "solid" ? "24/solid" : "24/outline";
 		url = `https://unpkg.com/heroicons/${directory}/${config.name}.svg`;
+	} else if (config.provider == "simpleicons") {
+		url = `https://simpleicons.org/icons/${config.name}.svg`;
 	}
 
 	const response = await fetchWithRetry<string>(url, { json: false });

@@ -23,11 +23,18 @@ export const commands = {
 		return cmd("translate");
 	},
 	fm: {
+		get root() {
+			return import("./src/fm/mod.ts").then((m) => m.default);
+		},
+
 		get whoknows() {
 			return cmd("fm/whoknows");
 		},
-		get auth() {
-			return cmd("fm/login");
+		get whoknowsalbum() {
+			return cmd("fm/whoknowsalbum");
+		},
+		get whoknowstrack() {
+			return cmd("fm/whoknowstrack");
 		},
 	},
 	markov: {
@@ -52,8 +59,10 @@ export const commands = {
 			this.ping,
 			this.role,
 			this.translate,
+			this.fm.root,
 			this.fm.whoknows,
-			this.fm.auth,
+			this.fm.whoknowsalbum,
+			this.fm.whoknowstrack,
 			this.markov.forget,
 			this.markov.prune,
 			this.dev.restart,

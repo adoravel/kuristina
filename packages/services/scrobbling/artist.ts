@@ -35,7 +35,7 @@ export interface ArtistScrobbleProvider {
 }
 
 export class LastfmArtistScrobbleProvider implements ArtistScrobbleProvider {
-	readonly name = "lastfm" as ScrobbleProviderName;
+	readonly name = "last.fm" as ScrobbleProviderName;
 
 	getInfo(
 		query: string,
