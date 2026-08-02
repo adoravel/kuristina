@@ -8,7 +8,7 @@ import { defineCommand, ownerOnly } from "@kuristina/commands/registry";
 import { requestRestart } from "@kuristina/discord-bot/restart";
 import { sleep } from "@kuristina/core";
 
-export default defineCommand(["restart"], {}, async (ctx) => {
+export default defineCommand(["restart", ">_<"], {}, async (ctx) => {
 	const reply = await ctx.reply({
 		content: "okiie hold on[ᅟ](https://klipy.com/gifs/entrosar-resenhar)",
 	});

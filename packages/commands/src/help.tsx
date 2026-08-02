@@ -85,7 +85,7 @@ function CommandDetail({
 			{aliases && aliases.length > 0 && (
 				<>
 					<p>
-						<strong>Aliases</strong>
+						<strong>{`Aliases `}</strong>
 						{aliases.map((a) =>
 							// deno-lint-ignore jsx-key
 							<kbd>{a}</kbd>
@@ -93,7 +93,6 @@ function CommandDetail({
 					</p>
 				</>
 			)}
-			<hr spacing={2} />
 			{examples && examples.length > 0 && (
 				<>
 					<hr spacing={2} />

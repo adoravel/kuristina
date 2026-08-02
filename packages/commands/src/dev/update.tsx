@@ -9,7 +9,7 @@ import { requestRestart } from "@kuristina/discord-bot/restart";
 import { git } from "@kuristina/discord-bot/git";
 import { sleep } from "@kuristina/core";
 
-export default defineCommand(["update", "pull"], {}, async (ctx) => {
+export default defineCommand(["update", "pull", "sex", ":middle_finger:", "🖕"], {}, async (ctx) => {
 	const fetched = await git.fetch();
 	if (!fetched.ok) {
 		return void await ctx.error(`\`git fetch\` failed:\n\`\`\`\n${fetched.stderr}\n\`\`\``);
