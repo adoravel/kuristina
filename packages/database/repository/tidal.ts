@@ -105,11 +105,13 @@ export class TidalRepository extends Repository {
 		).then((r) => r.ok ? ok(undefined) : r);
 	}
 
-	async pruneExpiredDeviceAuth(ttlSeconds: number): Promise<Result<void, SqlError>> {
-		const cutoff = Math.floor(Date.now() / 1000) - ttlSeconds;
-		return await tryQuery(() =>
-			this.database.deleteFrom("tidal_device_auth").where("created_at", "<", cutoff).execute()
-		).then((r) => r.ok ? ok(undefined) : r);
+	async purgeExpiredDeviceAuth(ttlSeconds: number): Promise<Result<number, SqlError>> {
+		return await tryQuery(async () => {
+			const cutoff = Math.floor(Date.now() / 1000) - ttlSeconds;
+			const result = await this.database.deleteFrom("tidal_device_auth")
+				.where("created_at", "<", cutoff).executeTakeFirst();
+			return Number(result.numDeletedRows ?? 0n);
+		});
 	}
 }
 

@@ -15,8 +15,13 @@ import {
 	LogLevels,
 } from "@discordeno/bot";
 
-import { getConfig } from "@kuristina/config";
-import { closeDatabaseConnection, initialiseDatabase } from "@kuristina/database";
+import { config, getConfig } from "@kuristina/config";
+import {
+	closeDatabaseConnection,
+	initialiseDatabase,
+	registerDefaultPurgeTasks,
+	runMaintenance,
+} from "@kuristina/database";
 
 import { ok, type Result } from "@kuristina/core";
 import type { AppError } from "@kuristina/errors";
@@ -190,9 +195,15 @@ export async function initialise(): Promise<Result<void, AppError>> {
 	const result = await initialiseDatabase();
 	if (!result.ok) return result;
 
+	registerDefaultPurgeTasks();
+
 	await discord.start();
 	await confirmRestartIfPending(discord);
 	await reconcileIcons(discord);
+
+	await runMaintenance();
+	const maintenanceInterval = config.sqlite.maintenanceIntervalMs;
+	if (maintenanceInterval > 0) setInterval(() => void runMaintenance(), maintenanceInterval);
 	schedulePresenceReconciliation(discord);
 
 	await Promise.all(commands.all.map(async (cmd) => commandRegistry.register(await cmd)));

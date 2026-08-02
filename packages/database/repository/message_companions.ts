@@ -64,4 +64,13 @@ export class MessageCompanionRepository extends Repository {
 			await query.execute();
 		}).then((r) => (r.ok ? ok(undefined) : r));
 	}
+
+	async purgeOlderThan(retentionSeconds: number): Promise<Result<number, SqlError>> {
+		return await tryQuery(async () => {
+			const cutoff = Math.floor(Date.now() / 1000) - retentionSeconds;
+			const result = await this.database.deleteFrom("message_companions")
+				.where("created_at", "<", cutoff).executeTakeFirst();
+			return Number(result.numDeletedRows ?? 0n);
+		});
+	}
 }
