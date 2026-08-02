@@ -1,3 +1,9 @@
+/**
+ * kuristina, a ~~kitchen~~ bathroom sink discord bot
+ * Copyright (c) 2025-2026 kyu.re
+ * SPDX-License-Identifier: AGPL-3.0-or-later
+ */
+
 import { tryAsync, withRetry } from "@kuristina/core";
 import { err, ok, type Result } from "@kuristina/core";
 import { Errors, type NetworkError } from "@kuristina/core";

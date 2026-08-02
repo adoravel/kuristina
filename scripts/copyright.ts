@@ -6,7 +6,7 @@ import { bold, cyan, dim, green, red, yellow } from "@std/fmt/colors";
 const cfg = {
 	project: "kuristina",
 	author: "kyu.re",
-	license: "AGPL-2.0-or-later",
+	license: "AGPL-3.0-or-later",
 	get licenseLine() {
 		return `SPDX-License-Identifier: ${this.license}`;
 	},
