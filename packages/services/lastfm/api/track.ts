@@ -15,12 +15,13 @@ export interface LastFmTrack {
 	mbid?: string;
 	url: string;
 	artist: LastFmArtistSummary;
-	album?: { mbid?: string; text: string };
+	album?: { mbid?: string; "#text": string };
 	image?: LastFmImage[];
-	date?: { uts: number; text: string };
+	date?: { uts: number; "#text": string };
 	loved?: number;
 	playcount?: number;
 	userplaycount?: number;
+	readonly "@attr"?: { nowplaying?: string };
 }
 
 export interface ScrobbleTrack {
