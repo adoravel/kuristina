@@ -23,13 +23,16 @@ export const configSchema = {
 	sqlite: {
 		path: field.stringOr("~/.kuristina/data/kuristina.sqlite"),
 		maintenanceIntervalMs: field.positiveInt(6 * 60 * 60 * 1000),
-		companionRetentionSeconds: field.positiveInt(24 * 60 * 60),
-		musicLinkCacheTtlSeconds: field.positiveInt(14 * 24 * 60 * 60),
+		companionRetentionSeconds: field.positiveInt(30 * 60),
+		musicLinkCacheTtlSeconds: field.positiveInt(15 * 24 * 60 * 60),
 		tidalDeviceAuthTtlSeconds: field.positiveInt(10 * 60),
 	},
 	commands: {
 		defaultCooldownMs: field.positiveInt(3_000),
 		maxMentions: field.positiveInt(5),
+	},
+	network: {
+		userAgent: field.stringOr("kuristina/0.1.0 (+https://kyu.re/~kuristina)"),
 	},
 	cache: {
 		contextTtlMs: field.positiveInt(45_000),
@@ -70,6 +73,7 @@ export const configSchema = {
 		},
 		linkEmbeds: {
 			github: field.boolean(true),
+			codeberg: field.boolean(true),
 			twitter: field.boolean(true),
 			fediverse: field.boolean(true),
 			maxPerMessage: field.positiveInt(3),
