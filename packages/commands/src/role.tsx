@@ -103,6 +103,7 @@ export default defineCommand([
 	"role-color",
 	"role-colour",
 	"role",
+	"hx"
 ], {
 	$: optional(colour),
 }, async (ctx) => {
