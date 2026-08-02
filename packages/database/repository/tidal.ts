@@ -5,7 +5,7 @@
  */
 
 import { ok, type Result } from "@kuristina/core";
-import { decodeSnowflake, encodeSnowflake, type SqlError, tryQuery } from "@kuristina/database";
+import { type SqlError, tryQuery } from "@kuristina/database";
 import type { StoredTidalSession } from "@kuristina/services/tidal";
 
 import { Repository } from "./helper.ts";
@@ -15,7 +15,7 @@ export class TidalRepository extends Repository {
 		return await tryQuery(async () => {
 			const row = await this.database.selectFrom("tidal_sessions")
 				.select(["access_token", "refresh_token", "expires_at", "country_code"])
-				.where("discord_id", "=", encodeSnowflake(userId) as any)
+				.where("discord_id", "=", userId.toString())
 				.executeTakeFirst();
 			if (!row) return null;
 			return {
@@ -34,7 +34,7 @@ export class TidalRepository extends Repository {
 		return await tryQuery(() =>
 			this.database.insertInto("tidal_sessions")
 				.values({
-					discord_id: encodeSnowflake(discordId) as any,
+					discord_id: discordId.toString(),
 					access_token: creds.accessToken,
 					refresh_token: creds.refreshToken,
 					expires_at: creds.expiresAt,
@@ -54,11 +54,8 @@ export class TidalRepository extends Repository {
 
 	async purgeSession(userId: bigint): Promise<Result<void, SqlError>> {
 		return await tryQuery(() =>
-			this.database.deleteFrom("tidal_sessions").where(
-				"discord_id",
-				"=",
-				encodeSnowflake(userId) as any,
-			).execute()
+			this.database.deleteFrom("tidal_sessions").where("discord_id", "=", userId.toString())
+				.execute()
 		).then((r) => r.ok ? ok(undefined) : r);
 	}
 
@@ -70,7 +67,7 @@ export class TidalRepository extends Repository {
 			this.database.insertInto("tidal_device_auth")
 				.values({
 					device_code: deviceCode,
-					user_id: encodeSnowflake(userId) as any,
+					user_id: userId.toString(),
 					created_at: Math.floor(Date.now() / 1000),
 				})
 				.onConflict((oc) =>
@@ -95,7 +92,7 @@ export class TidalRepository extends Repository {
 				await this.deletePendingDeviceAuth(deviceCode);
 				return null;
 			}
-			return decodeSnowflake(row.user_id as Uint8Array);
+			return BigInt(row.user_id);
 		});
 	}
 

@@ -5,7 +5,7 @@
  */
 
 import { ok, type Result } from "@kuristina/core";
-import { decodeSnowflake, encodeSnowflake, type SqlError, tryQuery } from "@kuristina/database";
+import { type SqlError, tryQuery } from "@kuristina/database";
 import type { ScrobbleProviderName } from "@kuristina/services/scrobbling";
 import { Repository } from "./helper.ts";
 
@@ -27,12 +27,12 @@ export class ScrobbleAccountRepository extends Repository {
 				if (makeDefault) {
 					await trx.updateTable("scrobble_accounts")
 						.set({ is_default: 0 })
-						.where("discord_id", "=", encodeSnowflake(discordId) as any)
+						.where("discord_id", "=", discordId.toString())
 						.execute();
 				}
 				await trx.insertInto("scrobble_accounts")
 					.values({
-						discord_id: encodeSnowflake(discordId) as any,
+						discord_id: discordId.toString(),
 						provider,
 						username,
 						is_default: makeDefault ? 1 : 0,
@@ -53,7 +53,7 @@ export class ScrobbleAccountRepository extends Repository {
 	async unlink(discordId: bigint, provider: ScrobbleProviderName): Promise<Result<void, SqlError>> {
 		return await tryQuery(() =>
 			this.database.deleteFrom("scrobble_accounts")
-				.where("discord_id", "=", encodeSnowflake(discordId) as any)
+				.where("discord_id", "=", discordId.toString())
 				.where("provider", "=", provider)
 				.execute()
 		).then((r) => (r.ok ? ok(undefined) : r));
@@ -63,7 +63,7 @@ export class ScrobbleAccountRepository extends Repository {
 		return await tryQuery(async () => {
 			const row = await this.database.selectFrom("scrobble_accounts")
 				.select(["provider", "username", "is_default"])
-				.where("discord_id", "=", encodeSnowflake(discordId) as any)
+				.where("discord_id", "=", discordId.toString())
 				.orderBy("is_default", "desc")
 				.limit(1)
 				.executeTakeFirst();
@@ -84,14 +84,14 @@ export class ScrobbleAccountRepository extends Repository {
 	): Promise<Result<Map<bigint, string>, SqlError>> {
 		if (!discordIds.length) return ok(new Map());
 		return await tryQuery(async () => {
-			const encoded = discordIds.map((id) => encodeSnowflake(id));
+			const encoded = discordIds.map((id) => id);
 			const rows = await this.database.selectFrom("scrobble_accounts")
 				.select(["discord_id", "username"])
 				.where("provider", "=", provider)
 				.where("discord_id", "in", encoded as any)
 				.execute();
 
-			return new Map(rows.map((r) => [decodeSnowflake(r.discord_id as Uint8Array), r.username]));
+			return new Map(rows.map((r) => [BigInt(r.discord_id), r.username]));
 		});
 	}
 
@@ -104,9 +104,9 @@ export class ScrobbleAccountRepository extends Repository {
 				.innerJoin("guild_members", "guild_members.discord_id", "scrobble_accounts.discord_id")
 				.select(["scrobble_accounts.discord_id", "scrobble_accounts.username"])
 				.where("scrobble_accounts.provider", "=", provider)
-				.where("guild_members.guild_id", "=", encodeSnowflake(guildId) as any)
+				.where("guild_members.guild_id", "=", guildId.toString())
 				.execute();
-			return new Map(rows.map((r) => [decodeSnowflake(r.discord_id as Uint8Array), r.username]));
+			return new Map(rows.map((r) => [BigInt(r.discord_id), r.username]));
 		});
 	}
 }

@@ -55,7 +55,6 @@ export async function tryQuery<T>(fn: () => Promise<T>): Promise<Result<T, SqlEr
 
 export * from "./schema.ts";
 export * from "./errors.ts";
-export * from "./helpers.ts";
 export * from "./repository/mod.ts";
 export * from "./maintenance.ts";
 export * from "./maintenance-tasks.ts";
