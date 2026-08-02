@@ -82,7 +82,7 @@ function TrackCard(
 								{" "}
 							</>
 						)
-						: "\n"}
+						: ""}
 					<strong>
 						<a href={track.url}>{track.name} ↗</a>
 					</strong>
