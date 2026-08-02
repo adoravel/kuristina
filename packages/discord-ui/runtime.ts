@@ -14,6 +14,10 @@ import {
 	type ComponentMessageProps,
 	Container,
 	type ContainerProps,
+	type EntitySelectProps,
+	MediaGallery,
+	MediaGalleryItem,
+	type MediaGalleryItemProps,
 	type RegisteredIconName,
 	Section,
 	type SectionProps,
@@ -30,7 +34,19 @@ import {
 } from "@kuristina/discord-ui";
 import { childrenToArray, childrenToString, transformChildrenArray } from "./utils.ts";
 import { iconMarkdown } from "./icons/manifest.ts";
-import { MessageComponentTypes } from "@discordeno/types";
+import { MessageComponentTypes, type SelectMenuDefaultValue } from "@discordeno/types";
+import type { MediaItemProps } from "./components/MediaItem.tsx";
+import type { MediaGalleryProps } from "./components/MediaGallery.tsx";
+import {
+	ChannelSelect,
+	EntityDefault,
+	type EntityDefaultProps,
+	EntitySelect,
+	type EntitySelectType,
+	MentionableSelect,
+	RoleSelect,
+	UserSelect,
+} from "./components/EntitySelect.tsx";
 
 export const Fragment = Symbol("JSX.Fragment");
 
@@ -153,6 +169,45 @@ export function renderMessage(props: Props): unknown {
 	} as any);
 }
 
+function renderEntitySelect<T extends EntitySelectType>(
+	props: Props & { selectType: EntitySelectProps<T>["selectType"] },
+) {
+	const { selectType, children, ...rest } = props;
+	const defaultValues = childrenToArray(children)
+		.filter(Boolean)
+		.map((child) => {
+			if (typeof child === "object" && child !== null && "id" in child && "type" in child) {
+				return child;
+			}
+			return null;
+		})
+		.filter(Boolean);
+
+	return EntitySelect<T>({
+		selectType,
+		...rest as any,
+		children: defaultValues.length ? defaultValues : undefined,
+	});
+}
+
+function renderEntityDefault(props: Props): SelectMenuDefaultValue {
+	const { id, type } = props;
+	return EntityDefault({ id: String(id), type: String(type) as any });
+}
+
+function renderMediaGallery(props: Props): unknown {
+	const { children, ...rest } = props;
+
+	const items = childrenToArray(children)
+		.map((child) => toComponent(child))
+		.filter(Boolean);
+
+	return MediaGallery({
+		...rest,
+		children: items,
+	});
+}
+
 export function jsx(type: ElementType, props?: Props | null) {
 	if (type === Fragment) return props?.children ?? [];
 	props ??= {};
@@ -191,6 +246,25 @@ export function jsx(type: ElementType, props?: Props | null) {
 				return Button(props as ButtonProps);
 			case "icon":
 				return iconMarkdown((props as JSX.IntrinsicElements["icon"]).name);
+			case "entity-select":
+				return renderEntitySelect(props as any);
+			case "entity-default":
+				return renderEntityDefault(props);
+			case "user-select":
+				return UserSelect(props as Omit<EntitySelectProps<"user">, "selectType">);
+			case "role-select":
+				return RoleSelect(props as Omit<EntitySelectProps<"role">, "selectType">);
+			case "channel-select":
+				return ChannelSelect(props as Omit<EntitySelectProps<"channel">, "selectType">);
+			case "mentionable-select":
+				return MentionableSelect(props as Omit<EntitySelectProps<"mentionable">, "selectType">);
+			case "media-item":
+				return MediaGalleryItem(props as unknown as MediaGalleryItemProps);
+			case "gallery":
+				return renderMediaGallery(props);
+			case "gallery-item":
+				return MediaGalleryItem(props as unknown as MediaGalleryItemProps);
+
 			default: {
 				const render = intrinsicTags[type];
 				if (!render) {
@@ -230,6 +304,17 @@ export declare namespace JSX {
 		accessory: { children?: unknown };
 		thumbnail: ThumbnailProps;
 		button: ButtonProps;
+
+		"entity-select": EntitySelectProps<EntitySelectProps<any>["selectType"]>;
+		"entity-default": EntityDefaultProps;
+		"user-select": Omit<EntitySelectProps<"user">, "selectType">;
+		"role-select": Omit<EntitySelectProps<"role">, "selectType">;
+		"channel-select": Omit<EntitySelectProps<"channel">, "selectType">;
+		"mentionable-select": Omit<EntitySelectProps<"mentionable">, "selectType">;
+
+		gallery: MediaGalleryProps;
+		"media-item": MediaItemProps;
+		"gallery-item": MediaGalleryItemProps;
 
 		br: Record<string, never>;
 		strong: { children?: unknown };
