@@ -33,7 +33,7 @@ import {
 	type ThumbnailProps,
 } from "@kuristina/discord-ui";
 import { childrenToArray, childrenToString, transformChildrenArray } from "./utils.ts";
-import { iconMarkdown } from "./icons/manifest.ts";
+import { tryIconMarkdown } from "./icons/manifest.ts";
 import { MessageComponentTypes, type SelectMenuDefaultValue } from "@discordeno/types";
 import type { MediaItemProps } from "./components/MediaItem.tsx";
 import type { MediaGalleryProps } from "./components/MediaGallery.tsx";
@@ -245,7 +245,7 @@ export function jsx(type: ElementType, props?: Props | null) {
 			case "button":
 				return Button(props as ButtonProps);
 			case "icon":
-				return iconMarkdown((props as JSX.IntrinsicElements["icon"]).name);
+				return tryIconMarkdown((props as JSX.IntrinsicElements["icon"]).name) ?? "";
 			case "entity-select":
 				return renderEntitySelect(props as any);
 			case "entity-default":
