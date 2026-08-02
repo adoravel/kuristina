@@ -2,110 +2,146 @@
 
 // deno-lint-ignore no-import-prefix
 import { Resvg } from "npm:@resvg/resvg-js@^2.6.2";
+import { type IconRegistration, registeredIcons, VENDORED_ICONS_DIR } from "@kuristina/discord-ui";
+import { fetchWithRetry, mapWithConcurrency } from "@kuristina/core";
 
-import { type IconRegistration, registeredIcons } from "@kuristina/discord-ui";
-import { fetchWithRetry } from "@kuristina/core";
-
-const DIR = "./packages/discord-ui/icons/vendored";
+const SIZE = 128;
+const PADDING = 24;
+const CORNER_RADIUS = 28;
 
 const PALETTE = {
 	bg: "#1e2126",
 	fg: "#b9bbc7",
 	success: "#57f287",
 	danger: "#ed4245",
+	warn: "#facc15",
 } as const;
 
-const SIZE = 128;
-const PADDING = 24;
-const CORNER_RADIUS = 28;
+type PaletteColor = keyof typeof PALETTE;
+type HttpUrl = `http://${string}` | `https://${string}`;
 
-function extract(rawSvg: string, iconName: string): string {
+const isUrl = (s: string): s is HttpUrl => s.startsWith("http://") || s.startsWith("https://");
+
+const resolveProviderUrl = (config: IconRegistration): string => {
+	switch (config.provider) {
+		case "lucide":
+			return `https://unpkg.com/lucide-static/icons/${config.name}.svg`;
+		case "heroicons": {
+			const style = config.style ?? "outline";
+			const dir = style === "solid" ? "24/solid" : "24/outline";
+			return `https://unpkg.com/heroicons/${dir}/${config.name}.svg`;
+		}
+		case "simpleicons":
+			return `https://simpleicons.org/icons/${config.name}.svg`;
+		default:
+			return config.name ? `${config.provider}/${config.name}.svg` : config.provider;
+	}
+};
+
+const getVariantColor = (variant: string = "default"): string =>
+	variant in PALETTE ? PALETTE[variant as PaletteColor] : PALETTE.fg;
+
+const buildSvgAttributes = (config: IconRegistration, fgColor: string): string => {
+	const style = "style" in config ? config.style : undefined;
+	const strokeWidth = "strokeWidth" in config ? config.strokeWidth : 2;
+
+	const isSolid = config.provider === "simpleicons" ||
+		(config.provider === "heroicons" && style === "solid") ||
+		(isUrl(config.provider) && style !== "outline");
+
+	if (isSolid) {
+		return `fill="${fgColor}"`;
+	}
+
+	const finalStrokeWidth = (config.provider === "lucide" || isUrl(config.provider))
+		? (strokeWidth ?? 2)
+		: 2;
+
+	return `stroke="${fgColor}" stroke-width="${finalStrokeWidth}" fill="none" stroke-linecap="round" stroke-linejoin="round"`;
+};
+
+const extractSvgInner = (rawSvg: string): string => {
 	const match = rawSvg.match(/<svg[^>]*>([\s\S]*?)<\/svg>/i);
-	if (!match) {
-		throw new Error(`Could not extract inner content from icon "${iconName}"`);
-	}
+	if (!match) throw new Error("Could not extract inner content from SVG format.");
 	return match[1].trim();
-}
+};
 
-function compose(glyphInner: string, config: IconRegistration): string {
+const composeSvg = (innerSvg: string, groupAttributes: string): string => {
 	const glyphSize = SIZE - PADDING * 2;
-	const variant = config.variant ?? "default";
-
-	const fg = variant === "default" ? PALETTE.fg : PALETTE[variant];
-	let groupAttributes: string;
-
-	if (
-		(config.provider === "heroicons" && config.style === "solid") ||
-		config.provider === "simpleicons"
-	) {
-		groupAttributes = `fill="${fg}"`;
-	} else {
-		const strokeWidth = config.provider === "lucide" && config.strokeWidth ? config.strokeWidth : 2;
-		groupAttributes =
-			`stroke="${fg}" stroke-width="${strokeWidth}" fill="none" stroke-linecap="round" stroke-linejoin="round"`;
-	}
-
 	return `
 <svg xmlns="http://www.w3.org/2000/svg" width="${SIZE}" height="${SIZE}" viewBox="0 0 ${SIZE} ${SIZE}">
 	<rect width="${SIZE}" height="${SIZE}" rx="${CORNER_RADIUS}" fill="${PALETTE.bg}"/>
 	<g transform="translate(${PADDING}, ${PADDING})" ${groupAttributes}>
-		<svg width="${glyphSize}" height="${glyphSize}" viewBox="0 0 24 24">${glyphInner}</svg>
+		<svg width="${glyphSize}" height="${glyphSize}" viewBox="0 0 24 24">${innerSvg}</svg>
 	</g>
 </svg>`.trim();
-}
+};
 
-async function fetchIconContent(config: IconRegistration): Promise<string> {
-	let url = "";
+const renderToPng = (svgData: string): Uint8Array => {
+	const resvg = new Resvg(svgData, { fitTo: { mode: "original" } });
+	return resvg.render().asPng();
+};
 
-	if (config.provider === "lucide") {
-		url = `https://unpkg.com/lucide-static/icons/${config.name}.svg`;
-	} else if (config.provider === "heroicons") {
-		const style = config.style ?? "outline";
-		const directory = style === "solid" ? "24/solid" : "24/outline";
-		url = `https://unpkg.com/heroicons/${directory}/${config.name}.svg`;
-	} else if (config.provider == "simpleicons") {
-		url = `https://simpleicons.org/icons/${config.name}.svg`;
-	}
-
+const fetchSvg = async (url: string): Promise<string> => {
 	const response = await fetchWithRetry<string>(url, { json: false });
-	if (!response.ok) throw response.error;
+	if (!response.ok) throw new Error(String(response.error));
+	return response.value;
+};
 
-	return extract(response.value, config.name);
-}
-
-async function process(name: string, config: IconRegistration) {
+const ensureDirectory = async (dirPath: string | URL): Promise<void> => {
 	try {
-		const innerSvg = await fetchIconContent(config);
-		const finalSvgString = compose(innerSvg, config);
-
-		const resvg = new Resvg(finalSvgString, {
-			fitTo: { mode: "original" },
-		});
-
-		const pngData = resvg.render();
-		const pngBuffer = pngData.asPng();
-
-		const destPath = `${DIR}/${name}.png`;
-		await Deno.writeFile(destPath, new Uint8Array(pngBuffer));
-
-		console.log(`generated ${destPath} (from ${config.provider}:${config.name})`);
+		await Deno.mkdir(dirPath, { recursive: true });
 	} catch (error) {
-		console.error(
-			`failed to generate "${name}":`,
-			error instanceof Error ? error.message : error,
-		);
-		throw error;
+		if (!(error instanceof Deno.errors.AlreadyExists)) throw error;
 	}
-}
+};
+
+const savePng = async (destPath: string | URL, data: Uint8Array): Promise<void> => {
+	await Deno.writeFile(destPath, data);
+};
+
+const processIcon = async ([name, config]: [string, IconRegistration]): Promise<void> => {
+	try {
+		const url = resolveProviderUrl(config);
+		const rawSvg = await fetchSvg(url);
+
+		const innerSvg = extractSvgInner(rawSvg);
+		const fgColor = getVariantColor(config.variant);
+		const attributes = buildSvgAttributes(config, fgColor);
+		const finalSvg = composeSvg(innerSvg, attributes);
+
+		const pngBuffer = renderToPng(finalSvg);
+
+		const destUrl = new URL(`${name}.png`, VENDORED_ICONS_DIR);
+		await savePng(destUrl, pngBuffer);
+
+		const source = isUrl(config.provider) ? "Direct URL" : `${config.provider}(${config.name})`;
+		logger.yay(`generated ${destUrl.pathname} (from ${source})`);
+	} catch (error) {
+		logger.boo(`Failed to generate "${name}":`, error);
+	}
+};
 
 async function main() {
-	const tasks = Object.entries(registeredIcons).map(([name, config]) =>
-		process(name, config as IconRegistration)
-	);
+	logger.info("starting icon generation pipeline");
 
-	await Promise.all(tasks);
+	await ensureDirectory(VENDORED_ICONS_DIR);
 
-	console.log(`successfully generated ${tasks.length} png icons`);
+	const entries = Object.entries(registeredIcons) as [string, IconRegistration][];
+	const results = await mapWithConcurrency(entries, 10, processIcon);
+
+	const fulfilled = results.filter((r) => r.status === "fulfilled").length;
+	const rejected = results.filter((r) => r.status === "rejected") as PromiseRejectedResult[];
+
+	if (fulfilled > 0) {
+		logger.yay(`successfully generated ${fulfilled} icons`);
+	}
+
+	if (rejected.length > 0) {
+		logger.boo(`failed to generate ${rejected.length} icons:`);
+		rejected.forEach((r) => logger.boo(`  · ${r.reason.message}`));
+		Deno.exit(1);
+	}
 }
 
 if (import.meta.main) await main();
