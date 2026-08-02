@@ -79,7 +79,7 @@ function WhoKnowsAlbum({
 	);
 }
 
-export default defineCommand(["whoknowsalbum", "wka"], {
+export default defineCommand(["whoknowsalbum", "wka", "wkalbum"], {
 	$: greedyString,
 }, async (ctx) => {
 	const query = ctx.remaining?.trim();

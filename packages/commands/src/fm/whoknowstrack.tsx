@@ -79,7 +79,7 @@ function WhoKnowsTrack({
 	);
 }
 
-export default defineCommand(["whoknowstrack", "wkt", "wt"], {
+export default defineCommand(["whoknowstrack", "wkt", "wt", "wktrack"], {
 	$: greedyString,
 }, async (ctx) => {
 	const query = ctx.remaining?.trim();
