@@ -6,10 +6,9 @@
 
 import { greedyString } from "@kuristina/commands";
 import { defineCommand } from "@kuristina/commands/registry";
-import { mapAsync, tapErrorAsync } from "@kuristina/core";
+import { mapAsync } from "@kuristina/core";
 import { repositories } from "@kuristina/database";
 import { Theme } from "@kuristina/discord-ui";
-import { describe } from "@kuristina/errors";
 import { getScrobbleProvider } from "@kuristina/services/scrobbling";
 import { getRecentTracks } from "@kuristina/services/lastfm";
 import {
@@ -140,24 +139,24 @@ export default defineCommand(["whoknowstrack", "wkt", "wt", "wktrack"], {
 		return rankResults(settled, MAX_SHOWN);
 	});
 
-	const result = mapAsync(ranked)(async ({ ranked, imageUrl }) => {
-		if (!ranked.length) {
+	await ctx.resolve(
+		mapAsync(ranked)(async ({ ranked, imageUrl }) => {
+			if (!ranked.length) {
+				await ctx.reply(
+					<NoPlaysMessage artist={resolvedTrack.artist} track={resolvedTrack.name} />,
+				);
+				return;
+			}
+			if (imageUrl && imageUrl !== resolvedTrack.image) resolvedTrack.image = imageUrl;
 			await ctx.reply(
-				<NoPlaysMessage artist={resolvedTrack.artist} track={resolvedTrack.name} />,
+				<WhoKnowsTrack
+					ranked={ranked}
+					totalLinked={ranked.length}
+					track={resolvedTrack}
+				/>,
 			);
-			return;
-		}
-		if (imageUrl && imageUrl !== resolvedTrack.image) resolvedTrack.image = imageUrl;
-		await ctx.reply(
-			<WhoKnowsTrack
-				ranked={ranked}
-				totalLinked={ranked.length}
-				track={resolvedTrack}
-			/>,
-		);
-	});
-
-	await tapErrorAsync(result)(async (error) => void await ctx.error(describe(error)));
+		}),
+	);
 }, {
 	description:
 		"Shows who in this server has scrobbled a given track the most. Use `artist | track`, or omit to use your last played track. Requires a linked Last.fm account.",

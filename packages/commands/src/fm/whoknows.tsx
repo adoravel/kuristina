@@ -6,10 +6,9 @@
 
 import { greedyString } from "@kuristina/commands";
 import { defineCommand } from "@kuristina/commands/registry";
-import { mapAsync, tapErrorAsync } from "@kuristina/core";
+import { mapAsync } from "@kuristina/core";
 import { repositories } from "@kuristina/database";
 import { Theme } from "@kuristina/discord-ui";
-import { describe } from "@kuristina/errors";
 import { getScrobbleProvider } from "@kuristina/services/scrobbling";
 import { getRecentTracks } from "@kuristina/services/lastfm";
 import {
@@ -137,22 +136,22 @@ export default defineCommand(["whoknows", "wk"], {
 		return rankResults(settled, MAX_SHOWN);
 	});
 
-	const result = mapAsync(ranked)(async ({ ranked, imageUrl }) => {
-		if (!ranked.length) {
-			await ctx.reply(<NoPlaysMessage artist={artist.name} />);
-			return;
-		}
-		if (imageUrl && imageUrl !== artist.image) artist.image = imageUrl;
-		await ctx.reply(
-			<WhoKnows
-				ranked={ranked}
-				totalLinked={ranked.length}
-				artist={artist}
-			/>,
-		);
-	});
-
-	await tapErrorAsync(result)(async (error) => void await ctx.error(describe(error)));
+	await ctx.resolve(
+		mapAsync(ranked)(async ({ ranked, imageUrl }) => {
+			if (!ranked.length) {
+				await ctx.reply(<NoPlaysMessage artist={artist.name} />);
+				return;
+			}
+			if (imageUrl && imageUrl !== artist.image) artist.image = imageUrl;
+			await ctx.reply(
+				<WhoKnows
+					ranked={ranked}
+					totalLinked={ranked.length}
+					artist={artist}
+				/>,
+			);
+		}),
+	);
 }, {
 	description:
 		"Shows who in this server has scrobbled a given artist the most, ranked by playcount. Requires a linked Last.fm account.",
