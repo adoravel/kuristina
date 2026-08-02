@@ -40,6 +40,14 @@ export interface KuristinaSchema {
 		uploaded_at: number;
 	};
 	bot_state: { key: string; value: string };
+	music_link_cache: { source_url: string; payload: string; cached_at: number };
+	message_companions: {
+		source_message_id: string;
+		response_message_id: string;
+		channel_id: string;
+		kind: string;
+		created_at: number;
+	};
 }
 
 export type SchemaContext = Kysely<KuristinaSchema>;
