@@ -8,7 +8,7 @@ import { gray } from "./colours.ts";
 import { levelBadge, type LogLevel } from "./levels.ts";
 
 export interface LogOptions {
-	level?: LogLevel;
+	level?: LogLevel | null;
 	prefix?: string;
 	timestamp?: boolean;
 	icon?: boolean;
@@ -21,10 +21,10 @@ export function formatLog(
 	const { level = "info", prefix, timestamp = true, icon = true } = options;
 
 	const ts = timestamp ? gray(`[${new Date().toLocaleString()}] `) : "";
-	const badge = levelBadge(level, icon);
-	const prefixStr = prefix ? `${gray("[")}${prefix}${gray("]")} ` : "";
+	const badge = level ? `${levelBadge(level, icon)} ` : "";
+	const pref = prefix ? `${prefix} ` : "";
 
-	return `${ts}${badge} ${prefixStr}${message}`;
+	return `${ts}${badge}${pref}${message}`;
 }
 
 export function log(
