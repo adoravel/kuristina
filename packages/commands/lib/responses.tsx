@@ -43,12 +43,11 @@ export const sendParseError = (message: Message, error: ParsingError) =>
 		</ErrorMessage>,
 	);
 
-export const sendExecutionError = (message: Message, error: unknown) =>
+export const sendExecutionError = (message: Message) =>
 	sendError(
 		message,
-		<ErrorMessage>
-			{`${md.bold("Command Execution Error")}\n${
-				md.codeblock(error instanceof Error ? error.message : String(error))
-			}`}
+		<ErrorMessage title="Something went wrong">
+			That command hit an error. Try again in a moment, or ping the retard in chief if it keeps
+			happening.
 		</ErrorMessage>,
 	);

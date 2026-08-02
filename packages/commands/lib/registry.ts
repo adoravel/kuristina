@@ -98,7 +98,7 @@ class CommandRegistry {
 		const mid = await this.runMiddlewares(this.globalMiddleware, middlewareCtx);
 		if (mid.type !== "continue") {
 			if (mid.type === "error") {
-				logger.boo("global middleware error: " + mid.error);
+				logger.boo("global middleware error:", mid.error);
 			}
 			return;
 		}
@@ -125,7 +125,7 @@ class CommandRegistry {
 			const cmdMid = await this.runMiddlewares(middleware, middlewareCtx);
 			if (cmdMid.type !== "continue") {
 				if (cmdMid.type === "error") {
-					logger.boo("middleware error: " + cmdMid.error);
+					logger.boo("middleware error:", cmdMid.error);
 				}
 				return;
 			}
@@ -137,7 +137,7 @@ class CommandRegistry {
 		}
 
 		try {
-			const ctx = CommandExecutionContext.create<any, any>(
+			const ctx = await CommandExecutionContext.create<any, any>(
 				cmd,
 				result.data.args,
 				result.data.remaining,
@@ -145,13 +145,13 @@ class CommandRegistry {
 				middlewareCtx.data,
 			);
 
-			await cmd.exec(ctx as any);
+			await cmd.exec(ctx);
 			if (cmd.cooldownMs) {
 				this.cooldowns.set(message.author.id, cooldownKey, cmd.cooldownMs);
 			}
 		} catch (error) {
-			logger.boo(`command execution error (${cooldownKey}): ` + error);
-			await sendExecutionError(message, error);
+			logger.boo(`command execution error (${cooldownKey}):`, error);
+			await sendExecutionError(message);
 		}
 	}
 
@@ -166,7 +166,7 @@ class CommandRegistry {
 					return result;
 				}
 			} catch (error) {
-				logger.boo(`middleware error (${middleware.name}): ` + error);
+				logger.boo(`middleware error (${middleware.name}):`, error);
 				return { type: "error", error: error as Error };
 			}
 		}
