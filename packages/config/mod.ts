@@ -24,7 +24,7 @@ export const configSchema = {
 		path: field.stringOr("~/.kuristina/data/kuristina.sqlite"),
 		maintenanceIntervalMs: field.positiveInt(6 * 60 * 60 * 1000),
 		companionRetentionSeconds: field.positiveInt(30 * 60),
-		musicLinkCacheTtlSeconds: field.positiveInt(15 * 24 * 60 * 60),
+		musicLinkCacheTtlSeconds: field.positiveInt(31 * 24 * 60 * 60),
 		tidalDeviceAuthTtlSeconds: field.positiveInt(10 * 60),
 	},
 	commands: {
