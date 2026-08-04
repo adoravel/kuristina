@@ -4,11 +4,10 @@
  * SPDX-License-Identifier: AGPL-3.0-or-later
  */
 
-export * from "./lib/mod.ts";
+import { registerCommand } from "@kuristina/commands/core";
 
 const cmd = (path: string) => import(`./src/${path}.tsx`).then((m) => m.default);
 
-/** meow */
 export const commands = {
 	get help() {
 		return cmd("help");
@@ -26,7 +25,9 @@ export const commands = {
 		get root() {
 			return import("./src/fm/mod.ts").then((m) => m.default);
 		},
-
+		get nowplaying() {
+			return cmd("fm/nowplaying");
+		},
 		get whoknows() {
 			return cmd("fm/whoknows");
 		},
@@ -60,6 +61,7 @@ export const commands = {
 			this.role,
 			this.translate,
 			this.fm.root,
+			this.fm.nowplaying,
 			this.fm.whoknows,
 			this.fm.whoknowsalbum,
 			this.fm.whoknowstrack,
@@ -70,3 +72,7 @@ export const commands = {
 		];
 	},
 };
+
+export async function registerAllCommands(): Promise<void> {
+	for (const spec of await Promise.all(commands.all)) registerCommand(spec);
+}
