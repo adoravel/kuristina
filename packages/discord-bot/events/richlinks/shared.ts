@@ -29,9 +29,8 @@ async function sendCompanion(
 	kind: CompanionKind,
 	sourceUrl: string,
 ): Promise<void> {
-	let sent;
 	try {
-		sent = await bot.helpers.sendMessage(message.channelId, {
+		const sent = await bot.helpers.sendMessage(message.channelId, {
 			...payload,
 			messageReference: {
 				messageId: message.id,
@@ -40,10 +39,14 @@ async function sendCompanion(
 				failIfNotExists: true,
 			},
 		});
-	} catch {
-		return;
-	}
-	await repositories.messageCompanions.add(message.id, sent.id, message.channelId, kind, sourceUrl);
+		await repositories.messageCompanions.add(
+			message.id,
+			sent.id,
+			message.channelId,
+			kind,
+			sourceUrl,
+		);
+	} catch { /* no-op */ }
 }
 
 export async function reconcileCompanions<T>(
@@ -73,21 +76,25 @@ export async function reconcileCompanions<T>(
 		);
 		for (const companion of stale) {
 			await bot.helpers.deleteMessage(companion.channelId, companion.responseMessageId)
-				.catch((e) => logger.warn("rich-links: failed to delete stale companion message:", e));
+				.catch(() => {});
 		}
 	}
 
 	const toRender = items.filter((item) => !existingByKey.has(keyOf(item)));
-	if (toRender.length) {
-		await mapWithConcurrency(toRender, 5, async (item) => {
-			const payload = await render(item);
-			if (!payload) return;
-			await sendCompanion(bot, message, payload, kind, keyOf(item));
-		});
-	}
+	if (!toRender.length) return;
 
-	const remainingExisting = existing.filter((c) => c.sourceUrl && currentKeys.has(c.sourceUrl));
-	const hasCompanions = remainingExisting.length > 0 || toRender.length > 0;
+	const results = await mapWithConcurrency(toRender, 5, async (item) => {
+		const payload = await render(item);
+		if (!payload) return null;
+		await sendCompanion(bot, message, payload, kind, keyOf(item));
+		return payload;
+	});
+
+	const successful = results.filter((r) => r.status === "fulfilled" && r.value !== null);
+	const hasCompanions =
+		existing.filter((c) => c.sourceUrl && currentKeys.has(c.sourceUrl)).length > 0 ||
+		successful.length > 0;
+
 	if (hasCompanions) {
 		await suppressOriginalEmbed(bot, message);
 	}
