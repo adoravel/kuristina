@@ -7,7 +7,7 @@
 import { config } from "@kuristina/config";
 import { extractStatusUrls, fetchTweet } from "@kuristina/services/twitter";
 import { renderTweet } from "@kuristina/embeds/twitter";
-import { sendCompanion, suppressOriginalEmbed } from "./shared.ts";
+import { reconcileCompanions, suppressOriginalEmbed } from "./shared.ts";
 import type { Message } from "../../types.ts";
 import type discord from "../../bot.ts";
 
@@ -16,12 +16,16 @@ export async function handleTwitterLinks(bot: typeof discord, message: Message):
 	const urls = extractStatusUrls(message.content).slice(0, config.modules.linkEmbeds.maxPerMessage);
 	if (!urls.length) return;
 
-	let sent = 0;
-	for (const url of urls) {
-		const tweet = await fetchTweet(url);
-		if (!tweet.ok) continue;
-		await sendCompanion(bot, message, renderTweet(tweet.value), "richlink:twitter");
-		sent++;
-	}
+	await reconcileCompanions(
+		bot,
+		message,
+		"richlink:twitter",
+		urls,
+		(url) => url,
+		async (url) => {
+			const tweet = await fetchTweet(url);
+			return tweet.ok ? renderTweet(tweet.value) : undefined;
+		},
+	);
 	if (sent) await suppressOriginalEmbed(bot, message);
 }

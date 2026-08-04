@@ -7,7 +7,7 @@
 import { config } from "@kuristina/config";
 import { extractBlobRefs, fetchSnippet } from "@kuristina/services/codeberg";
 import { renderSnippet } from "@kuristina/embeds/codeberg";
-import { sendCompanion, suppressOriginalEmbed } from "./shared.ts";
+import { reconcileCompanions, suppressOriginalEmbed } from "./shared.ts";
 import type { Message } from "../../types.ts";
 import type discord from "../../bot.ts";
 
@@ -16,12 +16,18 @@ export async function handleCodebergLinks(bot: typeof discord, message: Message)
 	const refs = extractBlobRefs(message.content).slice(0, config.modules.linkEmbeds.maxPerMessage);
 	if (!refs.length) return;
 
-	let sent = 0;
-	for (const ref of refs) {
-		const snippet = await fetchSnippet(ref);
-		if (!snippet.ok) continue;
-		await sendCompanion(bot, message, renderSnippet(ref, snippet.value), "richlink:codeberg");
-		sent++;
-	}
-	if (sent) await suppressOriginalEmbed(bot, message);
+	await reconcileCompanions(
+		bot,
+		message,
+		"richlink:codeberg",
+		refs,
+		(ref) =>
+			`${ref.owner}/${ref.repo}/${ref.path}#L${ref.startLine ?? ""}-L${
+				ref.endLine ?? ""
+			}@${ref.ref}`,
+		async (ref) => {
+			const snippet = await fetchSnippet(ref);
+			return snippet.ok ? renderSnippet(ref, snippet.value) : undefined;
+		},
+	);
 }

@@ -6,7 +6,7 @@
 
 import { extractMusicUrls, resolveSongLink } from "@kuristina/services/musiclinks";
 import { renderMusicLinkCard } from "@kuristina/embeds/musiclinks";
-import { sendCompanion, suppressOriginalEmbed } from "./shared.ts";
+import { reconcileCompanions, suppressOriginalEmbed } from "./shared.ts";
 import type { Message } from "../../types.ts";
 import type discord from "../../bot.ts";
 
@@ -14,12 +14,15 @@ export async function handleMusicLinks(bot: typeof discord, message: Message): P
 	const urls = extractMusicUrls(message.content).slice(0, 2);
 	if (!urls.length) return;
 
-	let sent = 0;
-	for (const url of urls) {
-		const resolved = await resolveSongLink(url);
-		if (!resolved.ok) continue;
-		await sendCompanion(bot, message, renderMusicLinkCard(resolved.value), "richlink:musiclinks");
-		sent++;
-	}
-	if (sent) await suppressOriginalEmbed(bot, message);
+	await reconcileCompanions(
+		bot,
+		message,
+		"richlink:musiclinks",
+		urls,
+		(url) => url,
+		async (url) => {
+			const link = await resolveSongLink(url);
+			return link.ok ? renderMusicLinkCard(link.value) : undefined;
+		},
+	);
 }

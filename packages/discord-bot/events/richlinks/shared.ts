@@ -59,15 +59,59 @@ export async function unsuppressOriginalEmbed(
 	}
 }
 
-export async function sendCompanion(
+async function sendCompanion(
 	bot: typeof discord,
 	message: Message,
 	payload: CreateMessageOptions,
 	kind: CompanionKind,
+	sourceUrl: string,
 ): Promise<void> {
 	const sent = await bot.helpers.sendMessage(message.channelId, {
 		...payload,
 		messageReference: replyRef(message),
 	});
-	await repositories.messageCompanions.add(message.id, sent.id, message.channelId, kind);
+	await repositories.messageCompanions.add(message.id, sent.id, message.channelId, kind, sourceUrl);
+}
+
+export async function reconcileCompanions<T>(
+	bot: typeof discord,
+	message: Message,
+	kind: CompanionKind,
+	items: T[],
+	keyOf: (item: T) => string,
+	render: (item: T) => Promise<CreateMessageOptions | undefined>,
+): Promise<void> {
+	const existingResult = await repositories.messageCompanions.getForSource(message.id, kind);
+	const existing = existingResult.ok ? existingResult.value : [];
+
+	const existingByKey = new Map(existing.filter((c) => c.sourceUrl).map((c) => [c.sourceUrl!, c]));
+	const currentKeys = new Set(items.map(keyOf));
+
+	const stale = existing.filter((c) => c.sourceUrl && !currentKeys.has(c.sourceUrl));
+	if (stale.length) {
+		for (const companion of stale) {
+			await bot.helpers.deleteMessage(companion.channelId, companion.responseMessageId).catch(
+				() => {},
+			);
+		}
+		await repositories.messageCompanions.deleteResponses(
+			message.id,
+			stale.map((c) => c.responseMessageId),
+		);
+	}
+
+	for (const item of items) {
+		const key = keyOf(item);
+		if (existingByKey.has(key)) continue;
+		const payload = await render(item);
+		if (!payload) continue;
+		await sendCompanion(bot, message, payload, kind, key);
+	}
+
+	const finalResult = await repositories.messageCompanions.getForSource(message.id, kind);
+	const hasCompanions = finalResult.ok && finalResult.value.length > 0;
+
+	if (hasCompanions) {
+		await suppressOriginalEmbed(bot, message);
+	}
 }
