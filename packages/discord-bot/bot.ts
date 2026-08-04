@@ -4,8 +4,6 @@
  * SPDX-License-Identifier: AGPL-3.0-or-later
  */
 
-import { commandRegistry, commands, logging } from "@kuristina/commands/registry";
-
 import { createProxyCache } from "dd-cache-proxy";
 import {
 	createBot,
@@ -30,6 +28,8 @@ import { events } from "./events/mod.ts";
 import { reconcileIcons } from "./lifecycle/icons.ts";
 import { confirmRestartIfPending } from "./lifecycle/restart.ts";
 import { schedulePresenceReconciliation } from "./lifecycle/presence.ts";
+import { reconcileSlashCommands } from "./lifecycle/slash-commands.ts";
+import { registerAllCommands } from "@kuristina/commands/registry";
 
 const desiredProperties = createDesiredPropertiesObject({
 	user: {
@@ -206,8 +206,8 @@ export async function initialise(): Promise<Result<void, AppError>> {
 	if (maintenanceInterval > 0) setInterval(() => void runMaintenance(), maintenanceInterval);
 	schedulePresenceReconciliation(discord);
 
-	commandRegistry.use(logging);
-	await Promise.all(commands.all.map(async (cmd) => commandRegistry.register(await cmd)));
+	await registerAllCommands();
+	await reconcileSlashCommands(discord);
 
 	return ok(undefined);
 }

@@ -6,6 +6,7 @@
 
 import type discord from "@kuristina/discord-bot";
 import { InteractionTypes } from "@kuristina/discord-bot";
+import { dispatchSlashInteraction } from "@kuristina/commands/core";
 
 export interface InteractionCreateHandlerOpts {
 	identifier: string;
@@ -26,6 +27,13 @@ export function setupInteractionHandler(
 const handlers: InteractionCreateHandler[] = [];
 
 const interactionCreate: typeof discord.events.interactionCreate = async (interaction) => {
+	if (
+		interaction.type === InteractionTypes.ApplicationCommand ||
+		interaction.type === InteractionTypes.ApplicationCommandAutocomplete
+	) {
+		return await dispatchSlashInteraction(interaction);
+	}
+
 	if (
 		interaction.type !== InteractionTypes.MessageComponent || !interaction.guildId ||
 		!interaction.data

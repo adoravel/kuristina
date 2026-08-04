@@ -5,10 +5,10 @@
  */
 
 import discord from "@kuristina/discord-bot";
-import { infer, StringStream } from "@kuristina/commands";
-import { commandRegistry, prefix } from "@kuristina/commands/registry";
+import { StringStream } from "@kuristina/commands";
 import { handleRichLinks } from "./richlinks/mod.ts";
 import { repositories } from "@kuristina/database";
+import { executeTextCommand } from "../../commands/core/text-adapter.ts";
 
 export const messageCreate: typeof discord.events.messageCreate = async (message) => {
 	if (message.author.bot || !message.guildId) return;
@@ -16,11 +16,7 @@ export const messageCreate: typeof discord.events.messageCreate = async (message
 	handleRichLinks(discord, message);
 
 	const stream = new StringStream(message.content);
-	const prefixResult = prefix(stream);
-
-	if (infer("success")(prefixResult)) {
-		await commandRegistry.execute(message, stream);
-	}
+	await executeTextCommand(message, stream);
 };
 
 export const messageDelete: typeof discord.events.messageDelete = async (message) => {
@@ -41,11 +37,7 @@ export const messageUpdate: typeof discord.events.messageUpdate = async (message
 	handleRichLinks(discord, message);
 
 	const stream = new StringStream(message.content);
-	const prefixResult = prefix(stream);
-	if (infer("success")(prefixResult)) {
-		await commandRegistry.execute(message, stream);
-		return;
-	}
+	executeTextCommand(message, stream);
 
 	const stale = await repositories.messageCompanions.getForSource(message.id, "command");
 	if (stale.ok && stale.value.length) {
