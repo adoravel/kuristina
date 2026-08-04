@@ -21,7 +21,7 @@ export default defineCommand({
 		}),
 	},
 	async exec(ctx) {
-		if (ctx.surface === "text" && ctx.args.query) {
+		if (ctx.surface === "text") {
 			await nowplaying.exec({ ...ctx, args: { user: ctx.args.query } });
 			return;
 		}
