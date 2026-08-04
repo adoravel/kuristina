@@ -7,7 +7,6 @@
 		"./lastfm": "./lastfm/mod.ts",
 		"./musicbrainz": "./musicbrainz/mod.ts",
 		"./scrobbling": "./scrobbling/mod.ts",
-		"./google/batchexecute": "./google/batchexecute/mod.ts",
 		"./musiclinks": "./musiclinks/mod.ts",
 		"./code-forge": "./code-forge/mod.ts",
 		"./github": "./github/mod.ts",
