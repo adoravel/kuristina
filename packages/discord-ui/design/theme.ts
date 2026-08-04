@@ -5,7 +5,7 @@
  */
 
 import { getConfig } from "@kuristina/config";
-import { type RegisteredIconName, tryIconMarkdown } from "@kuristina/discord-ui";
+import { emojiWithFallback, type RegisteredIconName, tryIconMarkdown } from "@kuristina/discord-ui";
 
 export const Theme = {
 	get colours() {
@@ -44,4 +44,5 @@ export const Theme = {
 	icon(name: RegisteredIconName): string {
 		return tryIconMarkdown(name) ?? "";
 	},
+	emojiWithFallback,
 } as const;

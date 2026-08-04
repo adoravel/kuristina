@@ -4,7 +4,7 @@
  * SPDX-License-Identifier: AGPL-3.0-or-later
  */
 
-import type { BigString } from "@discordeno/types";
+import type { BigString, ButtonComponent } from "@discordeno/types";
 import type { RegisteredIconName } from "./registry.ts";
 
 export interface IconManifestEntry {
@@ -48,4 +48,15 @@ export const iconMarkdown = (name: RegisteredIconName): string => {
 	}
 
 	return markdown;
+};
+
+export const emojiWithFallback = (
+	name: RegisteredIconName,
+	fallback: ButtonComponent["emoji"],
+): ButtonComponent["emoji"] => {
+	const icon = manifest?.[name];
+	if (icon) {
+		return { id: icon.id, name: name, animated: icon.animated };
+	}
+	return fallback;
 };
