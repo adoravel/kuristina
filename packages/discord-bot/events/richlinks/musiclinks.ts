@@ -4,11 +4,8 @@
  * SPDX-License-Identifier: AGPL-3.0-or-later
  */
 
-import {
-	extractMusicUrls,
-	renderMusicLinkCard,
-	resolveSongLink,
-} from "@kuristina/services/musiclinks";
+import { extractMusicUrls, resolveSongLink } from "@kuristina/services/musiclinks";
+import { renderMusicLinkCard } from "@kuristina/embeds/musiclinks";
 import { sendCompanion, suppressOriginalEmbed } from "./shared.ts";
 import type { Message } from "../../types.ts";
 import type discord from "../../bot.ts";

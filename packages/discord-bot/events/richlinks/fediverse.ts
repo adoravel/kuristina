@@ -5,7 +5,8 @@
  */
 
 import { config } from "@kuristina/config";
-import { extractFediUrls, fetchFediPost, renderFediPost } from "@kuristina/services/fediverse";
+import { extractFediUrls, fetchFediPost } from "@kuristina/services/fediverse";
+import { renderFediPost } from "@kuristina/embeds/fediverse";
 import { sendCompanion, suppressOriginalEmbed } from "./shared.ts";
 import type { Message } from "../../types.ts";
 import type discord from "../../bot.ts";

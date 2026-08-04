@@ -5,13 +5,14 @@
  */
 
 import { config } from "@kuristina/config";
-import { extractBlobRefs, fetchSnippet, renderSnippet } from "@kuristina/services/codeberg";
+import { extractBlobRefs, fetchSnippet } from "@kuristina/services/codeberg";
+import { renderSnippet } from "@kuristina/embeds/codeberg";
 import { sendCompanion, suppressOriginalEmbed } from "./shared.ts";
 import type { Message } from "../../types.ts";
 import type discord from "../../bot.ts";
 
 export async function handleCodebergLinks(bot: typeof discord, message: Message): Promise<void> {
-	if (!config.modules.linkEmbeds.github) return;
+	if (!config.modules.linkEmbeds.codeberg) return;
 	const refs = extractBlobRefs(message.content).slice(0, config.modules.linkEmbeds.maxPerMessage);
 	if (!refs.length) return;
 

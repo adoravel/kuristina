@@ -5,7 +5,8 @@
  */
 
 import { config } from "@kuristina/config";
-import { extractStatusUrls, fetchTweet, renderTweet } from "@kuristina/services/twitter";
+import { extractStatusUrls, fetchTweet } from "@kuristina/services/twitter";
+import { renderTweet } from "@kuristina/embeds/twitter";
 import { sendCompanion, suppressOriginalEmbed } from "./shared.ts";
 import type { Message } from "../../types.ts";
 import type discord from "../../bot.ts";

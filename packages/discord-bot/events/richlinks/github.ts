@@ -5,7 +5,8 @@
  */
 
 import { config } from "@kuristina/config";
-import { extractBlobRefs, fetchSnippet, renderSnippet } from "@kuristina/services/github";
+import { extractBlobRefs, fetchSnippet } from "@kuristina/services/github";
+import { renderSnippet } from "@kuristina/embeds/github";
 import { sendCompanion, suppressOriginalEmbed } from "./shared.ts";
 import type { Message } from "../../types.ts";
 import type discord from "../../bot.ts";
