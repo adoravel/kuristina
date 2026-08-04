@@ -65,11 +65,17 @@ function resolve(root: CommandSpec<any>, stream: StringStream): ResolvedCommand 
 	return { spec, path, middleware };
 }
 
-async function buildTextInvocationBase<A>(message: Message, args: A): Promise<InvocationBase<A>> {
+async function buildTextInvocationBase<A>(
+	message: Message,
+	args: A,
+	mightBeEdit: boolean,
+): Promise<InvocationBase<A>> {
 	let responseId: bigint | undefined;
 
-	const prior = await repositories.messageCompanions.getForSource(message.id, "command");
-	if (prior.ok && prior.value.length) responseId = prior.value[0].responseMessageId;
+	if (mightBeEdit) {
+		const prior = await repositories.messageCompanions.getForSource(message.id, "command");
+		if (prior.ok && prior.value.length) responseId = prior.value[0].responseMessageId;
+	}
 
 	function ensureMessageReference(opts: CreateMessageOptions): void {
 		if (opts.messageReference) return;
@@ -82,9 +88,9 @@ async function buildTextInvocationBase<A>(message: Message, args: A): Promise<In
 	}
 
 	async function sendOrEdit(opts: CreateMessageOptions) {
-		ensureMessageReference(opts);
-
 		if (!responseId) {
+			ensureMessageReference(opts);
+
 			const response = await discord.helpers.sendMessage(message.channelId, opts);
 			await repositories.messageCompanions.add(
 				message.id,
@@ -120,6 +126,9 @@ async function buildTextInvocationBase<A>(message: Message, args: A): Promise<In
 		getGuild: () => message.guildId ? resolveGuild(message.guildId) : Promise.resolve(undefined),
 		getChannel: () => resolveChannel(message.channelId),
 		raw: { kind: "text", message },
+		defer: async () => {
+			await discord.helpers.triggerTypingIndicator(message.channelId).catch(() => {});
+		},
 		reply: sendOrEdit,
 	};
 }
@@ -136,9 +145,11 @@ async function cleanupStaleReply(message: Message): Promise<void> {
 }
 
 export async function executeTextCommand(message: Message, stream: StringStream): Promise<void> {
+	const isEdit = message.editedTimestamp != null;
+
 	const prefixResult = prefix(stream);
 	if (!infer("success")(prefixResult)) {
-		await cleanupStaleReply(message);
+		if (isEdit) await cleanupStaleReply(message);
 		return;
 	}
 	const start = performance.now();
@@ -153,7 +164,7 @@ export async function executeTextCommand(message: Message, stream: StringStream)
 	const { args, parser: argsParser } = buildTextArgsParser(spec.args ?? {});
 	const parsed = argsParser(stream);
 
-	const base = await buildTextInvocationBase(message, {});
+	const base = await buildTextInvocationBase(message, {}, isEdit);
 
 	if (!infer("success")(parsed)) {
 		const invocation = withReplyHelpers(base);

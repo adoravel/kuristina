@@ -35,6 +35,8 @@ export interface InvocationBase<Args = Record<string, unknown>> {
 	getGuild(): Promise<Guild | undefined>;
 	getChannel(): Promise<Channel | undefined>;
 
+	defer(opts?: { ephemeral?: boolean }): Promise<void>;
+
 	reply(
 		content: CreateMessageOptions,
 		opts?: { ephemeral?: boolean },

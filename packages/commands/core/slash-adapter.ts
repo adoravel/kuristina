@@ -9,6 +9,7 @@ import {
 	type CreateApplicationCommand,
 	DiscordInteractionContextType,
 	InteractionResponseTypes,
+	MessageFlags,
 } from "@discordeno/types";
 import discord, { type Interaction, resolveChannel, resolveGuild } from "@kuristina/discord-bot";
 
@@ -39,6 +40,8 @@ interface RawOption {
 }
 
 function buildInvocationBase<A>(interaction: Interaction, args: A): InvocationBase<A> {
+	let acked = false;
+
 	return {
 		surface: "slash",
 		args,
@@ -52,9 +55,37 @@ function buildInvocationBase<A>(interaction: Interaction, args: A): InvocationBa
 		getChannel: async () =>
 			interaction.channelId ? await resolveChannel(interaction.channelId) : undefined,
 		raw: { kind: "slash", interaction },
-		reply: async (content, opts) => {
-			await (interaction as unknown as { respond: (..._: any[]) => Promise<void> })
-				.respond(content, { isPrivate: opts?.ephemeral ?? false }).catch(() => {});
+		defer: async (opts) => {
+			if (acked) return;
+			acked = true;
+			await discord.helpers.sendInteractionResponse(interaction.id, interaction.token, {
+				type: InteractionResponseTypes.DeferredChannelMessageWithSource,
+				data: opts?.ephemeral ? { flags: MessageFlags.Ephemeral } : undefined,
+			}).catch((e) => {
+				acked = false;
+				logger.warn("slash defer failed:", e);
+			});
+		},
+		reply: async (content, opts): Promise<undefined> => {
+			try {
+				if (acked) {
+					await discord.helpers.editOriginalInteractionResponse(interaction.token, content);
+				} else {
+					acked = true;
+					await discord.helpers.sendInteractionResponse(interaction.id, interaction.token, {
+						type: InteractionResponseTypes.ChannelMessageWithSource,
+						data: {
+							...content,
+							flags: opts?.ephemeral
+								? (content.flags ?? 0) | MessageFlags.Ephemeral
+								: content.flags,
+						},
+					});
+				}
+			} catch (e) {
+				logger.warn("slash reply failed:", e);
+			}
+			return undefined;
 		},
 	};
 }
