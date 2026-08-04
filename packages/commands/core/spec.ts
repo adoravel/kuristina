@@ -144,7 +144,7 @@ export function defineCommand<A extends ArgsShape = Record<string, never>>(
 		aliases,
 		description: opts.description,
 		args: opts.args,
-		contexts: opts.contexts,
+		contexts: opts.contexts ?? ["guild", "bot_dm", "private_channel"],
 		surfaces,
 		category: opts.category,
 		cooldownMs: opts.cooldownMs,
