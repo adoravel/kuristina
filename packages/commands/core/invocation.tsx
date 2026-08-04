@@ -29,7 +29,7 @@ export interface InvocationBase<Args = Record<string, unknown>> {
 	readonly invokedAt: number;
 
 	readonly raw:
-		| { readonly kind: "text"; readonly message: Message }
+		| { readonly kind: "text"; readonly message: Message; readonly isReinvocation: boolean }
 		| { readonly kind: "slash"; readonly interaction: Interaction };
 
 	getGuild(): Promise<Guild | undefined>;

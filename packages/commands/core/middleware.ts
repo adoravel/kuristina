@@ -30,6 +30,7 @@ export const ownerOnly: Middleware = {
 	ownerOnly: true,
 	async execute(ctx) {
 		if (ctx.user.id !== config.owner.id) {
+			if (ctx.raw.kind === "text" && ctx.raw.isReinvocation) return { type: "continue" };
 			await ctx.reply({ content: "Give up." });
 			return { type: "stop", reason: CommandGateReason.NotOwner };
 		}

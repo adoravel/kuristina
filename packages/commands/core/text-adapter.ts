@@ -71,10 +71,14 @@ async function buildTextInvocationBase<A>(
 	mightBeEdit: boolean,
 ): Promise<InvocationBase<A>> {
 	let responseId: bigint | undefined;
+	let reinvoking = false;
 
 	if (mightBeEdit) {
 		const prior = await repositories.messageCompanions.getForSource(message.id, "command");
-		if (prior.ok && prior.value.length) responseId = prior.value[0].responseMessageId;
+		if (prior.ok && prior.value.length) {
+			responseId = prior.value[0].responseMessageId;
+			reinvoking = true;
+		}
 	}
 
 	function ensureMessageReference(opts: CreateMessageOptions): void {
@@ -125,7 +129,7 @@ async function buildTextInvocationBase<A>(
 		invokedAt: computeSnowflakeTimestamp(message.id),
 		getGuild: () => message.guildId ? resolveGuild(message.guildId) : Promise.resolve(undefined),
 		getChannel: () => resolveChannel(message.channelId),
-		raw: { kind: "text", message },
+		raw: { kind: "text", message, isReinvocation: reinvoking },
 		defer: async () => {
 			await discord.helpers.triggerTypingIndicator(message.channelId).catch(() => {});
 		},
