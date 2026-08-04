@@ -36,14 +36,4 @@ export const messageUpdate: typeof discord.events.messageUpdate = async (message
 	const stream = new StringStream(message.content);
 	await executeTextCommand(message, stream).catch(() => {});
 	await handleRichLinks(discord, message).catch(() => {});
-
-	const stale = await repositories.messageCompanions.getForSource(message.id, "command");
-	if (stale.ok && stale.value.length) {
-		for (const companion of stale.value) {
-			await discord.helpers.deleteMessage(companion.channelId, companion.responseMessageId).catch(
-				() => {},
-			);
-		}
-		await repositories.messageCompanions.deleteForSource(message.id, "command");
-	}
 };
