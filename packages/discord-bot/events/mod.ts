@@ -34,5 +34,3 @@ export const events = {
 	guildCreate: guarded("guildCreate", guildCreate),
 	guildDelete: guarded("guildDelete", guildDelete),
 };
-
-export { setupInteractionHandler } from "./interactionCreate.ts";

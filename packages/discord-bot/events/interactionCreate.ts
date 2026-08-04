@@ -4,27 +4,30 @@
  * SPDX-License-Identifier: AGPL-3.0-or-later
  */
 
-import type discord from "@kuristina/discord-bot";
-import { InteractionTypes } from "@kuristina/discord-bot";
+import discord, { InteractionResponseTypes } from "@kuristina/discord-bot";
+import { type Interaction, InteractionTypes } from "@kuristina/discord-bot";
 import { dispatchSlashInteraction } from "@kuristina/commands/core";
+import { waiters } from "@kuristina/core";
+import { ackWithMessage } from "../interactions/respond.ts";
 
-export interface InteractionCreateHandlerOpts {
-	identifier: string;
-	kind: number;
+async function handleComponentInteraction(interaction: Interaction): Promise<boolean> {
+	const customId = interaction.data?.customId;
+	if (!customId) return false;
+
+	const entry = waiters.get(customId);
+	if (!entry) return false;
+
+	if (entry.filter && !entry.filter(interaction)) {
+		await ackWithMessage(interaction, { content: "Maybe don't.", ephemeral: true })
+			.catch(() => {});
+		return true;
+	}
+
+	clearTimeout(entry.timeoutId);
+	waiters.delete(customId);
+	entry.resolve(interaction);
+	return true;
 }
-
-type InteractionCreateHandler = {
-	fn: typeof discord.events.interactionCreate;
-} & InteractionCreateHandlerOpts;
-
-export function setupInteractionHandler(
-	opts: InteractionCreateHandlerOpts,
-	fn: InteractionCreateHandler["fn"],
-) {
-	return handlers.push({ ...opts, fn });
-}
-
-const handlers: InteractionCreateHandler[] = [];
 
 const interactionCreate: typeof discord.events.interactionCreate = async (interaction) => {
 	if (
@@ -34,20 +37,13 @@ const interactionCreate: typeof discord.events.interactionCreate = async (intera
 		return await dispatchSlashInteraction(interaction);
 	}
 
-	if (
-		interaction.type !== InteractionTypes.MessageComponent || !interaction.guildId ||
-		!interaction.data
-	) {
-		return;
-	}
-
-	const { customId, componentType } = interaction.data;
-	if (!customId || componentType === undefined) return;
-
-	for (const handler of handlers) {
-		if (componentType !== handler.kind || !customId.startsWith(handler.identifier)) continue;
-
-		return await handler.fn?.(interaction);
+	if (interaction.type === InteractionTypes.MessageComponent && interaction.data?.customId) {
+		const handled = await handleComponentInteraction(interaction);
+		if (!handled) {
+			await discord.helpers.sendInteractionResponse(interaction.id, interaction.token, {
+				type: InteractionResponseTypes.DeferredUpdateMessage,
+			}).catch(() => {});
+		}
 	}
 };
 
