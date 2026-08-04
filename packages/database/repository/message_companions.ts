@@ -12,22 +12,24 @@ export type RichLinkProvider = "github" | "codeberg" | "twitter" | "fediverse" |
 
 export type CompanionKind = "command" | `richlink:${RichLinkProvider}`;
 
+export interface MessageCompanion {
+	responseMessageId: bigint;
+	channelId: bigint;
+	kind: CompanionKind;
+	sourceUrl: string | null;
+}
+
 export const isRichLinkKind = (kind: string): boolean => kind.startsWith("richlink:");
 
 function toCompanion(
-	row: { response_message_id: string; channel_id: string; kind: string },
+	row: { response_message_id: string; channel_id: string; kind: string; source_url: string | null },
 ): MessageCompanion {
 	return {
 		responseMessageId: BigInt(row.response_message_id),
 		channelId: BigInt(row.channel_id),
 		kind: row.kind as CompanionKind,
+		sourceUrl: row.source_url,
 	};
-}
-
-export interface MessageCompanion {
-	responseMessageId: bigint;
-	channelId: bigint;
-	kind: CompanionKind;
 }
 
 export class MessageCompanionRepository extends Repository {
@@ -36,6 +38,7 @@ export class MessageCompanionRepository extends Repository {
 		responseId: bigint,
 		channelId: bigint,
 		kind: CompanionKind,
+		sourceUrl?: string,
 	): Promise<Result<void, SqlError>> {
 		return await tryQuery(() =>
 			this.database.insertInto("message_companions")
@@ -45,6 +48,7 @@ export class MessageCompanionRepository extends Repository {
 					channel_id: channelId.toString(),
 					kind,
 					created_at: Math.floor(Date.now() / 1000),
+					source_url: sourceUrl ?? null,
 				})
 				.onConflict((oc) => oc.columns(["source_message_id", "response_message_id"]).doNothing())
 				.execute()
@@ -57,7 +61,7 @@ export class MessageCompanionRepository extends Repository {
 	): Promise<Result<MessageCompanion[], SqlError>> {
 		return await tryQuery(async () => {
 			let query = this.database.selectFrom("message_companions")
-				.select(["response_message_id", "channel_id", "kind"])
+				.select(["response_message_id", "channel_id", "kind", "source_url"])
 				.where("source_message_id", "=", sourceId.toString());
 			if (kind) query = query.where("kind", "=", kind);
 
@@ -72,7 +76,7 @@ export class MessageCompanionRepository extends Repository {
 	): Promise<Result<MessageCompanion[], SqlError>> {
 		return await tryQuery(async () => {
 			const rows = await this.database.selectFrom("message_companions")
-				.select(["response_message_id", "channel_id", "kind"])
+				.select(["response_message_id", "channel_id", "kind", "source_url"])
 				.where("source_message_id", "=", sourceId.toString())
 				.where("kind", "like", `${kindPrefix}%`)
 				.execute();
