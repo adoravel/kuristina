@@ -13,10 +13,6 @@ import { resolveViaOdesli } from "./odesli.ts";
 import { findAppleMusicUrl } from "./itunes.ts";
 import type { MusicLinkResult } from "./types.ts";
 
-export * from "./types.ts";
-export * from "./format.tsx";
-export * from "./utils.ts";
-
 async function backfillAppleMusic(result: MusicLinkResult): Promise<MusicLinkResult> {
 	if (result.links.appleMusic) return result;
 	const appleUrl = await findAppleMusicUrl(result.title, result.artist);
@@ -28,15 +24,15 @@ async function backfillAppleMusic(result: MusicLinkResult): Promise<MusicLinkRes
 export function resolveSongLink(
 	rawUrl: string,
 ): AsyncResult<MusicLinkResult, NetworkError | SqlError> {
-	const normalized = normaliseSongUrl(rawUrl);
+	const normalised = normaliseSongUrl(rawUrl);
 
-	return flatMapAsync(repositories.musicLinks.get(normalized))(async (hit) => {
+	return flatMapAsync(repositories.musicLinks.get<MusicLinkResult>(normalised))(async (hit) => {
 		if (hit) return ok(hit);
 
-		return await flatMapAsync<MusicLinkResult, any>(resolveViaOdesli(normalized))(
+		return await flatMapAsync<MusicLinkResult, any>(resolveViaOdesli(normalised))(
 			async (resolved) => {
 				const final = await backfillAppleMusic(resolved);
-				await repositories.musicLinks.set(normalized, final);
+				await repositories.musicLinks.set(normalised, final);
 				return ok(final);
 			},
 		);
@@ -53,3 +49,6 @@ export async function resolveSongLinkByQuery(
 	}
 	return await resolveSongLink(appleUrl);
 }
+
+export * from "./types.ts";
+export * from "./utils.ts";

@@ -2,8 +2,6 @@
 	"name": "@kuristina/services",
 	"exports": {
 		"./markov": "./markov/mod.ts",
-		"./tidal": "./tidal/mod.ts",
-		"./tidal/client": "./tidal/client/mod.ts",
 		"./translation": "./translation/mod.ts",
 		"./deepl": "./deepl/mod.ts",
 		"./lastfm": "./lastfm/mod.ts",
@@ -11,6 +9,7 @@
 		"./scrobbling": "./scrobbling/mod.ts",
 		"./google/batchexecute": "./google/batchexecute/mod.ts",
 		"./musiclinks": "./musiclinks/mod.ts",
+		"./code-forge": "./code-forge/mod.ts",
 		"./github": "./github/mod.ts",
 		"./codeberg": "./codeberg/mod.ts",
 		"./twitter": "./twitter/mod.ts",
