@@ -28,8 +28,7 @@ export async function reconcileSlashCommands(bot: typeof discord): Promise<void>
 
 	const stored = await repositories.state.get(STATE_KEY);
 	if (stored.ok && stored.value === currentHash) {
-		logger.info("slash: definitions unchanged, skipping sync");
-		return;
+		logger.info("slash: definitions unchanged");
 	}
 
 	try {
@@ -40,7 +39,7 @@ export async function reconcileSlashCommands(bot: typeof discord): Promise<void>
 			logger.yay(`slash: synced ${payload.length} commands to dev guild ${devGuildId}`);
 		} else {
 			await bot.helpers.upsertGlobalApplicationCommands(payload);
-			logger.boo(`slash: synced ${payload.length} commands globally`);
+			logger.yay(`slash: synced ${payload.length} commands globally`);
 		}
 		await repositories.state.set(STATE_KEY, currentHash);
 	} catch (e) {

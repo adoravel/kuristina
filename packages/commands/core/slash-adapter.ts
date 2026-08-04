@@ -7,6 +7,7 @@
 import {
 	ApplicationCommandOptionTypes,
 	type CreateApplicationCommand,
+	DiscordApplicationIntegrationType,
 	DiscordInteractionContextType,
 	InteractionResponseTypes,
 	MessageFlags,
@@ -198,14 +199,24 @@ function extractArgs<A extends ArgsShape>(
 	return { ok: true, args: out as InferArgs<A> };
 }
 
+const hasContext = (contexts: readonly string[] | undefined, allowed: string[]) =>
+	!contexts || contexts.some((c) => allowed.includes(c));
+
 export function toSlashCommand<A extends ArgsShape>(spec: CommandSpec<A>): CompiledSlashCommand {
 	const registration: CreateApplicationCommand = {
 		name: spec.aliases[0],
 		description: enforceDescriptionLimit(spec.description, `command ${spec.aliases[0]}`),
 		options: buildOptionsFor(spec) as CreateApplicationCommand["options"],
 		contexts: spec.contexts?.map((c) => CONTEXT_MAP[c]),
+		integrationTypes: [
+			...(hasContext(spec.contexts, ["guild", "both"])
+				? [DiscordApplicationIntegrationType.GuildInstall]
+				: []),
+			...(hasContext(spec.contexts, ["private_channel", "bot_dm", "both"])
+				? [DiscordApplicationIntegrationType.UserInstall]
+				: []),
+		],
 	};
-
 	const autocomplete = new Map<string, AutocompleteHandler>();
 	collectAutocomplete(spec, [], autocomplete);
 
