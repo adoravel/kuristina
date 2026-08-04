@@ -41,6 +41,7 @@ export interface KuristinaSchema {
 		created_at: number;
 		source_url: string | null;
 	};
+	guild_profile_syncs: { guild_id: string; params_hash: string; synced_at: number };
 }
 
 export type SchemaContext = Kysely<KuristinaSchema>;

@@ -7,12 +7,14 @@
 import discord from "@kuristina/discord-bot";
 import { repositories } from "@kuristina/database";
 import { reconcileGuild } from "../lifecycle/presence.ts";
+import { syncGuildProfile } from "../lifecycle/guild-profile.ts";
 
 export const guildCreate: typeof discord.events.guildCreate = async (guild) => {
 	await reconcileGuild(discord, guild.id);
+	await syncGuildProfile(guild.id);
 };
 
 export const guildDelete: typeof discord.events.guildDelete = async (guild) => {
 	const result = await repositories.members.reconcileGuild(guild.id, new Set());
-	if (!result.ok) logger.boo("[guildDelete] failed to purge guild presence: " + result.error);
+	if (!result.ok) logger.boo("guildDelete: failed to purge guild presence:", result.error);
 };
