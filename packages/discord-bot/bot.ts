@@ -128,6 +128,7 @@ const desiredProperties = createDesiredPropertiesObject({
 		name: true,
 		icon: true,
 		colors: true,
+		color: true,
 		permissions: true,
 		unicodeEmoji: true,
 		flags: true,
