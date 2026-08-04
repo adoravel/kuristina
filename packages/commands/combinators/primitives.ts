@@ -5,7 +5,8 @@
  */
 
 import { type Parser, toParser, unexpectedSymbol, yay } from "./mod.ts";
-import { pick, range } from "./constructions.ts";
+import { few, literal, many, pick, range } from "./constructions.ts";
+import { error } from "./error.ts";
 
 export { $ } from "./stream.ts";
 
@@ -117,6 +118,30 @@ export const line = toParser((stream) => {
 	if (stream.peek() === "\n") stream.advance();
 	return yay(result);
 }, "line");
+
+export const escape = few(literal("\\"), pick('"', "\\", "n", "t", "r")).map(
+	"escape",
+	(_, [, char]) => yay(char === "n" ? "\n" : char === "t" ? "\t" : char === "r" ? "\r" : char),
+);
+
+const quoted = (delimiter: string) =>
+	few(
+		literal(delimiter),
+		many(pick(
+			escape,
+			toParser((stream) => {
+				const char = stream.peek();
+				if (!char || char === delimiter) {
+					return error(stream, "unterminated quoted string", ["character (not delimiter)"]);
+				}
+				stream.advance();
+				return yay(char);
+			}, "quoted_inner"),
+		)),
+		literal(delimiter),
+	).map(`quoted(${delimiter})`, (_, [, chars]) => yay(chars.join("")));
+
+export const quotedString = pick(quoted('"'), quoted("'"));
 
 type Alphabet =
 	| "a"
