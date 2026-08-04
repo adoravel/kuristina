@@ -10,15 +10,23 @@ import {
 	type ActionRowProps,
 	Button,
 	type ButtonProps,
+	ChannelSelect,
 	ComponentMessage,
 	type ComponentMessageProps,
 	Container,
 	type ContainerProps,
+	EntityDefault,
+	type EntityDefaultProps,
+	EntitySelect,
 	type EntitySelectProps,
+	type EntitySelectType,
 	MediaGallery,
 	MediaGalleryItem,
 	type MediaGalleryItemProps,
-	type RegisteredIconName,
+	type MediaGalleryProps,
+	type MediaItemProps,
+	MentionableSelect,
+	RoleSelect,
 	Section,
 	type SectionProps,
 	Separator,
@@ -31,22 +39,12 @@ import {
 	type TextDisplayProps,
 	Thumbnail,
 	type ThumbnailProps,
-} from "@kuristina/discord-ui";
+	UserSelect,
+} from "./components/mod.ts";
 import { childrenToArray, childrenToString, transformChildrenArray } from "./utils.ts";
 import { tryIconMarkdown } from "./icons/manifest.ts";
 import { MessageComponentTypes, type SelectMenuDefaultValue } from "@discordeno/types";
-import type { MediaItemProps } from "./components/MediaItem.tsx";
-import type { MediaGalleryProps } from "./components/MediaGallery.tsx";
-import {
-	ChannelSelect,
-	EntityDefault,
-	type EntityDefaultProps,
-	EntitySelect,
-	type EntitySelectType,
-	MentionableSelect,
-	RoleSelect,
-	UserSelect,
-} from "./components/EntitySelect.tsx";
+import type { RegisteredIconName } from "./icons/mod.ts";
 
 export const Fragment = Symbol("JSX.Fragment");
 

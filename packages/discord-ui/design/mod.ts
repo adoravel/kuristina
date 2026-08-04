@@ -4,6 +4,6 @@
  * SPDX-License-Identifier: AGPL-3.0-or-later
  */
 
-export * from "./components/mod.ts";
-export * from "./design/mod.ts";
-export * from "./icons/mod.ts";
+export * from "./messages.tsx";
+export * from "./theme.ts";
+export * from "./markdown.ts";
