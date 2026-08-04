@@ -30,6 +30,7 @@ export const configSchema = {
 	commands: {
 		defaultCooldownMs: field.positiveInt(3_000),
 		maxMentions: field.positiveInt(5),
+		devGuildId: field.snowflakeOr(0n),
 	},
 	network: {
 		userAgent: field.stringOr("kuristina/0.1.0 (+https://kyu.re/~kuristina)"),

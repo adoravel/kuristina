@@ -25,8 +25,11 @@ export const md = {
 	quote: (text: string): string => text.split("\n").map((line) => `> ${line}`).join("\n"),
 	link: (label: string, url: string): string => {
 		const safeLabel = label.replaceAll("]", "\\]");
-		const safeUrl = url.replaceAll(")", "%29");
-		return `[${safeLabel}](${safeUrl})`;
+		const safeUrl = url.replaceAll(" ", "+").replace(
+			/[!'()*\[\]]/g,
+			(c) => `%${c.charCodeAt(0).toString(16).toUpperCase()}`,
+		);
+		return `[${safeLabel} ↗](${safeUrl})`;
 	},
 	list: (items: string[], bullet = "-"): string =>
 		items.map((item) => `${bullet} ${item.replaceAll("\n", "\n  ")}`).join("\n"),

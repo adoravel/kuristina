@@ -8,8 +8,8 @@ import { encodeBase64 } from "@std/encoding/base64";
 import { encodeHex } from "@std/encoding/hex";
 import { repositories } from "@kuristina/database";
 import {
-	getEmojiName,
 	type IconManifestEntry,
+	planIconReconciliation,
 	registeredIcons,
 	setIconManifest,
 	VENDORED_ICONS_DIR,
@@ -20,55 +20,73 @@ async function hash(bytes: Uint8Array<ArrayBuffer>): Promise<string> {
 	return encodeHex(await crypto.subtle.digest("SHA-256", bytes));
 }
 
+async function loadVendored() {
+	const out: { key: string; bytes: Uint8Array<ArrayBuffer>; hash: string }[] = [];
+	for (const key of Object.keys(registeredIcons)) {
+		try {
+			const bytes = await Deno.readFile(new URL(`${key}.png`, VENDORED_ICONS_DIR));
+			out.push({ key, bytes, hash: await hash(bytes) });
+		} catch { /* no-op */ }
+	}
+	return out;
+}
+
 export async function reconcileIcons(bot: typeof discord): Promise<void> {
 	const existing = await repositories.icon.getAll();
 	if (!existing.ok) {
-		logger.boo("icons: failed to read icon_emojis: " + existing.error);
+		logger.boo("icons: failed to read icon_emojis:", existing.error);
 		return;
 	}
 
-	let emojis: Awaited<ReturnType<typeof bot.helpers.getApplicationEmojis>>["items"];
+	let remoteEmojis;
 	try {
-		emojis = (await bot.helpers.getApplicationEmojis()).items;
+		remoteEmojis = (await bot.helpers.getApplicationEmojis()).items.map((e) => ({
+			id: e.id!,
+			name: e.name,
+			animated: e.animated,
+		}));
 	} catch (e) {
-		logger.boo("icons: failed to list application emojis: " + e);
+		logger.boo("icons: failed to list application emojis:", e);
 		return;
 	}
 
-	const remotes = new Map(
-		emojis.map((e) => [e.name, { id: e.id as IconManifestEntry["id"], animated: e.animated }]),
+	const vendored = await loadVendored();
+	const { actions, skippedNoVendoredAsset } = planIconReconciliation(
+		vendored,
+		existing.value,
+		remoteEmojis,
 	);
+
+	for (const key of skippedNoVendoredAsset) {
+		logger.boo(`icons: no vendored PNG for "${key}", skipping`);
+	}
+
 	const manifest: Record<string, IconManifestEntry> = {};
-	const registeredNames = new Set(Object.keys(registeredIcons));
 
-	for (const key of registeredNames) {
-		let bytes: Uint8Array<ArrayBuffer>;
-		try {
-			bytes = await Deno.readFile(new URL(`${key}.png`, VENDORED_ICONS_DIR));
-		} catch {
-			logger.boo(`icons: no vendored PNG for "${key}", skipping`);
+	for (const action of actions) {
+		if (action.kind === "keep") {
+			manifest[action.key] = action.entry;
 			continue;
 		}
 
-		const hashed = await hash(bytes);
-		const row = existing.value.get(key);
-		const name = getEmojiName(key);
-		const remote = remotes.get(name);
-
-		if (row && remote?.id && row.sourceHash === hashed) {
-			manifest[key] = { id: remote.id, animated: remote.animated ?? false };
-			continue;
-		}
-
-		if (remote) {
+		if (action.kind === "delete_orphan") {
 			try {
-				await bot.helpers.deleteApplicationEmoji(remote.id!);
-				logger.yay(`icons: deleted old "${key}" (${remote.id})`);
+				await bot.helpers.deleteApplicationEmoji(action.remote.id);
+				logger.yay(`icons: deleted orphaned "${action.remote.name}" (${action.remote.id})`);
 			} catch (e) {
-				logger.boo(`icons: failed to delete old "${key}": ` + e);
-				if (row) {
-					manifest[key] = { id: row.emojiId, animated: row.animated };
-				}
+				logger.boo(`icons: failed to delete orphaned "${action.remote.name}":`, e);
+			}
+			continue;
+		}
+
+		const { key, name, bytes, hash: sourceHash, replacing } = action;
+
+		if (replacing) {
+			try {
+				await bot.helpers.deleteApplicationEmoji(replacing.id);
+				logger.yay(`icons: deleted old "${key}" (${replacing.id})`);
+			} catch (e) {
+				logger.boo(`icons: failed to delete old "${key}":`, e);
 				continue;
 			}
 		}
@@ -76,27 +94,11 @@ export async function reconcileIcons(bot: typeof discord): Promise<void> {
 		try {
 			const image = `data:image/png;base64,${encodeBase64(bytes)}`;
 			const emoji = await bot.helpers.createApplicationEmoji({ name, image });
-			await repositories.icon.upsert(key, emoji.id!.toString(), !!emoji.animated, hashed);
+			await repositories.icon.upsert(key, emoji.id!.toString(), !!emoji.animated, sourceHash);
 			manifest[key] = { id: emoji.id!, animated: !!emoji.animated };
 			logger.yay(`icons: uploaded "${key}" as "${name}" -> ${emoji.id}`);
 		} catch (e) {
-			logger.boo(`icons: failed to upload "${key}": ` + e);
-			if (row) {
-				manifest[key] = { id: row.emojiId, animated: row.animated };
-			}
-		}
-	}
-
-	const paddedRegisteredNames = [...registeredNames].map(getEmojiName);
-
-	for (const [name, remote] of remotes) {
-		if (!paddedRegisteredNames.includes(name!)) {
-			try {
-				await bot.helpers.deleteApplicationEmoji(remote.id);
-				logger.yay(`icons: deleted orphaned "${name}" (${remote.id})`);
-			} catch (e) {
-				logger.boo(`icons: failed to delete orphaned "${name}": ` + e);
-			}
+			logger.boo(`icons: failed to upload "${key}":`, e);
 		}
 	}
 

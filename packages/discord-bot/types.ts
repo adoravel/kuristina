@@ -6,6 +6,8 @@
 
 import type discord from "./bot.ts";
 
+export * from "@discordeno/types";
+
 export type DiscordPlatform = typeof discord;
 
 export type User = typeof discord.transformers.$inferredTypes.user;
@@ -27,12 +29,3 @@ export type Reaction = Parameters<NonNullable<typeof discord.events.reactionAdd>
 export type MessageInteraction = typeof discord.transformers.$inferredTypes.messageInteraction;
 
 export type Events = typeof discord.events;
-
-export type {
-	CreateMessageOptions,
-	EditMessage,
-	PermissionStrings,
-	SelectOption,
-} from "@discordeno/types";
-
-export { InteractionTypes, MessageComponentTypes } from "@discordeno/types";

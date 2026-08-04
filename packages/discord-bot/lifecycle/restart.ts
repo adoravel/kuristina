@@ -4,41 +4,37 @@
  * SPDX-License-Identifier: AGPL-3.0-or-later
  */
 
-import { repositories } from "@kuristina/database";
+import { markPendingRestart, takePendingRestart } from "@kuristina/database";
+import type { Invocation } from "@kuristina/commands/core";
 import type discord from "../bot.ts";
+import { sleep } from "@kuristina/core";
 
-const STATE_KEY = "pending_restart";
-
-export async function requestRestart(channelId: bigint, messageId: bigint): Promise<never> {
-	await repositories.state.set(
-		STATE_KEY,
-		JSON.stringify({ channelId: channelId.toString(), messageId: messageId.toString() }),
-	);
-	logger.yay("  · restart: state saved, exiting for supervisor restart");
+export async function requestRestart(invocation: Invocation, content: string): Promise<never> {
+	const response = await invocation.reply({ content });
+	if (response !== undefined) {
+		await markPendingRestart(response.channelId, response.id);
+	}
+	await sleep(2_500);
+	logger.yay("restart: state saved, exiting for supervisor restart");
 	Deno.exit(0);
 }
 
 export async function confirmRestartIfPending(bot: typeof discord): Promise<void> {
-	const stored = await repositories.state.get(STATE_KEY);
-	if (!stored.ok || !stored.value) return;
+	const pending = await takePendingRestart();
+	if (!pending) return;
 
+	const { channelId, messageId } = pending;
 	try {
-		const { channelId, messageId } = JSON.parse(stored.value) as {
-			channelId: string;
-			messageId: string;
-		};
+		await bot.helpers.editMessage(channelId, messageId, {
+			content: "haii we r so back,, <a:Mika67:1528181039070187612>",
+		});
+	} catch {
 		try {
-			await bot.helpers.editMessage(BigInt(channelId), BigInt(messageId), {
+			await bot.helpers.sendMessage(channelId, {
 				content: "haii we r so back,, <a:Mika67:1528181039070187612>",
 			});
-		} catch {
-			await bot.helpers.sendMessage(BigInt(channelId), {
-				content: "haii we r so back,, <a:Mika67:1528181039070187612>",
-			});
+		} catch (e) {
+			logger.boo("restart: failed to confirm restart:", e);
 		}
-	} catch (e) {
-		logger.boo("  · restart: failed to confirm restart: " + e);
-	} finally {
-		await repositories.state.delete(STATE_KEY);
 	}
 }

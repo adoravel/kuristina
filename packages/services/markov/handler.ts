@@ -173,8 +173,9 @@ export function messageCreate(
 	return produce(client, message);
 }
 
-export async function reactionAdd(
+export async function translateReactedMessage(
 	client: DiscordClient,
+	message: Message,
 	reaction: Reaction,
 ): Promise<Result<void, AppError>> {
 	if (!cfg("deepl")) return ok(undefined);
@@ -203,16 +204,6 @@ export async function reactionAdd(
 	state.lastReactionAt = now;
 	translationTimestamps.set(reaction.messageId, now);
 
-	const messageResult = await safePromise(
-		discord.helpers.getMessage(reaction.channelId, reaction.messageId),
-	);
-
-	if (!messageResult.ok) {
-		log("failed to fetch message: " + messageResult.error);
-		return ok(undefined);
-	}
-
-	const message = messageResult.value;
 	const reactionCount = message.reactions?.find(
 		(r) => r.emoji.name === translateEmoji,
 	)?.count ?? 0;
