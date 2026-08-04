@@ -39,6 +39,7 @@ export interface KuristinaSchema {
 		channel_id: string;
 		kind: string;
 		created_at: number;
+		source_url: string | null;
 	};
 }
 
