@@ -5,7 +5,6 @@
  */
 
 import { MarkovRepository } from "./markov.ts";
-import { TidalRepository } from "./tidal.ts";
 import { ScrobbleAccountRepository } from "./scrobble.ts";
 import { IconRepository } from "./icon.ts";
 import { StateRepository } from "./state.ts";
@@ -15,7 +14,6 @@ import { MessageCompanionRepository } from "./message_companions.ts";
 
 export const repositories = {
 	markov: new MarkovRepository(),
-	tidal: new TidalRepository(),
 	scrobble: new ScrobbleAccountRepository(),
 	icon: new IconRepository(),
 	state: new StateRepository(),
@@ -25,3 +23,4 @@ export const repositories = {
 };
 
 export { type CompanionKind, isRichLinkKind, type RichLinkProvider } from "./message_companions.ts";
+export * from "./restart_state.ts";

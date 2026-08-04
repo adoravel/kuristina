@@ -15,18 +15,12 @@ import {
 	describe as config$describe,
 	Errors as config$Errors,
 } from "@kuristina/config";
-import {
-	describe as tidal$describe,
-	Errors as tidal$Errors,
-	type TidalError,
-} from "@kuristina/services/tidal";
 import { Errors as sql$Errors, type SqlError } from "@kuristina/database";
 import { type DeepLError, Errors as deepl$Errors } from "@kuristina/services/deepl";
 
 export type AppError =
 	| ConfigError
 	| LastFmError
-	| TidalError
 	| RateLimitError
 	| NetworkError
 	| SqlError
@@ -36,7 +30,6 @@ export const Errors = {
 	...core$Errors,
 	config: config$Errors,
 	lastfm: lastfm$Errors,
-	tidal: tidal$Errors,
 	sql: sql$Errors,
 	deepl: deepl$Errors,
 } as const;
@@ -52,11 +45,6 @@ export function describe(e: AppError): string {
 		case "lastfm":
 		case "lastfm/auth":
 			return lastfm$describe(e);
-		case "tidal":
-		case "tidal/auth":
-		case "tidal/link":
-		case "tidal/download":
-			return tidal$describe(e);
 		case "sql":
 			return e.cause ? `${e.message} (${e.cause})` : e.message;
 		default:

@@ -11,14 +11,6 @@ export interface KuristinaSchema {
 	users: { user_id: string; created_at: Generated<number> };
 	markov_words: { word: string; count: Generated<number> };
 	markov_chain: { id: Generated<number>; prefix: string; suffix: string; count: Generated<number> };
-	tidal_sessions: {
-		discord_id: string;
-		access_token: string;
-		refresh_token: string;
-		expires_at: number;
-		country_code: string;
-	};
-	tidal_device_auth: { device_code: string; user_id: string; created_at: number };
 	scrobble_accounts: {
 		id: Generated<number>;
 		discord_id: string;

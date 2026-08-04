@@ -14,10 +14,6 @@ export function registerDefaultPurgeTasks(): void {
 		() => repositories.musicLinks.purgeExpired(config.sqlite.musicLinkCacheTtlSeconds),
 	);
 	registerPurgeTask(
-		"tidal_device_auth",
-		() => repositories.tidal.purgeExpiredDeviceAuth(config.sqlite.tidalDeviceAuthTtlSeconds),
-	);
-	registerPurgeTask(
 		"message_companions",
 		() => repositories.messageCompanions.purgeOlderThan(config.sqlite.companionRetentionSeconds),
 	);
