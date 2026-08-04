@@ -44,6 +44,7 @@ const desiredProperties = createDesiredPropertiesObject({
 	},
 	guild: {
 		id: true,
+		ownerId: true,
 		banner: true,
 		icon: true,
 		channels: true,
@@ -199,6 +200,7 @@ export async function initialise(): Promise<Result<void, AppError>> {
 	registerDefaultPurgeTasks();
 
 	await discord.start();
+
 	await confirmRestartIfPending(discord);
 	await reconcileIcons(discord);
 

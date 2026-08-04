@@ -22,5 +22,10 @@ export const repositories = {
 	messageCompanions: new MessageCompanionRepository(),
 };
 
-export { type CompanionKind, isRichLinkKind, type RichLinkProvider } from "./message_companions.ts";
+export {
+	type CompanionKind,
+	isRichLinkKind,
+	type MessageCompanion,
+	type RichLinkProvider,
+} from "./message_companions.ts";
 export * from "./restart_state.ts";
