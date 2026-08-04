@@ -13,10 +13,9 @@ import { executeTextCommand } from "../../commands/core/text-adapter.ts";
 export const messageCreate: typeof discord.events.messageCreate = async (message) => {
 	if (message.author.bot || !message.guildId) return;
 
-	handleRichLinks(discord, message);
-
 	const stream = new StringStream(message.content);
-	await executeTextCommand(message, stream);
+	await executeTextCommand(message, stream).catch(() => {});
+	await handleRichLinks(discord, message).catch(() => {});
 };
 
 export const messageDelete: typeof discord.events.messageDelete = async (message) => {
@@ -34,10 +33,9 @@ export const messageDelete: typeof discord.events.messageDelete = async (message
 export const messageUpdate: typeof discord.events.messageUpdate = async (message) => {
 	if (message.author.bot) return;
 
-	handleRichLinks(discord, message);
-
 	const stream = new StringStream(message.content);
-	executeTextCommand(message, stream);
+	await executeTextCommand(message, stream).catch(() => {});
+	await handleRichLinks(discord, message).catch(() => {});
 
 	const stale = await repositories.messageCompanions.getForSource(message.id, "command");
 	if (stale.ok && stale.value.length) {
