@@ -6,8 +6,9 @@
 
 import { ok, type Result } from "@kuristina/core";
 import { type SqlError, tryQuery } from "@kuristina/database";
-import type { ScrobbleProviderName } from "@kuristina/services/scrobbling";
 import { Repository } from "./helper.ts";
+
+type ScrobbleProviderName = "last.fm";
 
 export interface ScrobbleAccount {
 	provider: ScrobbleProviderName;

@@ -7,11 +7,10 @@
 import { ok, type Result } from "@kuristina/core";
 import { type SqlError, tryQuery } from "@kuristina/database";
 import { Repository } from "./helper.ts";
-import type { MusicLinkResult } from "@kuristina/services/musiclinks";
 import { config } from "@kuristina/config";
 
 export class MusicLinkRepository extends Repository {
-	async get(sourceUrl: string): Promise<Result<MusicLinkResult | null, SqlError>> {
+	async get<T>(sourceUrl: string): Promise<Result<T | null, SqlError>> {
 		return await tryQuery(async () => {
 			const row = await this.database.selectFrom("music_link_cache")
 				.select(["payload", "cached_at"]).where("source_url", "=", sourceUrl).executeTakeFirst();
@@ -19,11 +18,11 @@ export class MusicLinkRepository extends Repository {
 			if (Math.floor(Date.now() / 1000) - row.cached_at > config.sqlite.musicLinkCacheTtlSeconds) {
 				return null;
 			}
-			return JSON.parse(row.payload) as MusicLinkResult;
+			return JSON.parse(row.payload) as T;
 		});
 	}
 
-	async set(sourceUrl: string, result: MusicLinkResult): Promise<Result<void, SqlError>> {
+	async set<T>(sourceUrl: string, result: T): Promise<Result<void, SqlError>> {
 		return await tryQuery(() =>
 			this.database.insertInto("music_link_cache")
 				.values({
