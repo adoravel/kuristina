@@ -6,7 +6,7 @@
 
 import { extractMusicUrls, resolveSongLink } from "@kuristina/services/musiclinks";
 import { renderMusicLinkCard } from "@kuristina/embeds/musiclinks";
-import { reconcileCompanions, suppressOriginalEmbed } from "./shared.ts";
+import { reconcileCompanions } from "./shared.ts";
 import type { Message } from "../../types.ts";
 import type discord from "../../bot.ts";
 

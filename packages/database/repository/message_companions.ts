@@ -50,7 +50,7 @@ export class MessageCompanionRepository extends Repository {
 					created_at: Math.floor(Date.now() / 1000),
 					source_url: sourceUrl ?? null,
 				})
-				.onConflict((oc) => oc.columns(["source_message_id", "response_message_id"]).doNothing())
+				.onConflict((oc) => oc.column("response_message_id").doNothing())
 				.execute()
 		).then((r) => (r.ok ? ok(undefined) : r));
 	}

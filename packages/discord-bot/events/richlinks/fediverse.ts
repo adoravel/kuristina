@@ -7,7 +7,7 @@
 import { config } from "@kuristina/config";
 import { extractFediUrls, fetchFediPost } from "@kuristina/services/fediverse";
 import { renderFediPost } from "@kuristina/embeds/fediverse";
-import { reconcileCompanions, suppressOriginalEmbed } from "./shared.ts";
+import { reconcileCompanions } from "./shared.ts";
 import type { Message } from "../../types.ts";
 import type discord from "../../bot.ts";
 
