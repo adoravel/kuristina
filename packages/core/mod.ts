@@ -13,3 +13,4 @@ export * from "./util/types.ts";
 export * from "./util/http.ts";
 export * from "./util/concurrency.ts";
 export * from "./util/colour.ts";
+export * from "./util/interaction-waiter.ts";

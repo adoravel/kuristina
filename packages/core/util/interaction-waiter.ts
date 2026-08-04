@@ -1,0 +1,34 @@
+interface WaiterEntry<T> {
+	resolve: (interaction: T) => void;
+	reject: (error: Error) => void;
+
+	filter?: (interaction: T) => boolean;
+
+	timeoutId: ReturnType<typeof setTimeout>;
+}
+
+export const waiters = new Map<string, WaiterEntry<any>>();
+let nextId = 0;
+
+export function waitForInteraction<T>(
+	id: string,
+	timeoutMs: number,
+	opts?: { filter?: (interaction: T) => boolean },
+): { customId: string; promise: Promise<T> } {
+	nextId = (nextId + 1) % (Number.MAX_SAFE_INTEGER + 1);
+
+	const token = `${Date.now()}:${nextId}`;
+	const customId = `${id}:${token}`;
+
+	const promise = new Promise<T>((resolve, reject) => {
+		const timeoutId = setTimeout(() => {
+			if (waiters.delete(customId)) {
+				reject(new Error(`Interaction waiter timed out after ${timeoutMs}ms`));
+			}
+		}, timeoutMs);
+
+		waiters.set(customId, { resolve, reject, timeoutId, filter: opts?.filter });
+	});
+
+	return { customId, promise };
+}

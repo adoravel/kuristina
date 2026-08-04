@@ -8,4 +8,5 @@ export * from "./bot.ts";
 export * from "./resolve.ts";
 export * from "./types.ts";
 export * from "./events/mod.ts";
+export * from "./interactions/respond.ts";
 export { default } from "./bot.ts";
