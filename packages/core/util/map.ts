@@ -4,43 +4,116 @@
  * SPDX-License-Identifier: AGPL-3.0-or-later
  */
 
-export class TimedMap<K, V> extends Map<K, V> {
-	private readonly timers = new Map<K, ReturnType<typeof setTimeout>>();
+export interface FixedEntry<K, V> {
+	key: K;
+	value: V;
+	expiresAt: number;
+}
 
-	public constructor(
+export class TimedMap<K, V> {
+	private readonly cache = new Map<K, FixedEntry<K, V>>();
+	private readonly queue: FixedEntry<K, V>[] = [];
+
+	private headIndex = 0;
+	private processInterval: ReturnType<typeof setTimeout> | null = null;
+
+	constructor(
 		public readonly lifeDuration: number,
+		private readonly intervalMs: number = 1000,
 		private readonly onExpire?: (key: K, value: V) => void,
-	) {
-		super();
-	}
+	) {}
 
-	public override set(key: K, value: V) {
-		if (this.timers.has(key)) {
-			clearTimeout(this.timers.get(key));
+	public set(key: K, value: V): this {
+		const expiresAt = Date.now() + this.lifeDuration;
+
+		const existing = this.cache.get(key);
+		if (existing) {
+			existing.value = value, existing.expiresAt = expiresAt;
+			return this;
 		}
 
-		const id = setTimeout(() => {
+		const entry = { key, value, expiresAt };
+		this.cache.set(key, entry);
+		this.queue.push(entry);
+
+		this.startInterval();
+		return this;
+	}
+
+	public get(key: K): V | undefined {
+		const entry = this.cache.get(key);
+		if (!entry) return undefined;
+
+		if (Date.now() >= entry.expiresAt) {
+			return this.delete(key), undefined;
+		}
+		return entry.value;
+	}
+
+	public getRemainingMs(key: K, now: number): number {
+		const entry = this.cache.get(key);
+		if (!entry) return 0;
+
+		const remaining = entry.expiresAt - now;
+		if (remaining <= 0) {
 			this.delete(key);
-			this.onExpire?.(key, value);
-		}, this.lifeDuration);
-		this.timers.set(key, id);
-
-		return super.set(key, value);
+			return 0;
+		}
+		return remaining;
 	}
 
-	public override delete(key: K) {
-		if (this.timers.has(key)) {
-			clearTimeout(this.timers.get(key));
-			this.timers.delete(key);
-		}
-		return super.delete(key);
+	public has(key: K): boolean {
+		return this.get(key) !== undefined;
 	}
 
-	public override clear(): void {
-		for (const timeoutId of this.timers.values()) {
-			clearTimeout(timeoutId);
+	public delete(key: K): boolean {
+		const entry = this.cache.get(key);
+		if (!entry) return false;
+
+		this.cache.delete(key);
+		this.onExpire?.(entry.key, entry.value);
+		return true;
+	}
+
+	private cleanupExpired(): void {
+		const now = Date.now();
+
+		while (this.headIndex < this.queue.length) {
+			const front = this.queue[this.headIndex];
+			if (now < front.expiresAt) break;
+
+			this.headIndex++;
+
+			const currentActive = this.cache.get(front.key);
+			if (currentActive === front) {
+				this.cache.delete(front.key);
+				this.onExpire?.(front.key, front.value);
+			}
 		}
-		this.timers.clear();
-		return super.clear();
+
+		if (this.headIndex > 500 && this.headIndex > this.queue.length / 2) {
+			this.queue.splice(0, this.headIndex);
+			this.headIndex = 0;
+		}
+
+		if (this.cache.size === 0) this.stopInterval();
+	}
+
+	private startInterval(): void {
+		if (this.processInterval) return;
+		this.processInterval = globalThis.setInterval(() => this.cleanupExpired(), this.intervalMs);
+	}
+
+	private stopInterval(): void {
+		if (this.processInterval === null) return;
+		globalThis.clearInterval(this.processInterval);
+		this.processInterval = null;
+	}
+
+	public clear(): void {
+		this.cache.clear();
+		this.queue.length = 0;
+		this.headIndex = 0;
+		this.stopInterval();
 	}
 }

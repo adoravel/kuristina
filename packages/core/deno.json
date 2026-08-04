@@ -1,7 +1,7 @@
 {
 	"name": "@kuristina/core",
 	"exports": {
-		"./ui": "./ui/mod.ts",
+		"./ops/git": "./ops/git.ts",
 		".": "./mod.ts"
 	},
 	"imports": {
