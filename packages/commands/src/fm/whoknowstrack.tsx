@@ -4,8 +4,7 @@
  * SPDX-License-Identifier: AGPL-3.0-or-later
  */
 
-import { greedyString } from "@kuristina/commands";
-import { defineCommand } from "@kuristina/commands/registry";
+import { arg, defineCommand } from "@kuristina/commands/core";
 import { mapAsync } from "@kuristina/core";
 import { repositories } from "@kuristina/database";
 import { Theme } from "@kuristina/discord-ui";
@@ -15,14 +14,13 @@ import {
 	fetchLinkedAccounts,
 	fetchPlaycounts,
 	MAX_SHOWN,
+	parseMusicQuery,
 	PROVIDER,
 	type RankedResult,
 	rankResults,
-} from "./whoknows-shared.ts";
+} from "./helper.ts";
 
-function NoPlaysMessage(
-	{ artist, track }: { artist: string; track: string },
-) {
+function NoPlaysMessage({ artist, track }: { artist: string; track: string }) {
 	return (
 		<message>
 			<h3>No plays found</h3>
@@ -53,9 +51,11 @@ function WhoKnowsTrack({
 				<h3>
 					<icon name="waveform" />
 					{`  Top listeners of `}
-					<a href={track.href}>{track.name} ↗</a>
+					<a href={track.href}>{track.name}</a>
 				</h3>
-				<sub>by {track.artist}</sub>
+				<sub>
+					by <a href={`https://last.fm/music/${track.artist}`}>{track.artist}</a>
+				</sub>
 				<blockquote>
 					<ol>
 						{ranked.map((r, i) => (
@@ -78,88 +78,101 @@ function WhoKnowsTrack({
 	);
 }
 
-export default defineCommand(["whoknowstrack", "wkt", "wt", "wktrack"], {
-	$: greedyString,
-}, async (ctx) => {
-	const query = ctx.remaining?.trim();
-	let artist: string | undefined;
-	let track: string | undefined;
+export default defineCommand({
+	aliases: ["whoknowstrack", "wkt", "wt", "wktrack", "track", "song"],
+	description:
+		"Shows who in this server has scrobbled a given track the most. Use `artist | track`, or omit to use your last played track. Requires a linked Last.fm account.",
+	category: "lastfm",
+	args: {
+		query: arg.string({
+			description: "artist | track",
+			required: false,
+			greedy: true,
+			surfaces: ["text"],
+		}),
+		artist: arg.string({
+			description: "artist name",
+			required: false,
+			surfaces: ["slash"],
+		}),
+		track: arg.string({
+			description: "track name",
+			required: false,
+			surfaces: ["slash"],
+		}),
+	},
+	async exec(ctx) {
+		const query = ctx.args.query?.trim();
 
-	if (query) {
-		const parts = query.split("|").map((p) => p.trim()).filter(Boolean);
-		if (parts.length === 2) [artist, track] = parts;
-	}
+		let artist: string | undefined = ctx.args.artist, track: string | undefined = ctx.args.track;
+		if (ctx.args.query) {
+			[artist, track] = parseMusicQuery(query);
+		}
 
-	if (!artist || !track) {
-		const own = await repositories.scrobble.getDefault(ctx.user.id);
-		if (own.ok && own.value) {
-			const recent = await getRecentTracks(own.value.username, { limit: 1 });
-			const recentTrack = recent.ok ? recent.value.track[0] : undefined;
-			if (recentTrack) {
-				artist = recentTrack.artist["#text"] ?? recentTrack.artist.name;
-				track = recentTrack.name;
+		if (!artist || !track) {
+			const own = await repositories.scrobble.getDefault(ctx.user.id);
+			if (own.ok && own.value) {
+				const recent = await getRecentTracks(own.value.username, { limit: 1 });
+				const recentTrack = recent.ok ? recent.value.track[0] : undefined;
+				if (recentTrack) {
+					artist = recentTrack.artist["#text"] ?? recentTrack.artist.name;
+					track = recentTrack.name;
+				}
 			}
 		}
-	}
 
-	if (!artist || !track) {
-		return void await ctx.error(
-			`give me an artist and track, e.g. \`${Theme.prefix}whoknowstrack Radiohead | Karma Police\``,
-		);
-	}
-
-	const provider = getScrobbleProvider(PROVIDER);
-
-	const trackInfo = await mapAsync(provider.track.getInfo(artist, track, false))((info) => ({
-		name: info.name,
-		artist: info.artist,
-		image: info.imageUrl,
-		href: info.href,
-	}));
-
-	if (!trackInfo.ok) {
-		return void await ctx.error("track not found");
-	}
-
-	const { value: resolvedTrack } = trackInfo;
-
-	const hasAccounts = mapAsync(fetchLinkedAccounts(ctx))((result) => {
-		if (!result || result.size === 0) {
-			throw new Error("no one has linked an account yet");
+		if (!artist || !track) {
+			return void await ctx.error(
+				`give me an artist and track, e.g. \`${Theme.prefix}whoknowstrack Radiohead | Karma Police\``,
+			);
 		}
-		return { linked: result };
-	});
 
-	const ranked = mapAsync(hasAccounts)(async ({ linked }) => {
-		const entries = [...linked.entries()];
+		if (!ctx.guildId) {
+			return void await ctx.error("This command can only be used in a server.");
+		}
+
+		const provider = getScrobbleProvider(PROVIDER);
+		const trackInfo = await mapAsync(provider.track.getInfo(artist, track, false))((info) => ({
+			name: info.name,
+			artist: info.artist,
+			image: info.imageUrl,
+			href: info.href,
+		}));
+
+		if (!trackInfo.ok) {
+			return void await ctx.error("track not found");
+		}
+
+		const { value: resolvedTrack } = trackInfo;
+
+		const linked = await fetchLinkedAccounts(ctx.guildId);
+		if (!linked.ok || !linked.value?.size) {
+			return void await ctx.error("No one has linked an account yet.");
+		}
+
+		const entries = [...linked.value.entries()];
 		const settled = await fetchPlaycounts(
 			entries,
 			(username) => provider.track.getInfo(artist!, track!, true, username),
 		);
-		return rankResults(settled, MAX_SHOWN);
-	});
 
-	await ctx.resolve(
-		mapAsync(ranked)(async ({ ranked, imageUrl }) => {
-			if (!ranked.length) {
-				await ctx.reply(
-					<NoPlaysMessage artist={resolvedTrack.artist} track={resolvedTrack.name} />,
-				);
-				return;
-			}
-			if (imageUrl && imageUrl !== resolvedTrack.image) resolvedTrack.image = imageUrl;
+		const { ranked, imageUrl } = rankResults(settled, MAX_SHOWN);
+
+		if (!ranked.length) {
 			await ctx.reply(
-				<WhoKnowsTrack
-					ranked={ranked}
-					totalLinked={ranked.length}
-					track={resolvedTrack}
-				/>,
+				<NoPlaysMessage artist={resolvedTrack.artist} track={resolvedTrack.name} />,
 			);
-		}),
-	);
-}, {
-	description:
-		"Shows who in this server has scrobbled a given track the most. Use `artist | track`, or omit to use your last played track. Requires a linked Last.fm account.",
-	category: "lastfm",
-	cooldownMs: 5000,
+			return;
+		}
+
+		if (imageUrl && imageUrl !== resolvedTrack.image) resolvedTrack.image = imageUrl;
+
+		await ctx.reply(
+			<WhoKnowsTrack
+				ranked={ranked}
+				totalLinked={linked.value.size}
+				track={resolvedTrack}
+			/>,
+		);
+	},
 });

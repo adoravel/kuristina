@@ -5,8 +5,7 @@
  */
 
 import { describe } from "@kuristina/errors";
-import { defineCommand } from "@kuristina/commands/registry";
-import { greedyString, identifier, optional } from "@kuristina/commands";
+import { defineCommand, string } from "@kuristina/commands/core";
 import type { Bot, Message } from "@kuristina/discord-bot";
 import { getTranslationProvider } from "@kuristina/services/translation";
 import {
@@ -75,157 +74,157 @@ async function getMentionedUsersLastMessages(platform: Bot, message: Message): P
 
 async function getTranslationText(
 	platform: Bot,
-	message: Message,
+	message: Message | undefined,
 	input: string,
 	threshold: number,
 ): Promise<{ text: string; source: string }> {
 	let text = input.trim();
 	let source = "from command input";
 
-	if (!text || text.length < threshold) {
-		const replied = await getRepliedMessage(platform, message);
-		if (replied?.content) {
-			text = replied.content.trim();
-			source = "from replied message";
+	if (message) {
+		if (!text || text.length < threshold) {
+			const replied = await getRepliedMessage(platform, message);
+			if (replied?.content) {
+				text = replied.content.trim();
+				source = "from replied message";
+			}
 		}
-	}
 
-	const clean = text.replace(/<@!?\d+>/g, "").trim();
+		const clean = text.replace(/<@!?\d+>/g, "").trim();
 
-	if (!clean || clean.length < threshold) {
-		const mentionedMessages = await getMentionedUsersLastMessages(platform, message);
-		if (mentionedMessages.length) {
-			text = mentionedMessages.join("\n\n");
-			const count = message.mentions?.length ?? 0;
-			source = count > 1 ? `from ${count} mentions` : "from a mention";
+		if (!clean || clean.length < threshold) {
+			const mentionedMessages = await getMentionedUsersLastMessages(platform, message);
+			if (mentionedMessages.length) {
+				text = mentionedMessages.join("\n\n");
+				const count = message.mentions?.length ?? 0;
+				source = count > 1 ? `from ${count} mentions` : "from a mention";
+			}
 		}
 	}
 
 	return { text, source };
 }
 
-export default defineCommand([
-	"translate",
-	"trans",
-	"tr",
-	"t",
-	"übersetzen",
-	"ubersetzen",
-	"traduzir",
-	"traduz",
-], {
-	to: optional(identifier),
-	from: optional(identifier),
-	formality: optional(identifier),
-	model: optional(identifier),
-	$: optional(greedyString),
-}, async (ctx) => {
-	const input = ctx.remaining?.trim() ?? "";
-	const { text, source: inputSource } = await getTranslationText(
-		ctx.platform,
-		ctx.message,
-		input,
-		3,
-	);
-
-	if (!text || text.length < 3) {
-		return void await ctx.error(
-			"give me something to translate first, reply to a message, or mention someone",
-		);
-	}
-	const truncated = truncate(text, 2048);
-
-	const target = (ctx.args.to?.toUpperCase() ?? DEFAULT_TARGET) as TargetLang;
-	const source = ctx.args.from?.toUpperCase() as SourceLang | undefined;
-
-	if (!isSupportedTargetLang(target)) {
-		return void await ctx.error(
-			`"${target}" isn't a target language DeepL supports. Try e.g. \`EN-US\`, \`PT-BR\`, \`JA\`.`,
-		);
-	}
-	if (source && !isSupportedSourceLang(source)) {
-		return void await ctx.error(
-			`"${source}" isn't a source language DeepL supports. Try e.g. \`EN\`, \`PT\`, \`JA\`.`,
-		);
-	}
-
-	let formality: Formality | undefined;
-	if (ctx.args.formality) {
-		formality = resolveFormality(ctx.args.formality);
-		if (!formality) {
-			return void await ctx.error(
-				`"${ctx.args.formality}" isn't a recognised formality. Try \`more\`, \`less\`, or \`default\`.`,
-			);
-		}
-	}
-
-	let modelType: ModelType | undefined;
-	if (ctx.args.model) {
-		modelType = resolveModelType(ctx.args.model);
-		if (!modelType) {
-			return void await ctx.error(
-				`"${ctx.args.model}" isn't a recognised model. Try \`quality\`, \`latency\`, or \`balanced\`.`,
-			);
-		}
-	}
-
-	const provider = getTranslationProvider();
-	const [result, usage] = await Promise.all([
-		provider.translateOne(truncated, target, {
-			sourceLang: source,
-			formality,
-			modelType,
-			preserveFormatting: true,
-		}),
-		provider.getUsage(),
-	]);
-
-	if (!result.ok) {
-		return void await ctx.error(describe(result.error));
-	}
-
-	const { text: translated, detectedSourceLang } = result.value;
-
-	const tuning: string[] = [];
-	if (modelType) tuning.push(`model: ${modelType}`);
-	if (formality) tuning.push(`formality: ${formality}`);
-	tuning.push(inputSource);
-
-	if (usage.ok) {
-		const { fraction, characterCount, characterLimit } = usage.value;
-		const pct = (fraction * 100).toFixed(2);
-		tuning.push(
-			`${characterCount.toLocaleString()} / ${characterLimit.toLocaleString()} characters used this period (${pct}%)`,
-		);
-	}
-
-	await ctx.reply(
-		<message>
-			<p>
-				<sub>
-					↑ {formatLanguage(source ?? detectedSourceLang)}
-					{source ? " (forced)" : ""}
-				</sub>
-			</p>
-			<p>
-				<blockquote>{truncated}</blockquote>
-			</p>
-			<hr spacing={2} />
-			<p>
-				<sub>↓ {formatLanguage(target)}</sub>
-			</p>
-			<p>
-				<blockquote>{translated}</blockquote>
-			</p>
-			<hr spacing={2} />
-			<p>
-				<sub>{tuning.join(" · ")}</sub>
-			</p>
-		</message>,
-	);
-}, {
+export default defineCommand({
+	aliases: ["translate", "trans", "tr", "t", "übersetzen", "ubersetzen", "traduzir", "traduz"],
 	description:
-		"Translates text via the configured translation provider. `-to <lang>` sets the target (default EN-US), `-from <lang>` pins the source, `-formality <more|less>` and `-model <quality|prefer_quality|latency>` tune the translation.",
+		"Translates text. `to` sets the target (default EN-GB), `from` pins the source, `formality` and `model` tune the translation.",
 	category: "utility",
 	cooldownMs: 3000,
+	args: {
+		text: string({
+			description: "text to translate (or leave blank to use a reply/mention)",
+			greedy: true,
+		}),
+		to: string({ description: "target language, e.g. EN-US, PT-BR, JA" }),
+		from: string({ description: "source language, e.g. EN, PT, JA" }),
+		formality: string({ description: "formality", choices: ["more", "less", "default"] }),
+		model: string({ description: "model", choices: ["quality", "prefer_quality", "latency"] }),
+	},
+	async exec(ctx) {
+		const input = ctx.args.text?.trim() ?? "";
+
+		const { text, source: inputSource } = await getTranslationText(
+			ctx.platform,
+			ctx.raw.kind === "text" ? ctx.raw.message : undefined,
+			input,
+			3,
+		);
+
+		if (!text || text.length < 3) {
+			return void await ctx.error(
+				"give me something to translate first, reply to a message, or mention someone",
+			);
+		}
+		const truncated = truncate(text, 1800);
+
+		const target = (ctx.args.to?.toUpperCase() ?? DEFAULT_TARGET) as TargetLang;
+		const source = ctx.args.from?.toUpperCase() as SourceLang | undefined;
+
+		if (!isSupportedTargetLang(target)) {
+			return void await ctx.error(
+				`"${target}" isn't a target language DeepL supports. Try e.g. \`EN-US\`, \`PT-BR\`, \`JA\`.`,
+			);
+		}
+		if (source && !isSupportedSourceLang(source)) {
+			return void await ctx.error(
+				`"${source}" isn't a source language DeepL supports. Try e.g. \`EN\`, \`PT\`, \`JA\`.`,
+			);
+		}
+
+		let formality: Formality | undefined;
+		if (ctx.args.formality) {
+			formality = resolveFormality(ctx.args.formality);
+			if (!formality) {
+				return void await ctx.error(
+					`"${ctx.args.formality}" isn't a recognised formality. Try \`more\`, \`less\`, or \`default\`.`,
+				);
+			}
+		}
+
+		let modelType: ModelType | undefined;
+		if (ctx.args.model) {
+			modelType = resolveModelType(ctx.args.model);
+			if (!modelType) {
+				return void await ctx.error(
+					`"${ctx.args.model}" isn't a recognised model. Try \`quality\`, \`latency\`, or \`balanced\`.`,
+				);
+			}
+		}
+
+		const provider = getTranslationProvider();
+		const [result, usage] = await Promise.all([
+			provider.translateOne(truncated, target, {
+				sourceLang: source,
+				formality,
+				modelType,
+				preserveFormatting: true,
+			}),
+			provider.getUsage(),
+		]);
+
+		if (!result.ok) {
+			return void await ctx.error(describe(result.error));
+		}
+
+		const { text: translated, detectedSourceLang } = result.value;
+
+		const tuning: string[] = [];
+		if (modelType) tuning.push(`model: ${modelType}`);
+		if (formality) tuning.push(`formality: ${formality}`);
+		tuning.push(inputSource);
+
+		if (usage.ok) {
+			const { fraction, characterCount, characterLimit } = usage.value;
+			const pct = (fraction * 100).toFixed(2);
+			tuning.push(
+				`${characterCount.toLocaleString()} / ${characterLimit.toLocaleString()} characters used this period (${pct}%)`,
+			);
+		}
+
+		await ctx.reply(
+			<message>
+				<p>
+					<sub>
+						↑ {formatLanguage(source ?? detectedSourceLang)}
+						{source ? " (forced)" : ""}
+					</sub>
+				</p>
+				<p>
+					<blockquote>{truncated}</blockquote>
+				</p>
+				<hr spacing={2} />
+				<p>
+					<sub>↓ {formatLanguage(target)}</sub>
+				</p>
+				<p>
+					<blockquote>{translated}</blockquote>
+				</p>
+				<hr spacing={2} />
+				<p>
+					<sub>{tuning.join(" · ")}</sub>
+				</p>
+			</message>,
+		);
+	},
 });

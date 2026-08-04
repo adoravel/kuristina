@@ -4,18 +4,15 @@
  * SPDX-License-Identifier: AGPL-3.0-or-later
  */
 
-import { defineCommand, ownerOnly } from "@kuristina/commands/registry";
+import { defineCommand } from "@kuristina/commands/core";
+import { ownerOnly } from "@kuristina/commands/core";
 import { requestRestart } from "@kuristina/discord-bot/restart";
-import { sleep } from "@kuristina/core";
 
-export default defineCommand(["restart", ">_<"], {}, async (ctx) => {
-	const reply = await ctx.reply({
-		content: "okiie hold on[ᅟ](https://klipy.com/gifs/entrosar-resenhar)",
-	});
-	await sleep(2_500);
-	await requestRestart(reply.channelId, reply.id);
-}, {
+export default defineCommand({
+	aliases: ["restart", "rst"],
 	description: "Restarts the bot without pulling.",
-	category: "dev",
 	middleware: [ownerOnly],
+	async exec(ctx) {
+		await requestRestart(ctx, "okiie hold on[ᅟ](https://klipy.com/gifs/entrosar-resenhar)");
+	},
 });

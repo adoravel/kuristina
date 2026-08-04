@@ -4,26 +4,32 @@
  * SPDX-License-Identifier: AGPL-3.0-or-later
  */
 
-import { greedyString } from "@kuristina/commands";
-import { defineCommand, ownerOnly } from "@kuristina/commands/registry";
+import { defineCommand, string } from "@kuristina/commands/core";
+import { ownerOnly } from "@kuristina/commands/core";
 import { repositories } from "@kuristina/database";
+import { describe } from "@kuristina/errors";
 
-export default defineCommand(["forget", "markov-forget"], {
-	$: greedyString,
-}, async (ctx) => {
-	const pattern = ctx.remaining?.trim();
-	if (!pattern || pattern.length < 3) {
-		return void await ctx.error("give me a string at least 3 characters long to forget");
-	}
-
-	const result = await repositories.markov.forget(pattern);
-	if (!result.ok) return void await ctx.error("failed to forget, try again");
-
-	await ctx.success(`forgot ${result.value} entries containing "${pattern}"`);
-}, {
-	description:
-		"Removes words and chain entries containing the given string from markov's memory. Owner only.",
-	category: "owner",
+export default defineCommand({
+	aliases: ["forget", "markov-forget"],
+	description: "Removes words and chain entries containing the given string from markov's memory.",
 	middleware: [ownerOnly],
-	cooldownMs: 2000,
+	args: {
+		pattern: string({
+			description: "substring to forget (min 3 characters)",
+			required: true,
+			minLength: 3,
+			greedy: true,
+		}),
+	},
+	async exec(ctx) {
+		const pattern = ctx.args.pattern.trim();
+		if (pattern.length < 3) {
+			return void await ctx.error("give me a string at least 3 characters long to forget");
+		}
+
+		const result = await repositories.markov.forget(pattern);
+		if (!result.ok) return void await ctx.error(describe(result.error));
+
+		await ctx.success(`forgot ${result.value} entries containing "${pattern}"`);
+	},
 });

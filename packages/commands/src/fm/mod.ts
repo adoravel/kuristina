@@ -4,17 +4,27 @@
  * SPDX-License-Identifier: AGPL-3.0-or-later
  */
 
-import { defineCommand, memberId } from "@kuristina/commands/registry";
+import { defineCommand, user } from "@kuristina/commands/core";
 import nowplaying from "./nowplaying.tsx";
 import { login, logout, status } from "./login.tsx";
-import { optional } from "@kuristina/commands";
 
-export default defineCommand("fm", { $: optional(memberId) }, async (ctx) => {
-	await nowplaying.exec(ctx);
-}, {
-	description:
-		"Last.fm commands. Use `fm login`, `fm logout`, `fm status` or just `fm` for now playing.",
+export default defineCommand({
+	aliases: "fm",
+	description: "Last.fm commands.",
 	category: "lastfm",
-	cooldownMs: 3000,
-	subcommands: [login, logout, status],
+	subcommands: [nowplaying, login, logout, status],
+	args: {
+		query: user({
+			description: "user mention or ID (for text mode only)",
+			required: false,
+			surfaces: ["text"],
+		}),
+	},
+	async exec(ctx) {
+		if (ctx.surface === "text" && ctx.args.query) {
+			await nowplaying.exec({ ...ctx, args: { user: ctx.args.query } });
+			return;
+		}
+		await ctx.error("use `fm now`, `fm login`, `fm logout`, or `fm status`.");
+	},
 });

@@ -4,7 +4,7 @@
  * SPDX-License-Identifier: AGPL-3.0-or-later
  */
 
-import { defineCommand, memberId } from "@kuristina/commands/registry";
+import { arg, defineCommand } from "@kuristina/commands/core";
 import {
 	getHighestQualityImage,
 	getRecentTracks,
@@ -12,9 +12,9 @@ import {
 } from "@kuristina/services/lastfm";
 import { repositories } from "@kuristina/database";
 import { NoAccountMessage } from "./login.tsx";
-import { optional } from "@kuristina/commands";
 import { md } from "@kuristina/discord-ui";
-import { renderPlatformLinks, resolveSongLinkByQuery } from "@kuristina/services/musiclinks";
+import { resolveSongLinkByQuery } from "@kuristina/services/musiclinks";
+import { renderPlatformLinks } from "@kuristina/embeds/musiclinks";
 
 function NoScrobbles() {
 	return (
@@ -84,7 +84,7 @@ function TrackCard(
 						)
 						: ""}
 					<strong>
-						<a href={track.url}>{track.name} ↗</a>
+						<a href={track.url}>{track.name}</a>
 					</strong>
 					{" by "}
 					<a href={track.artist.url}>{track.artist.name}</a>
@@ -105,34 +105,39 @@ function TrackCard(
 	);
 }
 
-export default defineCommand(["nowplaying", "np"], { $: optional(memberId) }, async (ctx) => {
-	const userId: bigint = ctx.remaining ?? ctx.user.id;
-
-	const account = await repositories.scrobble.getDefault(userId);
-	if (!account.ok || !account.value) return void await ctx.reply(<NoAccountMessage />);
-
-	const recent = await getRecentTracks(account.value.username, { limit: 1, extended: true });
-	if (!recent.ok || !recent.value.track.length) return void await ctx.reply(<NoScrobbles />);
-
-	const track = recent.value.track[0];
-	const live = track["@attr"]?.nowplaying === "true";
-	const totalScrobbles = Number(recent.value["@attr"]?.total) || undefined;
-
-	const directLinks = await resolveSongLinkByQuery(track.artist.name, track.name);
-	if (!directLinks.ok) logger.boo(JSON.stringify(directLinks.error, null, "4"));
-	const links = directLinks.ok ? renderPlatformLinks(directLinks.value) : [];
-
-	await ctx.reply(
-		<TrackCard
-			track={track}
-			live={live}
-			user={ctx.user.id.toString()}
-			totalScrobbles={totalScrobbles}
-			links={links}
-		/>,
-	);
-}, {
+export default defineCommand({
+	aliases: ["now", "nowplaying", "np"],
 	description: "Shows your currently playing (or most recently played) track on Last.fm.",
 	category: "lastfm",
 	cooldownMs: 3000,
+	args: { user: arg.user({ description: "whose scrobbles to show" }) },
+	async exec(ctx) {
+		const userId = ctx.args.user ?? ctx.user.id;
+
+		const account = await repositories.scrobble.getDefault(userId);
+		if (!account.ok || !account.value) return void await ctx.reply({ ...<NoAccountMessage /> });
+
+		const recent = await getRecentTracks(account.value.username, { limit: 1, extended: true });
+		if (!recent.ok || !recent.value.track.length) {
+			return void await ctx.reply({ ...<NoScrobbles /> });
+		}
+
+		const track = recent.value.track[0];
+		const live = track["@attr"]?.nowplaying === "true";
+		const totalScrobbles = Number(recent.value["@attr"]?.total) || undefined;
+
+		const directLinks = await resolveSongLinkByQuery(track.artist.name, track.name);
+		if (!directLinks.ok) logger.boo(JSON.stringify(directLinks.error, null, "4"));
+		const links = directLinks.ok ? renderPlatformLinks(directLinks.value) : [];
+
+		await ctx.reply(
+			<TrackCard
+				track={track}
+				live={live}
+				user={ctx.user.id.toString()}
+				totalScrobbles={totalScrobbles}
+				links={links}
+			/>,
+		);
+	},
 });

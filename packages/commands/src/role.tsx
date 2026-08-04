@@ -4,8 +4,7 @@
  * SPDX-License-Identifier: AGPL-3.0-or-later
  */
 
-import { colour, optional } from "@kuristina/commands";
-import { defineCommand } from "@kuristina/commands/registry";
+import { colour, defineCommand } from "@kuristina/commands/core";
 import { MessageComponentTypes, type Role } from "@kuristina/discord-bot";
 import { setupInteractionHandler } from "@kuristina/discord-bot";
 
@@ -97,53 +96,53 @@ setupInteractionHandler({
 	await ctx.defer(true);
 });
 
-export default defineCommand([
-	"colour",
-	"color",
-	"role-color",
-	"role-colour",
-	"role",
-	"hx",
-], {
-	$: optional(colour),
-}, async (ctx) => {
-	const guild = await ctx.getGuild();
-	if (!guild) return void await ctx.error("guild context is uninitialised");
-
-	const name = encode(ctx.message.author.id);
-	let role = guild.roles.find((r) => r.name === name);
-
-	if (ctx.remaining) {
-		await Promise.all(
-			guild.roles.filter(isColourRole).map((r) =>
-				ctx.platform.helpers.removeRole(guild.id, ctx.user.id, r.id, "arbitrary colour role update")
-			),
-		);
-		role = role
-			? await ctx.platform.helpers.editRole(
-				guild.id,
-				role.id,
-				{ color: ctx.remaining },
-				"arbitrary colour role update",
-			)
-			: await ctx.platform.helpers.createRole(
-				guild.id,
-				{ name, color: ctx.remaining },
-				"colour role",
-			);
-		await ctx.platform.helpers.addRole(guild.id, ctx.message.author.id, role.id);
-		await ctx.success(`-# <@&${role.id}>`);
-		return;
-	}
-
-	await ctx.reply(
-		<RoleCard
-			userId={ctx.message.author.id}
-			roles={[...guild.roles.values()]}
-		/>,
-	);
-}, {
+export default defineCommand({
+	aliases: ["colour", "color", "role-color", "role-colour", "role", "hx"],
 	description: "Allows the user to set an arbitrary colour as their role.",
 	category: "utility",
-	cooldownMs: 5000,
+	contexts: ["guild"],
+	args: {
+		value: colour({
+			description: "Hex, named, or rgb()/hsl() colours",
+			required: false,
+			greedy: true,
+		}),
+	},
+	async exec(ctx) {
+		const guild = await ctx.getGuild();
+		if (!guild) return void await ctx.error("guild context is uninitialised");
+
+		const name = encode(ctx.user.id);
+		let role = guild.roles.find((r) => r.name === name);
+
+		if (ctx.args.value !== undefined) {
+			await Promise.all(
+				guild.roles.filter(isColourRole).map((r) =>
+					ctx.platform.helpers.removeRole(
+						guild.id,
+						ctx.user.id,
+						r.id,
+						"arbitrary colour role update",
+					)
+				),
+			);
+			role = role
+				? await ctx.platform.helpers.editRole(
+					guild.id,
+					role.id,
+					{ color: ctx.args.value },
+					"arbitrary colour role update",
+				)
+				: await ctx.platform.helpers.createRole(
+					guild.id,
+					{ name, color: ctx.args.value },
+					"colour role",
+				);
+			await ctx.platform.helpers.addRole(guild.id, ctx.user.id, role.id);
+			await ctx.success(`-# <@&${role.id}>`);
+			return;
+		}
+
+		await ctx.reply(<RoleCard userId={ctx.user.id} roles={[...guild.roles.values()]} />);
+	},
 });

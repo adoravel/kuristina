@@ -4,8 +4,7 @@
  * SPDX-License-Identifier: AGPL-3.0-or-later
  */
 
-import { greedyString } from "@kuristina/commands";
-import { defineCommand } from "@kuristina/commands/registry";
+import { arg, defineCommand } from "@kuristina/commands/core";
 import { mapAsync } from "@kuristina/core";
 import { repositories } from "@kuristina/database";
 import { Theme } from "@kuristina/discord-ui";
@@ -15,19 +14,18 @@ import {
 	fetchLinkedAccounts,
 	fetchPlaycounts,
 	MAX_SHOWN,
+	parseMusicQuery,
 	PROVIDER,
 	type RankedResult,
 	rankResults,
-} from "./whoknows-shared.ts";
+} from "./helper.ts";
 
-function NoPlaysMessage(
-	{ artist, album }: { artist: string; album: string },
-) {
+function NoPlaysMessage({ artist, album }: { artist: string; album: string }) {
 	return (
 		<message>
 			<h3>No plays found</h3>
 			<p>
-				No one here has scrobbled <strong>{album} ↗</strong> by <strong>{artist} ↗</strong>.
+				No one here has scrobbled <strong>{album}</strong> by <strong>{artist}</strong>.
 			</p>
 		</message>
 	);
@@ -53,9 +51,11 @@ function WhoKnowsAlbum({
 				<h3>
 					<icon name="disc" />
 					{`  Top listeners of `}
-					<a href={album.href}>{album.name} ↗</a>
+					<a href={album.href}>{album.name}</a>
 				</h3>
-				<sub>by {album.artist}</sub>
+				<sub>
+					by <a href={`https://last.fm/music/${album.artist}`}>{album.artist}</a>
+				</sub>
 				<blockquote>
 					<ol>
 						{ranked.map((r, i) => (
@@ -78,88 +78,94 @@ function WhoKnowsAlbum({
 	);
 }
 
-export default defineCommand(["whoknowsalbum", "wka", "wkalbum"], {
-	$: greedyString,
-}, async (ctx) => {
-	const query = ctx.remaining?.trim();
-	let artist: string | undefined;
-	let album: string | undefined;
+export default defineCommand({
+	aliases: ["whoknowsalbum", "wka", "wkalbum", "album", "ep"],
+	description:
+		"Shows who in this server has scrobbled a given album the most. Use `artist | album`, or omit to use your last played album. Requires a linked Last.fm account.",
+	category: "lastfm",
 
-	if (query) {
-		const parts = query.split("|").map((p) => p.trim()).filter(Boolean);
-		if (parts.length === 2) [artist, album] = parts;
-	}
+	args: {
+		query: arg.string({
+			surfaces: ["text"],
+			greedy: true,
+			required: false,
+			description: "artist | album",
+		}),
+		artist: arg.string({ surfaces: ["slash"], required: false, description: "artist name" }),
+		album: arg.string({ surfaces: ["slash"], required: false, description: "album name" }),
+	},
+	async exec(ctx) {
+		const query = ctx.args.query?.trim();
 
-	if (!artist || !album) {
-		const own = await repositories.scrobble.getDefault(ctx.user.id);
-		if (own.ok && own.value) {
-			const recent = await getRecentTracks(own.value.username, { limit: 1 });
-			const track = recent.ok ? recent.value.track[0] : undefined;
-			if (track?.album?.["#text"]) {
-				artist = track.artist["#text"] ?? track.artist.name;
-				album = track.album["#text"];
+		let artist: string | undefined = ctx.args.artist, album: string | undefined = ctx.args.album;
+		if (query) {
+			[artist, album] = parseMusicQuery(query);
+		}
+
+		if (!artist || !album) {
+			const own = await repositories.scrobble.getDefault(ctx.user.id);
+			if (own.ok && own.value) {
+				const recent = await getRecentTracks(own.value.username, { limit: 1 });
+				const track = recent.ok ? recent.value.track[0] : undefined;
+				if (track?.album?.["#text"]) {
+					artist = track.artist["#text"] ?? track.artist.name;
+					album = track.album["#text"];
+				}
 			}
 		}
-	}
 
-	if (!artist || !album) {
-		return void await ctx.error(
-			`give me an artist and album, e.g. \`${Theme.prefix}whoknowsalbum Radiohead | OK Computer\``,
-		);
-	}
-
-	const provider = getScrobbleProvider(PROVIDER);
-
-	const albumInfo = await mapAsync(provider.album.getInfo(artist, album, false))((info) => ({
-		name: info.name,
-		artist: info.artist,
-		image: info.imageUrl,
-		href: info.href,
-	}));
-
-	if (!albumInfo.ok) {
-		return void await ctx.error("album not found");
-	}
-
-	const { value: resolvedAlbum } = albumInfo;
-
-	const hasAccounts = mapAsync(fetchLinkedAccounts(ctx))((result) => {
-		if (!result || result.size === 0) {
-			throw new Error("no one has linked an account yet");
+		if (!artist || !album) {
+			return void await ctx.error(
+				`give me an artist and album, e.g. \`${Theme.prefix}whoknowsalbum Radiohead | OK Computer\``,
+			);
 		}
-		return { linked: result };
-	});
 
-	const ranked = mapAsync(hasAccounts)(async ({ linked }) => {
-		const entries = [...linked.entries()];
+		if (!ctx.guildId) {
+			return void await ctx.error("This command can only be used in a server.");
+		}
+
+		const provider = getScrobbleProvider(PROVIDER);
+		const albumInfo = await mapAsync(provider.album.getInfo(artist, album, false))((info) => ({
+			name: info.name,
+			artist: info.artist,
+			image: info.imageUrl,
+			href: info.href,
+		}));
+
+		if (!albumInfo.ok) {
+			return void await ctx.error("album not found");
+		}
+
+		const { value: resolvedAlbum } = albumInfo;
+
+		const linked = await fetchLinkedAccounts(ctx.guildId);
+		if (!linked.ok || !linked.value?.size) {
+			return void await ctx.error("No one has linked an account yet.");
+		}
+
+		const entries = [...linked.value.entries()];
 		const settled = await fetchPlaycounts(
 			entries,
 			(username) => provider.album.getInfo(artist!, album!, true, username),
 		);
-		return rankResults(settled, MAX_SHOWN);
-	});
 
-	await ctx.resolve(
-		mapAsync(ranked)(async ({ ranked, imageUrl }) => {
-			if (!ranked.length) {
-				await ctx.reply(
-					<NoPlaysMessage artist={resolvedAlbum.artist} album={resolvedAlbum.name} />,
-				);
-				return;
-			}
-			if (imageUrl && imageUrl !== resolvedAlbum.image) resolvedAlbum.image = imageUrl;
+		const { ranked, imageUrl } = rankResults(settled, MAX_SHOWN);
+
+		if (!ranked.length) {
 			await ctx.reply(
-				<WhoKnowsAlbum
-					ranked={ranked}
-					totalLinked={ranked.length}
-					album={resolvedAlbum}
-				/>,
+				<NoPlaysMessage artist={resolvedAlbum.artist} album={resolvedAlbum.name} />,
 			);
-		}),
-	);
-}, {
-	description:
-		"Shows who in this server has scrobbled a given album the most. Use `artist | album`, or omit to use your last played album. Requires a linked Last.fm account.",
-	category: "lastfm",
-	cooldownMs: 5000,
+			return;
+		}
+
+		if (imageUrl && imageUrl !== resolvedAlbum.image) resolvedAlbum.image = imageUrl;
+
+		await ctx.reply(
+			<WhoKnowsAlbum
+				ranked={ranked}
+				totalLinked={linked.value.size}
+				album={resolvedAlbum}
+			/>,
+		);
+	},
 });

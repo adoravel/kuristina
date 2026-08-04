@@ -4,12 +4,15 @@
  * SPDX-License-Identifier: AGPL-3.0-or-later
  */
 
-import { defineCommand } from "@kuristina/commands/registry";
+import { computeSnowflakeTimestamp, defineCommand } from "@kuristina/commands/core";
 
-export default defineCommand("ping", {}, async (ctx) => {
-	const sent = await ctx.reply({ content: `Pong! 🏓` });
-
-	await ctx.reply({
-		content: `Pong! 🏓\n-# ${sent.timestamp - ctx.message.timestamp}ms`,
-	});
+export default defineCommand({
+	aliases: "ping",
+	description: "Checks the bot's latency.",
+	async exec(ctx) {
+		const sent = await ctx.reply({ content: "Pong! 🏓" });
+		if (!sent) return;
+		const latency = computeSnowflakeTimestamp(sent.id) - ctx.invokedAt;
+		await ctx.reply({ content: `Pong! 🏓\n-# ${latency}ms` });
+	},
 });

@@ -4,12 +4,12 @@
  * SPDX-License-Identifier: AGPL-3.0-or-later
  */
 
-import { identifier, optional } from "@kuristina/commands";
+import { arg, defineCommand, getAllCommands } from "@kuristina/commands/core";
+import type { CommandSpec } from "@kuristina/commands/core";
 import { ErrorMessage, Theme } from "@kuristina/discord-ui";
-import { type CommandMetadata, commandRegistry, defineCommand } from "@kuristina/commands/registry";
 
-function isOwnerOnly(cmd: CommandMetadata): boolean {
-	return cmd.middleware?.some((m) => m.name === "owner-only") ?? false;
+function isOwnerOnly(cmd: CommandSpec<any>): boolean {
+	return cmd.middleware.some((m) => m.name === "owner-only");
 }
 
 interface HelpCardProps {
@@ -138,50 +138,46 @@ function CommandDetail({
 	);
 }
 
-export default defineCommand("help", {
-	$: optional(identifier),
-}, async (ctx) => {
-	if (ctx.remaining) {
-		const needle = ctx.remaining.toLowerCase();
+export default defineCommand({
+	aliases: "help",
+	description: "Lists commands, or shows detail for one.",
+	args: { command: arg.string({ description: "command name", required: false }) },
+	async exec(ctx) {
+		const needle = ctx.args.command?.toLowerCase();
 
-		const cmd = commandRegistry.commands.find((c) =>
-			!isOwnerOnly(c) && c.aliases.some((a) => a.toLowerCase() === needle)
-		);
+		if (needle) {
+			const cmd = getAllCommands().find((c) =>
+				!isOwnerOnly(c) && c.aliases.some((a) => a.toLowerCase() === needle)
+			);
 
-		if (!cmd) {
+			if (!cmd) {
+				return void await ctx.reply(
+					<ErrorMessage title="uh oh :(">
+						Command{" "}
+						<strong>
+							<kbd>{needle}</kbd>
+						</strong>{" "}
+						not found. Pwease, contact a developer if you firmly believe this is a mistake.
+					</ErrorMessage>,
+				);
+			}
+
 			return void await ctx.reply(
-				<ErrorMessage title="uh oh :(">
-					Command{" "}
-					<strong>
-						<kbd>{needle}</kbd>
-					</strong>{" "}
-					not found. Pwease, contact a developer if you firmly believe this is a mistake.
-				</ErrorMessage>,
+				<CommandDetail
+					name={cmd.aliases[0]}
+					description={cmd.description}
+					aliases={cmd.aliases.slice(1)}
+					subcommands={cmd.subcommands?.filter((s) => !isOwnerOnly(s)).map((s) => s.aliases[0])}
+				/>,
 			);
 		}
 
-		return void await ctx.reply(
-			<CommandDetail
-				name={cmd.aliases[0]}
-				description={cmd.description || "No description available"}
-				aliases={cmd.aliases.slice(1)}
-				subcommands={cmd.subcommands
-					? [...new Set(cmd.subcommands.values())]
-						.filter((s) => !isOwnerOnly(s))
-						.map((s) => s.aliases[0])
-					: undefined}
+		await ctx.reply(
+			<HelpCard
+				commands={getAllCommands()
+					.filter((cmd) => !isOwnerOnly(cmd))
+					.map((cmd) => ({ name: cmd.aliases[0], description: cmd.description }))}
 			/>,
 		);
-	}
-
-	await ctx.reply(
-		<HelpCard
-			commands={commandRegistry.commands
-				.filter((cmd) => !isOwnerOnly(cmd))
-				.map((cmd) => ({
-					name: cmd.aliases[0],
-					description: cmd.description || "No description available",
-				}))}
-		/>,
-	);
+	},
 });

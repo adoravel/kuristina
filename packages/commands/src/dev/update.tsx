@@ -4,15 +4,17 @@
  * SPDX-License-Identifier: AGPL-3.0-or-later
  */
 
-import { defineCommand, ownerOnly } from "@kuristina/commands/registry";
+import { defineCommand } from "@kuristina/commands/core";
+import { ownerOnly } from "@kuristina/commands/core";
 import { requestRestart } from "@kuristina/discord-bot/restart";
-import { git } from "@kuristina/discord-bot/git";
-import { sleep } from "@kuristina/core";
+import { git } from "@kuristina/core/ops/git";
 
-export default defineCommand(
-	["update", "pull", "sex", ":middle_finger:", "🖕"],
-	{},
-	async (ctx) => {
+export default defineCommand({
+	aliases: ["update", "pull"],
+	description: "Pulls the latest commits (fast-forward only, aborts on a dirty tree) and restarts.",
+	category: "dev",
+	middleware: [ownerOnly],
+	async exec(ctx) {
 		const fetched = await git.fetch();
 		if (!fetched.ok) {
 			return void await ctx.error(`\`git fetch\` failed:\n\`\`\`\n${fetched.stderr}\n\`\`\``);
@@ -37,7 +39,6 @@ export default defineCommand(
 		}
 
 		const changedFiles = await git.pendingChangedFiles();
-
 		const pulled = await git.pullFastForward();
 		if (!pulled.ok) {
 			return void await ctx.error(
@@ -45,8 +46,7 @@ export default defineCommand(
 			);
 		}
 
-		const depsChanged = changedFiles.some((f) => f === "deno.json" || f === "deno.lock");
-		if (depsChanged) {
+		if (changedFiles.some((f) => f === "deno.json" || f === "deno.lock")) {
 			await ctx.reply({ content: "dependencies changed, re-caching before restart..." });
 			const cache = new Deno.Command(Deno.execPath(), {
 				args: ["install"],
@@ -64,19 +64,11 @@ export default defineCommand(
 		}
 
 		const sha = await git.currentSha();
-		const reply = await ctx.reply({
-			content: `updated to \`${sha}\` (${behind} commit${
+		await requestRestart(
+			ctx,
+			`updated to \`${sha}\` (${behind} commit${
 				behind > 1 ? "s" : ""
 			} pulled), restarting...[ᅟ](https://klipy.com/gifs/entrosar-resenhar)`,
-		});
-
-		await sleep(2_500);
-		await requestRestart(reply.channelId, reply.id);
+		);
 	},
-	{
-		description:
-			"Pulls the latest commits (fast-forward only, aborts on a dirty tree) and restarts.",
-		category: "dev",
-		middleware: [ownerOnly],
-	},
-);
+});

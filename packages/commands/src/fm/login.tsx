@@ -4,7 +4,7 @@
  * SPDX-License-Identifier: AGPL-3.0-or-later
  */
 
-import { defineCommand } from "@kuristina/commands/registry";
+import { defineCommand } from "@kuristina/commands/core";
 import { flatMapAsync, mapAsync } from "@kuristina/core";
 import { repositories } from "@kuristina/database";
 import { Theme } from "@kuristina/discord-ui";
@@ -17,7 +17,7 @@ function AuthMessage({ authUrl }: { authUrl: string }) {
 				<icon name="link" /> Link your Last.fm account
 			</h3>
 			<p>
-				<a href={authUrl}>Click here ↗</a> to authorise{" "}
+				<a href={authUrl}>Click here</a> to authorise{" "}
 				{Theme.branding.name}, then come back. I'll pick it up for you automatically, sweetie~ &lt;3
 			</p>
 			<hr spacing={2} />
@@ -76,40 +76,46 @@ function AccountMessage({ provider, username }: { provider: string; username: st
 	);
 }
 
-export const login = defineCommand("login", {}, async (ctx) => {
-	const result = flatMapAsync(getAuthToken())(async ({ token, authUrl }) => {
-		await ctx.reply(<AuthMessage authUrl={authUrl} />);
-		return await pollForSession(token);
-	});
-	await flatMapAsync<LastFmSession, unknown>(result)(({ username }) => {
-		const link = repositories.scrobble.link(ctx.user.id, "last.fm", username, true);
-		return mapAsync(link)(async () => void await ctx.reply(<LinkedMessage username={username} />));
-	});
-}, {
+export const login = defineCommand({
+	aliases: "login",
 	description: "Links your Last.fm account to the bot.",
 	category: "lastfm",
 	cooldownMs: 5000,
+	async exec(ctx) {
+		const result = flatMapAsync(getAuthToken())(async ({ token, authUrl }) => {
+			await ctx.reply(<AuthMessage authUrl={authUrl} />);
+			return await pollForSession(token);
+		});
+		await flatMapAsync<LastFmSession, unknown>(result)(({ username }) => {
+			const link = repositories.scrobble.link(ctx.user.id, "last.fm", username, true);
+			return mapAsync(link)(async () =>
+				void await ctx.reply(<LinkedMessage username={username} />)
+			);
+		});
+	},
 });
 
-export const logout = defineCommand("logout", {}, async (ctx) => {
-	const unlink = repositories.scrobble.unlink(ctx.user.id, "last.fm");
-	await mapAsync(unlink)(async () => void await ctx.reply(<UnlinkedMessage />));
-}, {
+export const logout = defineCommand({
+	aliases: "logout",
 	description: "Unlinks your Last.fm account from the bot.",
 	category: "lastfm",
 	cooldownMs: 3000,
+	async exec(ctx) {
+		const unlink = repositories.scrobble.unlink(ctx.user.id, "last.fm");
+		await mapAsync(unlink)(async () => void await ctx.reply(<UnlinkedMessage />));
+	},
 });
 
-export const status = defineCommand("status", {}, async (ctx) => {
-	const current = repositories.scrobble.getDefault(ctx.user.id);
-	await mapAsync(current)(async (account) => {
-		if (!account) {
-			return void await ctx.reply(<NoAccountMessage />);
-		}
-		await ctx.reply(<AccountMessage provider={account.provider} username={account.username} />);
-	});
-}, {
+export const status = defineCommand({
+	aliases: "status",
 	description: "Shows your linked Last.fm account.",
 	category: "lastfm",
 	cooldownMs: 3000,
+	async exec(ctx) {
+		const current = await repositories.scrobble.getDefault(ctx.user.id);
+		await mapAsync(Promise.resolve(current))(async (account) => {
+			if (!account) return void await ctx.reply({ ...<NoAccountMessage /> });
+			await ctx.reply(<AccountMessage provider={account.provider} username={account.username} />);
+		});
+	},
 });
