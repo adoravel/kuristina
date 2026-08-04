@@ -10,9 +10,16 @@ import { renderTweet } from "@kuristina/embeds/twitter";
 import { reconcileCompanions } from "./shared.ts";
 import type { Message } from "../../types.ts";
 import type discord from "../../bot.ts";
+import type { MessageCompanion } from "@kuristina/database";
 
-export async function handleTwitterLinks(bot: typeof discord, message: Message): Promise<void> {
+export async function handleTwitterLinks(
+	bot: typeof discord,
+	message: Message,
+	ex?: MessageCompanion[],
+): Promise<void> {
 	if (!config.modules.linkEmbeds.twitter) return;
+	if (!message.content.includes("x.com") && !message.content.includes("twitter.com")) return;
+
 	const urls = extractStatusUrls(message.content).slice(0, config.modules.linkEmbeds.maxPerMessage);
 	if (!urls.length) return;
 
@@ -26,6 +33,6 @@ export async function handleTwitterLinks(bot: typeof discord, message: Message):
 			const tweet = await fetchTweet(url);
 			return tweet.ok ? renderTweet(tweet.value) : undefined;
 		},
+		ex,
 	);
-	if (sent) await suppressOriginalEmbed(bot, message);
 }

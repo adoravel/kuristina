@@ -10,9 +10,16 @@ import { renderSnippet } from "@kuristina/embeds/github";
 import { reconcileCompanions } from "./shared.ts";
 import type { Message } from "../../types.ts";
 import type discord from "../../bot.ts";
+import type { MessageCompanion } from "@kuristina/database";
 
-export async function handleGitHubLinks(bot: typeof discord, message: Message): Promise<void> {
+export async function handleGitHubLinks(
+	bot: typeof discord,
+	message: Message,
+	ex?: MessageCompanion[],
+): Promise<void> {
 	if (!config.modules.linkEmbeds.github) return;
+	if (!message.content.includes("github.com")) return;
+
 	const refs = extractBlobRefs(message.content).slice(0, config.modules.linkEmbeds.maxPerMessage);
 	if (!refs.length) return;
 
@@ -29,5 +36,6 @@ export async function handleGitHubLinks(bot: typeof discord, message: Message): 
 			const snippet = await fetchSnippet(ref);
 			return snippet.ok ? renderSnippet(ref, snippet.value) : undefined;
 		},
+		ex,
 	);
 }

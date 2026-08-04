@@ -7,12 +7,9 @@
 import { MessageFlags } from "@discordeno/bot";
 import type { Message } from "../../types.ts";
 import type discord from "../../bot.ts";
-import { type CompanionKind, repositories } from "@kuristina/database";
+import { type CompanionKind, type MessageCompanion, repositories } from "@kuristina/database";
 import type { CreateMessageOptions } from "@discordeno/types";
-
-export function replyRef(message: Message) {
-	return { messageId: message.id, channelId: message.channelId, guildId: message.guildId };
-}
+import { mapWithConcurrency } from "@kuristina/core";
 
 export async function suppressOriginalEmbed(bot: typeof discord, message: Message): Promise<void> {
 	try {
@@ -32,10 +29,20 @@ async function sendCompanion(
 	kind: CompanionKind,
 	sourceUrl: string,
 ): Promise<void> {
-	const sent = await bot.helpers.sendMessage(message.channelId, {
-		...payload,
-		messageReference: replyRef(message),
-	});
+	let sent;
+	try {
+		sent = await bot.helpers.sendMessage(message.channelId, {
+			...payload,
+			messageReference: {
+				messageId: message.id,
+				channelId: message.channelId,
+				guildId: message.guildId,
+				failIfNotExists: true,
+			},
+		});
+	} catch {
+		return;
+	}
 	await repositories.messageCompanions.add(message.id, sent.id, message.channelId, kind, sourceUrl);
 }
 
@@ -46,10 +53,12 @@ export async function reconcileCompanions<T>(
 	items: T[],
 	keyOf: (item: T) => string,
 	render: (item: T) => Promise<CreateMessageOptions | undefined>,
+	existing?: MessageCompanion[],
 ): Promise<void> {
-	const existingResult = await repositories.messageCompanions.getForSource(message.id, kind);
-	const existing = existingResult.ok ? existingResult.value : [];
-
+	if (!existing || existing.length == 0) {
+		const existingResult = await repositories.messageCompanions.getForSource(message.id, kind);
+		existing = existingResult.ok ? existingResult.value : [];
+	}
 	const existingByKey = new Map(existing.filter((c) => c.sourceUrl).map((c) => [c.sourceUrl!, c]));
 	const currentKeys = new Set(items.map(keyOf));
 
@@ -66,18 +75,17 @@ export async function reconcileCompanions<T>(
 		);
 	}
 
-	for (const item of items) {
-		const key = keyOf(item);
-		if (existingByKey.has(key)) continue;
-		const payload = await render(item);
-		if (!payload) continue;
-		await sendCompanion(bot, message, payload, kind, key);
+	const remainingExisting = existing.filter((c) => c.sourceUrl && currentKeys.has(c.sourceUrl));
+	const toRender = items.filter((item) => !existingByKey.has(keyOf(item)));
+	if (toRender.length) {
+		await mapWithConcurrency(toRender, 5, async (item) => {
+			const payload = await render(item);
+			if (!payload) return;
+			await sendCompanion(bot, message, payload, kind, keyOf(item));
+		});
 	}
 
-	const finalResult = await repositories.messageCompanions.getForSource(message.id, kind);
-	const hasCompanions = finalResult.ok && finalResult.value.length > 0;
-	console.log((finalResult as any).value.length);
-
+	const hasCompanions = remainingExisting.length > 0 || toRender.length > 0;
 	if (hasCompanions) {
 		await suppressOriginalEmbed(bot, message);
 	}

@@ -9,8 +9,10 @@ import { handleCodebergLinks } from "./codeberg.ts";
 import { handleTwitterLinks } from "./twitter.ts";
 import { handleFediverseLinks } from "./fediverse.ts";
 import { handleMusicLinks } from "./musiclinks.ts";
-import type { Message } from "../../types.ts";
+import { BitwisePermissionFlags, type Message } from "../../types.ts";
 import type discord from "../../bot.ts";
+import { hasChannelPermission } from "../../resolve.ts";
+import { repositories } from "@kuristina/database";
 
 const PROVIDERS = [
 	handleGitHubLinks,
@@ -21,6 +23,16 @@ const PROVIDERS = [
 ];
 
 export async function handleRichLinks(bot: typeof discord, message: Message): Promise<void> {
-	if (message.author.bot) return;
-	await Promise.all(PROVIDERS.map((handle) => handle(bot, message)));
+	if (message.author.bot || !message.guildId) return;
+	if (
+		!hasChannelPermission(message.guildId, message.channelId, BitwisePermissionFlags.EMBED_LINKS)
+	) return;
+
+	const existing = await repositories.messageCompanions.getForSourceByPrefix(
+		message.id,
+		"richlink:",
+	);
+	const input = existing.ok ? existing.value : [];
+
+	await Promise.all(PROVIDERS.map((handle) => handle(bot, message, input)));
 }

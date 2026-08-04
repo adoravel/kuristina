@@ -10,9 +10,15 @@ import { renderFediPost } from "@kuristina/embeds/fediverse";
 import { reconcileCompanions } from "./shared.ts";
 import type { Message } from "../../types.ts";
 import type discord from "../../bot.ts";
+import type { MessageCompanion } from "@kuristina/database";
 
-export async function handleFediverseLinks(bot: typeof discord, message: Message): Promise<void> {
+export async function handleFediverseLinks(
+	bot: typeof discord,
+	message: Message,
+	ex?: MessageCompanion[],
+): Promise<void> {
 	if (!config.modules.linkEmbeds.fediverse) return;
+
 	const urls = extractFediUrls(message.content).slice(0, config.modules.linkEmbeds.maxPerMessage);
 	if (!urls.length) return;
 
@@ -26,5 +32,6 @@ export async function handleFediverseLinks(bot: typeof discord, message: Message
 			const post = await fetchFediPost(url);
 			return post.ok ? renderFediPost(post.value) : undefined;
 		},
+		ex,
 	);
 }
