@@ -73,6 +73,7 @@ export const registeredIcons = {
 	mastodon: { provider: "simpleicons", name: "mastodon" },
 	codeberg: { provider: "simpleicons", name: "codeberg" },
 	github: { provider: "simpleicons", name: "github" },
+	lastfm: { provider: "simpleicons", name: "lastdotfm" },
 	repeat: { provider: "lucide", name: "repeat-2", variant: "success" },
 	comment: { provider: "lucide", name: "message-circle" },
 	star: { provider: "lucide", name: "star", variant: "warn" },
