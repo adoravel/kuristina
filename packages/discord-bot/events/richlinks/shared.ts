@@ -55,27 +55,28 @@ export async function reconcileCompanions<T>(
 	render: (item: T) => Promise<CreateMessageOptions | undefined>,
 	existing?: MessageCompanion[],
 ): Promise<void> {
-	if (!existing || existing.length == 0) {
+	if (!existing || existing.length === 0) {
 		const existingResult = await repositories.messageCompanions.getForSource(message.id, kind);
 		existing = existingResult.ok ? existingResult.value : [];
+	} else {
+		existing = existing.filter((c) => c.kind === kind);
 	}
+
 	const existingByKey = new Map(existing.filter((c) => c.sourceUrl).map((c) => [c.sourceUrl!, c]));
 	const currentKeys = new Set(items.map(keyOf));
 
 	const stale = existing.filter((c) => c.sourceUrl && !currentKeys.has(c.sourceUrl));
 	if (stale.length) {
-		for (const companion of stale) {
-			await bot.helpers.deleteMessage(companion.channelId, companion.responseMessageId).catch(
-				() => {},
-			);
-		}
 		await repositories.messageCompanions.deleteResponses(
 			message.id,
 			stale.map((c) => c.responseMessageId),
 		);
+		for (const companion of stale) {
+			await bot.helpers.deleteMessage(companion.channelId, companion.responseMessageId)
+				.catch((e) => logger.warn("rich-links: failed to delete stale companion message:", e));
+		}
 	}
 
-	const remainingExisting = existing.filter((c) => c.sourceUrl && currentKeys.has(c.sourceUrl));
 	const toRender = items.filter((item) => !existingByKey.has(keyOf(item)));
 	if (toRender.length) {
 		await mapWithConcurrency(toRender, 5, async (item) => {
@@ -85,6 +86,7 @@ export async function reconcileCompanions<T>(
 		});
 	}
 
+	const remainingExisting = existing.filter((c) => c.sourceUrl && currentKeys.has(c.sourceUrl));
 	const hasCompanions = remainingExisting.length > 0 || toRender.length > 0;
 	if (hasCompanions) {
 		await suppressOriginalEmbed(bot, message);
