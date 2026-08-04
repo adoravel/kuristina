@@ -5,23 +5,52 @@
  */
 
 import { defineCommand } from "@kuristina/commands/core";
-import { flatMapAsync, mapAsync } from "@kuristina/core";
+import { flatMapAsync, mapAsync, waitForInteraction } from "@kuristina/core";
 import { repositories } from "@kuristina/database";
 import { Theme } from "@kuristina/discord-ui";
-import { getAuthToken, type LastFmSession, pollForSession } from "@kuristina/services/lastfm";
+import { getAuthToken, pollForSession } from "@kuristina/services/lastfm";
+import { ackWithMessage, ButtonStyles, type Interaction } from "@kuristina/discord-bot";
 
-function AuthMessage({ authUrl }: { authUrl: string }) {
+const BUTTON_TIMEOUT_MS = 3 * 60_000;
+
+function AuthMessage({ customId }: { customId: string }) {
+	return (
+		<message root>
+			<div>
+				<h3>
+					<icon name="link" /> Link your Last.fm account
+				</h3>
+				<p>
+					Press the button below to get the authorisation link, then come back. I'll pick it up for
+					you automatically, sweetie~ &lt;3
+				</p>
+				<hr spacing={2} />
+				<sub>This link expires in a few minutes.</sub>
+			</div>
+			<row>
+				<button
+					customId={customId}
+					style={ButtonStyles.Secondary}
+					emoji={Theme.emojiWithFallback("lastfm", { name: "🔗" })}
+				>
+					Connect Last.fm account
+				</button>
+			</row>
+		</message>
+	);
+}
+
+function AuthLinkMessage({ authUrl }: { authUrl: string }) {
 	return (
 		<message>
 			<h3>
-				<icon name="link" /> Link your Last.fm account
+				<icon name="lastfm" /> Authorise Last.fm
 			</h3>
 			<p>
-				<a href={authUrl}>Click here</a> to authorise{" "}
-				{Theme.branding.name}, then come back. I'll pick it up for you automatically, sweetie~ &lt;3
+				<a href={authUrl}>Click here to authorise</a>
 			</p>
 			<hr spacing={2} />
-			<sub>This link expires in a few minutes.</sub>
+			<sub>This is only visible for you.</sub>
 		</message>
 	);
 }
@@ -82,16 +111,45 @@ export const login = defineCommand({
 	category: "lastfm",
 	cooldownMs: 5000,
 	async exec(ctx) {
-		const result = flatMapAsync(getAuthToken())(async ({ token, authUrl }) => {
-			await ctx.reply(<AuthMessage authUrl={authUrl} />);
-			return await pollForSession(token);
+		await ctx.defer();
+
+		const tokenData = await ctx.resolve(getAuthToken());
+		if (!tokenData) return;
+
+		const { customId, promise } = waitForInteraction<Interaction>(
+			"lastfm-login",
+			BUTTON_TIMEOUT_MS,
+			{
+				filter: (i) => i.user?.id === ctx.user.id,
+			},
+		);
+
+		await ctx.reply({ ...<AuthMessage customId={customId} /> });
+
+		const clicked = await promise.catch(() => undefined);
+		if (!clicked) {
+			return;
+		}
+
+		const acked = await ackWithMessage(clicked, {
+			...<AuthLinkMessage authUrl={tokenData.authUrl} />,
+			ephemeral: true,
+		}).then(() => true).catch((e) => {
+			logger.warn("fm login: failed to send ephemeral auth link:", e);
+			return false;
 		});
-		await flatMapAsync<LastFmSession, unknown>(result)(({ username }) => {
-			const link = repositories.scrobble.link(ctx.user.id, "last.fm", username, true);
-			return mapAsync(link)(async () =>
-				void await ctx.reply(<LinkedMessage username={username} />)
-			);
-		});
+		if (!acked) {
+			return void await ctx.error("couldn't send you the auth link, try again?");
+		}
+
+		const linked = flatMapAsync(pollForSession(tokenData.token))((session) =>
+			mapAsync<void, any>(
+				repositories.scrobble.link(ctx.user.id, "last.fm", session.username, true),
+			)(() => session.username)
+		);
+
+		const username = await ctx.resolve(linked);
+		if (username) await ctx.reply({ ...<LinkedMessage username={username} /> });
 	},
 });
 

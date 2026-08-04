@@ -29,7 +29,8 @@ export type FmAuthErrorKind =
 	| "token_expired" // pending OAuth token expired (code 15)
 	| "token_not_found" // callback token not in pending store
 	| "token_unauthorised" // token exists but user hasn't approved yet (code 14)
-	| "not_configured";
+	| "not_configured"
+	| "timed_out";
 
 export interface LastFmApiError extends TaggedError<"lastfm", FmErrorKind> {
 	readonly message: string;
@@ -98,6 +99,8 @@ export function describe(e: LastFmError): string {
 					return "You haven't approved the login yet — click the link and try again.";
 				case "not_configured":
 					return "Last.fm support isn't configured on this bot — Tell the dumbass in charge to fix this.";
+				case "timed_out":
+					return "Login timed out. Please try again.";
 				default:
 					return "Authentication error";
 			}
