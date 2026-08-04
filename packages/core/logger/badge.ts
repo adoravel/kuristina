@@ -27,12 +27,12 @@ export function badge({ label, bg, fg = bold }: BadgeOptions): string {
 }
 
 export const badges = {
-	warn: badge({ label: "WARN", bg: bg("#f59e0b"), fg: fg("#000000") }),
-	build: badge({ label: "BUILD", bg: bg("#a855f7"), fg: fg("#000000") }),
-	success: badge({ label: "SUCCESS", bg: bg("#22c55e"), fg: fg("#000000") }),
-	error: badge({ label: "ERROR", bg: bg("#ef4444"), fg: fg("#000000") }),
-	info: badge({ label: "INFO", bg: bg("#3b82f6"), fg: fg("#000000") }),
-	debug: badge({ label: "DEBUG", bg: bg("#3f3f46"), fg: fg("#d4d4d8") }),
+	warn: badge({ label: "warn", bg: bg("#f59e0b"), fg: fg("#000000") }),
+	build: badge({ label: "build", bg: bg("#a855f7"), fg: fg("#000000") }),
+	success: badge({ label: "success", bg: bg("#22c55e"), fg: fg("#000000") }),
+	error: badge({ label: "error", bg: bg("#ef4444"), fg: fg("#000000") }),
+	info: badge({ label: "info", bg: bg("#3b82f6"), fg: fg("#000000") }),
+	debug: badge({ label: "debug", bg: bg("#3f3f46"), fg: fg("#d4d4d8") }),
 };
 
 export type BadgeName = keyof typeof badges;
