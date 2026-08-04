@@ -20,7 +20,7 @@ function buildPayload(): GuildProfilePayload | undefined {
 	// todo: configurable
 	const botProfile = {
 		enabled: true,
-		displayNameColors: [0xD52D00, 0xFF9A56, 0xFFFFFF, 0xD162A4, 0xA30262],
+		displayNameColors: [0xFFADAD, 0xFFD6A5, 0xFDFFB6, 0xCAFFBF, 0x9BF6FF],
 		displayNameEffectId: 2,
 		displayNameFontId: 3,
 	};
