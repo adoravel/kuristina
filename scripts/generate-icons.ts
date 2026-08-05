@@ -22,6 +22,8 @@ type HttpUrl = `http://${string}` | `https://${string}`;
 
 const isUrl = (s: string): s is HttpUrl => s.startsWith("http://") || s.startsWith("https://");
 
+let forceRegenerate = false;
+
 const resolveProviderUrl = (config: IconRegistration): string => {
 	switch (config.provider) {
 		case "lucide":
@@ -101,6 +103,14 @@ const savePng = async (destPath: string | URL, data: Uint8Array): Promise<void> 
 };
 
 const processIcon = async ([name, config]: [string, IconRegistration]): Promise<void> => {
+	const destUrl = new URL(`${name}.png`, VENDORED_ICONS_DIR);
+
+	if (!forceRegenerate) {
+		try {
+			return void await Deno.stat(destUrl);
+		} catch { /* no-op */ }
+	}
+
 	try {
 		const url = resolveProviderUrl(config);
 		const rawSvg = await fetchSvg(url);
@@ -111,37 +121,48 @@ const processIcon = async ([name, config]: [string, IconRegistration]): Promise<
 		const finalSvg = composeSvg(innerSvg, attributes);
 
 		const pngBuffer = renderToPng(finalSvg);
-
-		const destUrl = new URL(`${name}.png`, VENDORED_ICONS_DIR);
 		await savePng(destUrl, pngBuffer);
 
 		const source = isUrl(config.provider) ? "Direct URL" : `${config.provider}(${config.name})`;
 		logger.yay(`generated ${destUrl.pathname} (from ${source})`);
 	} catch (error) {
 		logger.boo(`Failed to generate "${name}":`, error);
+		throw error;
 	}
 };
 
-async function main() {
-	logger.info("starting icon generation pipeline");
-
+export async function generateMissingIcons(
+	opts: { force?: boolean } = {},
+): Promise<{ generated: number; skipped: number; failed: number }> {
+	forceRegenerate = opts.force ?? false;
 	await ensureDirectory(VENDORED_ICONS_DIR);
 
 	const entries = Object.entries(registeredIcons) as [string, IconRegistration][];
+	let skipped = 0;
+
+	if (!forceRegenerate) {
+		for (const [name] of entries) {
+			try {
+				await Deno.stat(new URL(`${name}.png`, VENDORED_ICONS_DIR));
+				skipped++;
+			} catch { /* no-op */ }
+		}
+	}
+
 	const results = await mapWithConcurrency(entries, 10, processIcon);
+	const generated = results.filter((r) => r.status === "fulfilled").length - skipped;
+	const failed = results.filter((r) => r.status === "rejected").length;
 
-	const fulfilled = results.filter((r) => r.status === "fulfilled").length;
-	const rejected = results.filter((r) => r.status === "rejected") as PromiseRejectedResult[];
+	return { generated: Math.max(0, generated), skipped, failed };
+}
 
-	if (fulfilled > 0) {
-		logger.yay(`successfully generated ${fulfilled} icons`);
-	}
+async function main() {
+	logger.info("starting icon generation pipeline");
+	forceRegenerate = Deno.args.includes("--force");
 
-	if (rejected.length > 0) {
-		logger.boo(`failed to generate ${rejected.length} icons:`);
-		rejected.forEach((r) => logger.boo(`  · ${r.reason.message}`));
-		Deno.exit(1);
-	}
+	const { generated, skipped, failed } = await generateMissingIcons();
+	logger.yay(`icons: ${generated} generated, ${skipped} already vendored, ${failed} failed`);
+	if (failed > 0) Deno.exit(1);
 }
 
 if (import.meta.main) await main();

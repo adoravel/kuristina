@@ -13,6 +13,7 @@ import {
 	LogLevels,
 } from "@discordeno/bot";
 
+import { generateMissingIcons } from "scripts/generate-icons.ts";
 import { config, getConfig } from "@kuristina/config";
 import {
 	closeDatabaseConnection,
@@ -203,6 +204,11 @@ export async function initialise(): Promise<Result<void, AppError>> {
 
 	await confirmRestartIfPending(discord);
 	await reconcileIcons(discord);
+
+	const iconGen = await generateMissingIcons();
+	if (iconGen.generated > 0) {
+		logger.yay(`icons: generated ${iconGen.generated} missing icons at startup`);
+	}
 
 	await runMaintenance();
 	const maintenanceInterval = config.sqlite.maintenanceIntervalMs;
