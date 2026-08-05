@@ -1,6 +1,9 @@
 {
 	"name": "@kuristina/database",
-	"exports": "./mod.ts",
+	"exports": {
+		".": "./mod.ts",
+		"./admin": "./admin/mod.ts"
+	},
 	"imports": {
 		"@db/sqlite": "jsr:@db/sqlite@^0.13.0",
 		"@kysely/kysely": "jsr:@kysely/kysely@^0.29.4"
