@@ -53,6 +53,9 @@ export const commands = {
 		get update() {
 			return cmd("dev/update");
 		},
+		get database() {
+			return cmd("dev/database/mod");
+		},
 	},
 	get all() {
 		return [
@@ -69,6 +72,7 @@ export const commands = {
 			this.markov.prune,
 			this.dev.restart,
 			this.dev.update,
+			this.dev.database,
 		];
 	},
 };
