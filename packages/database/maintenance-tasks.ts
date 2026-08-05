@@ -17,4 +17,8 @@ export function registerDefaultPurgeTasks(): void {
 		"message_companions",
 		() => repositories.messageCompanions.purgeOlderThan(config.sqlite.companionRetentionSeconds),
 	);
+	registerPurgeTask(
+		"lastfm_response_cache",
+		() => repositories.lastfmCache.purgeExpired(config.modules.lastfm.cacheTtlSeconds),
+	);
 }
