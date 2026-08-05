@@ -12,6 +12,8 @@ import { GuildMemberRepository } from "./members.ts";
 import { MusicLinkRepository } from "./musiclinks.ts";
 import { MessageCompanionRepository } from "./message_companions.ts";
 import { GuildProfileRepository } from "./guild_profile.ts";
+import { ArtistAliasRepository } from "./artist_alias.ts";
+import { LastFmCacheRepository } from "./lastfm_cache.ts";
 
 export const repositories = {
 	markov: new MarkovRepository(),
@@ -22,6 +24,8 @@ export const repositories = {
 	musicLinks: new MusicLinkRepository(),
 	messageCompanions: new MessageCompanionRepository(),
 	guildProfile: new GuildProfileRepository(),
+	artistAlias: new ArtistAliasRepository(),
+	lastfmCache: new LastFmCacheRepository(),
 };
 
 export {

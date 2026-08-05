@@ -37,11 +37,23 @@ export interface KuristinaSchema {
 		source_message_id: string;
 		response_message_id: string;
 		channel_id: string;
-		kind: string;
+		kind: "command" | `richlink:${string}` | string;
 		created_at: number;
 		source_url: string | null;
 	};
 	guild_profile_syncs: { guild_id: string; params_hash: string; synced_at: number };
+	artist_alias_groups: { id: Generated<number>; created_at: number };
+	artist_aliases: {
+		name_key: string;
+		display_name: string;
+		group_id: number;
+		source: "autocorrect" | "manual";
+	};
+	lastfm_response_cache: {
+		cache_key: string;
+		payload: string;
+		cached_at: number;
+	};
 }
 
 export type SchemaContext = Kysely<KuristinaSchema>;
