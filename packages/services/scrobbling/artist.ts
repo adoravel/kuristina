@@ -5,7 +5,7 @@
  */
 
 import { type AsyncResult, mapAsync } from "@kuristina/core";
-import { getArtistInfo } from "@kuristina/services/lastfm";
+import { getArtistInfo, withLastFmCache } from "@kuristina/services/lastfm";
 import type { ScrobbleError, ScrobbleProviderName } from "@kuristina/services/scrobbling";
 
 export interface ScrobbleArtist {
@@ -53,7 +53,13 @@ export class LastfmArtistScrobbleProvider implements ArtistScrobbleProvider {
 		username?: string,
 	): AsyncResult<ScrobbleArtist | ExtendedScrobleArtist, ScrobbleError> {
 		if (username) {
-			return mapAsync(getArtistInfo(query, username, !exact))(($) => ({
+			return mapAsync(
+				withLastFmCache("user_stats", "artist.getInfo", {
+					artist: query,
+					username,
+					autocorrect: !exact,
+				}, () => getArtistInfo(query, username, !exact)),
+			)(($) => ({
 				name: $.name,
 				imageUrl: $.highestQualityImage["#text"],
 				tags: $.tags?.tag,
@@ -61,7 +67,14 @@ export class LastfmArtistScrobbleProvider implements ArtistScrobbleProvider {
 				individualUserScrobbles: Number($.stats?.userplaycount ?? 0),
 			}));
 		}
-		return mapAsync(getArtistInfo(query, undefined, !exact))(($) => ({
+		return mapAsync(
+			withLastFmCache(
+				"metadata",
+				"artist.getInfo",
+				{ artist: query, autocorrect: !exact },
+				() => getArtistInfo(query, undefined, !exact),
+			),
+		)(($) => ({
 			name: $.name,
 			href: $.url,
 			tags: $.tags?.tag,

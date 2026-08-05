@@ -12,3 +12,4 @@ export * from "./api/artist.ts";
 export * from "./api/track.ts";
 export * from "./api/user.ts";
 export * from "./api/auth.ts";
+export * from "./cache.ts";
