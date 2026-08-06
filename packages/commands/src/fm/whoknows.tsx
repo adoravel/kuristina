@@ -121,7 +121,10 @@ export default defineCommand({
 		}
 
 		const provider = getScrobbleProvider(PROVIDER);
-		const artistInfo = await mapAsync(provider.artist.getInfo(query, false))((info) => {
+		const skipAutocorrect = await repositories.artistAliases.shouldSkipAutocorrect(query);
+		const exact = skipAutocorrect.ok ? skipAutocorrect.value : false;
+
+		const artistInfo = await mapAsync(provider.artist.getInfo(query, exact))((info) => {
 			return { ...info, name: info.name || query };
 		});
 
