@@ -4,8 +4,12 @@
  * SPDX-License-Identifier: AGPL-3.0-or-later
  */
 
-import { string, defineCommand, ownerOnly } from "@kuristina/commands/core";
-import { assertEditableTable, fetchRow, validateAndGetSchema } from "@kuristina/database/admin";
+import { defineCommand, ownerOnly, string } from "@kuristina/commands/core";
+import {
+	assertEditableTable,
+	fetchRowsWhere,
+	validateAndGetSchema,
+} from "@kuristina/database/admin";
 import { confirmAndApply, evaluateValues, parseKeyValues } from "./shared.tsx";
 
 export default defineCommand({
@@ -32,12 +36,13 @@ export default defineCommand({
 		const rawChanges = parseKeyValues(ctx.args.changes);
 		const changes = evaluateValues(rawChanges);
 
-		const before = await fetchRow(ctx.args.table, pk);
-		if (!before) {
+		const rows = await fetchRowsWhere(ctx.args.table, pk, { limit: 1 });
+		if (!rows || !rows.length) {
 			return void await ctx.error(`no row in \`${ctx.args.table}\` matching ${JSON.stringify(pk)}`);
 		}
 
 		const schema = await validateAndGetSchema(ctx.args.table);
+		const before = rows[0] ?? {};
 		const after = { ...before };
 
 		for (const [k, v] of Object.entries(changes)) {

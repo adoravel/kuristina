@@ -11,7 +11,7 @@ export const ADMIN_EDITABLE_TABLES = [
 	"artist_alias_groups",
 	"music_link_cache",
 	"lastfm_response_cache",
-	"scrobble_accounts"
+	"scrobble_accounts",
 ] as const;
 
 export type AdminEditableTable = typeof ADMIN_EDITABLE_TABLES[number];

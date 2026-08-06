@@ -7,7 +7,7 @@
 import { database } from "@kuristina/database";
 import type { JsonValue } from "./types.ts";
 import { MAX_PAGE_SIZE } from "./constants.ts";
-import { assertEditableTable, assertPrimaryKeyComplete, validateAndGetSchema } from "./guard.ts";
+import { assertEditableTable } from "./guard.ts";
 
 export async function countRows(table: string): Promise<number> {
 	assertEditableTable(table);
@@ -35,8 +35,6 @@ export async function fetchRow(
 	pk: Record<string, string | number>,
 ): Promise<Record<string, JsonValue> | null> {
 	assertEditableTable(table);
-	const schema = await validateAndGetSchema(table);
-	assertPrimaryKeyComplete(schema, pk);
 
 	let query = database.selectFrom(table as never).selectAll();
 	for (const [col, val] of Object.entries(pk)) {
