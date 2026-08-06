@@ -1,0 +1,35 @@
+import { arg, defineCommand } from "@kuristina/commands/core";
+import { repositories } from "@kuristina/database";
+import { allowedAliasManagers } from "./shared.tsx";
+
+export default defineCommand({
+	aliases: ["skip", "autocorrect"],
+	surfaces: "text",
+	description: "Toggles skip_autocorrect for an artist (prevents Last.fm autocorrect).",
+	middleware: [allowedAliasManagers()],
+	args: {
+		name: arg.string({ description: "artist name", required: true }),
+		value: arg.boolean({
+			description: "enable or disable skip_autocorrect (default: true)",
+			required: false,
+		}),
+	},
+	async exec(ctx) {
+		const name = ctx.args.name.trim();
+		const enabled = ctx.args.value ?? true;
+
+		const result = await repositories.artistAliases.setSkipAutocorrect(name, enabled);
+		if (!result.ok) {
+			return void await ctx.error(`failed to update: ${result.error.message}`);
+		}
+
+		const group = await repositories.artistAliases.getGroup(name);
+		if (!group.ok) {
+			return void await ctx.success(`skip_autocorrect = ${enabled} for "${name}"`);
+		}
+
+		await ctx.success(
+			`skip_autocorrect = ${enabled} for "${name}"\n-# group: ${group.value.join(", ")}`,
+		);
+	},
+});
