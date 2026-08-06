@@ -27,40 +27,41 @@ export default defineCommand({
 	async exec(ctx) {
 		try {
 			assertEditableTable(ctx.args.table);
-		} catch (e) {
-			return void await ctx.error((e as Error).message);
-		}
+			const pk = parseKeyValues(ctx.args.pk);
 
-		const pk = parseKeyValues(ctx.args.pk);
+			const rawChanges = parseKeyValues(ctx.args.changes);
+			const changes = evaluateValues(rawChanges);
 
-		const rawChanges = parseKeyValues(ctx.args.changes);
-		const changes = evaluateValues(rawChanges);
-
-		const rows = await fetchRowsWhere(ctx.args.table, pk, { limit: 1 });
-		if (!rows || !rows.length) {
-			return void await ctx.error(`no row in \`${ctx.args.table}\` matching ${JSON.stringify(pk)}`);
-		}
-
-		const schema = await validateAndGetSchema(ctx.args.table);
-		const before = rows[0] ?? {};
-		const after = { ...before };
-
-		for (const [k, v] of Object.entries(changes)) {
-			const col = schema.columns.find((c) => c.name === k);
-			if (!col) {
-				return void await ctx.error(`"${k}" doesn't exist in table "${ctx.args.table}"`);
+			const rows = await fetchRowsWhere(ctx.args.table, pk, { limit: 1 });
+			if (!rows || !rows.length) {
+				return void await ctx.error(
+					`no row in \`${ctx.args.table}\` matching ${JSON.stringify(pk)}`,
+				);
 			}
-			if (col.isPrimaryKey) {
-				return void await ctx.error(`Cannot update primary key column "${k}"`);
-			}
-			after[k] = v;
-		}
 
-		await confirmAndApply(
-			ctx,
-			[{ table: ctx.args.table, pk, before, after }],
-			`set ${ctx.args.table} ${ctx.args.pk}`,
-		);
+			const schema = await validateAndGetSchema(ctx.args.table);
+			const before = rows[0] ?? {};
+			const after = { ...before };
+
+			for (const [k, v] of Object.entries(changes)) {
+				const col = schema.columns.find((c) => c.name === k);
+				if (!col) {
+					return void await ctx.error(`"${k}" doesn't exist in table "${ctx.args.table}"`);
+				}
+				if (col.isPrimaryKey) {
+					return void await ctx.error(`Cannot update primary key column "${k}"`);
+				}
+				after[k] = v;
+			}
+
+			await confirmAndApply(
+				ctx,
+				[{ table: ctx.args.table, pk, before, after }],
+				`set ${ctx.args.table} ${ctx.args.pk}`,
+			);
+		} catch (e: any) {
+			await ctx.error("message" in e ? e.message : String(e));
+		}
 	},
 	middleware: [ownerOnly],
 });

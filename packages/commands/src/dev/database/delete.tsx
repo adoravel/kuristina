@@ -22,23 +22,24 @@ export default defineCommand({
 	async exec(ctx) {
 		try {
 			assertEditableTable(ctx.args.table);
-		} catch (e) {
-			return void await ctx.error((e as Error).message);
+			const pk = parseKeyValues(ctx.args.pk);
+
+			const rows = await fetchRowsWhere(ctx.args.table, pk, { limit: 1 });
+			if (!rows || !rows.length) {
+				return void await ctx.error(
+					`no row in \`${ctx.args.table}\` matching ${JSON.stringify(pk)}`,
+				);
+			}
+
+			const before = rows[0];
+			await confirmAndApply(
+				ctx,
+				[{ table: ctx.args.table, pk, before, after: null }],
+				`delete ${ctx.args.table} ${ctx.args.pk}`,
+			);
+		} catch (e: any) {
+			await ctx.error("message" in e ? e.message : String(e));
 		}
-
-		const pk = parseKeyValues(ctx.args.pk);
-
-		const rows = await fetchRowsWhere(ctx.args.table, pk, { limit: 1 });
-		if (!rows || !rows.length) {
-			return void await ctx.error(`no row in \`${ctx.args.table}\` matching ${JSON.stringify(pk)}`);
-		}
-
-		const before = rows[0];
-		await confirmAndApply(
-			ctx,
-			[{ table: ctx.args.table, pk, before, after: null }],
-			`delete ${ctx.args.table} ${ctx.args.pk}`,
-		);
 	},
 	middleware: [ownerOnly],
 });

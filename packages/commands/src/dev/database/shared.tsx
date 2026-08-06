@@ -19,7 +19,7 @@ import { ButtonStyles, type Interaction } from "@kuristina/discord-bot";
 export const parseKeyValues = (input: string): Record<string, string> => {
 	const result = parseKeyValuePairs(input);
 	if (!result.valid) {
-		throw new Error(result.message);
+		throw new Error(`couldn't parse "${input}": ${result.message}`);
 	}
 	return result.value;
 };

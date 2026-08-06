@@ -22,29 +22,29 @@ export default defineCommand({
 	async exec(ctx) {
 		try {
 			assertEditableTable(ctx.args.table);
-		} catch (e) {
-			return void await ctx.error((e as Error).message);
-		}
 
-		const rawValues = parseKeyValues(ctx.args.values);
-		const values = evaluateValues(rawValues);
+			const rawValues = parseKeyValues(ctx.args.values);
+			const values = evaluateValues(rawValues);
 
-		const schema = await validateAndGetSchema(ctx.args.table);
-		const columns = schema.columns.map((c) => c.name);
+			const schema = await validateAndGetSchema(ctx.args.table);
+			const columns = schema.columns.map((c) => c.name);
 
-		const data: Record<string, unknown> = {};
-		for (const [k, v] of Object.entries(values)) {
-			if (!columns.includes(k)) {
-				return void await ctx.error(`"${k}" doesn't exist in table "${ctx.args.table}"`);
+			const data: Record<string, unknown> = {};
+			for (const [k, v] of Object.entries(values)) {
+				if (!columns.includes(k)) {
+					return void await ctx.error(`"${k}" doesn't exist in table "${ctx.args.table}"`);
+				}
+				data[k] = v;
 			}
-			data[k] = v;
-		}
 
-		await confirmAndApply(
-			ctx,
-			[{ table: ctx.args.table, pk: {}, before: null, after: data as any }],
-			`insert into ${ctx.args.table}`,
-		);
+			await confirmAndApply(
+				ctx,
+				[{ table: ctx.args.table, pk: {}, before: null, after: data as any }],
+				`insert into ${ctx.args.table}`,
+			);
+		} catch (e: any) {
+			await ctx.error("message" in e ? e.message : String(e));
+		}
 	},
 	middleware: [ownerOnly],
 });

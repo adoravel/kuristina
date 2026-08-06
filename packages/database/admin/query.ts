@@ -50,6 +50,7 @@ export async function fetchRowsWhere(
 	opts?: { limit?: number; offset?: number },
 ): Promise<Record<string, JsonValue>[]> {
 	assertEditableTable(table);
+
 	let query = database.selectFrom(table as never).selectAll();
 	for (const [col, val] of Object.entries(conditions)) {
 		query = query.where(col as never, "=", val as never);

@@ -138,10 +138,10 @@ export default defineCommand({
 	async exec(ctx) {
 		try {
 			assertEditableTable(ctx.args.table);
-		} catch (e) {
-			return void await ctx.error((e as Error).message);
+			await runInspector(ctx, ctx.args.table);
+		} catch (e: any) {
+			await ctx.error("message" in e ? e.message : String(e));
 		}
-		await runInspector(ctx, ctx.args.table);
 	},
 	middleware: [ownerOnly],
 });
