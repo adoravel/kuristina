@@ -1,9 +1,16 @@
+/**
+ * kuristina, a ~~kitchen~~ bathroom sink discord bot
+ * Copyright (c) 2025-2026 kyu.re
+ * SPDX-License-Identifier: AGPL-3.0-or-later
+ */
+
 import { database } from "@kuristina/database";
 import { err, ok, type Result } from "@kuristina/core";
 import type { SqlError } from "@kuristina/database";
 import { assertEditableTable, validateAndGetSchema } from "./guard.ts";
 import { coerceValue, getColumnNames, getPrimaryKeyColumns } from "./schema.ts";
 import type { JsonValue, MutationPlan, RowChange, TableSchema } from "./types.ts";
+import { sql } from "@kysely/kysely";
 
 export type EditError = SqlError | { kind: "validation"; message: string };
 
@@ -19,6 +26,81 @@ interface GroupedOps {
 	inserts: Record<string, JsonValue>[];
 	updates: Array<{ pk: Record<string, JsonValue>; data: Record<string, JsonValue> }>;
 	deletes: Record<string, JsonValue>[];
+}
+
+interface UniqueConstraint {
+	name: string;
+	columns: string[];
+}
+
+interface IndexInfo {
+	name: string;
+	sql: string | null;
+}
+
+const UNIQUE_CONSTRAINTS_CACHE = new Map<string, UniqueConstraint[]>();
+
+async function getUniqueConstraints(table: string): Promise<UniqueConstraint[]> {
+	const cached = UNIQUE_CONSTRAINTS_CACHE.get(table);
+	if (cached) return cached;
+
+	const result = await sql<IndexInfo>`
+		SELECT name, sql FROM sqlite_master 
+		WHERE type = 'index' AND sql LIKE '%UNIQUE%' AND tbl_name = ${table}
+	`.execute(database);
+
+	const constraints: UniqueConstraint[] = [];
+	for (const row of result.rows) {
+		if (!row.sql) continue;
+		const match = row.sql.match(/\(([^)]+)\)/);
+		if (match) {
+			const columns = match[1].split(",").map((c: string) => c.trim().replace(/["']/g, ""));
+			constraints.push({ name: row.name, columns });
+		}
+	}
+
+	UNIQUE_CONSTRAINTS_CACHE.set(table, constraints);
+	return constraints;
+}
+
+function findMatchingConstraint(
+	pk: Record<string, JsonValue>,
+	uniqueConstraints: UniqueConstraint[],
+): Record<string, JsonValue> | null {
+	for (const constraint of uniqueConstraints) {
+		const matched = Object.fromEntries(
+			Object.entries(pk).filter(([k]) => constraint.columns.includes(k)),
+		);
+		if (Object.keys(matched).length === constraint.columns.length) {
+			return matched;
+		}
+	}
+	return null;
+}
+
+function validatePrimaryKeyConditions(
+	pk: Record<string, JsonValue>,
+	primaryKeys: string[],
+	uniqueConstraints: UniqueConstraint[] = [],
+): Record<string, JsonValue> {
+	const conditions = Object.fromEntries(
+		Object.entries(pk).filter(([k]) => primaryKeys.includes(k)),
+	);
+
+	if (!Object.keys(conditions).length) {
+		const matched = findMatchingConstraint(pk, uniqueConstraints);
+		if (matched) {
+			return matched;
+		}
+	}
+
+	if (!Object.keys(conditions).length) {
+		throw {
+			kind: "validation",
+			message: "No primary key or unique constraint conditions provided",
+		};
+	}
+	return conditions;
 }
 
 function groupChanges(changes: readonly RowChange[]): Map<string, GroupedOps> {
@@ -41,19 +123,6 @@ function groupChanges(changes: readonly RowChange[]): Map<string, GroupedOps> {
 	}
 
 	return groups;
-}
-
-function validatePrimaryKeyConditions(
-	pk: Record<string, JsonValue>,
-	primaryKeys: string[],
-): Record<string, JsonValue> {
-	const conditions = Object.fromEntries(
-		Object.entries(pk).filter(([k]) => primaryKeys.includes(k)),
-	);
-	if (!Object.keys(conditions).length) {
-		throw { kind: "validation", message: "No primary key conditions provided" };
-	}
-	return conditions;
 }
 
 function validateUpdateData(
@@ -93,12 +162,13 @@ function validateInsertData(
 	);
 }
 
-function buildDeleteQuery(
+async function buildDeleteQuery(
 	table: string,
 	pk: Record<string, JsonValue>,
 	primaryKeys: string[],
 ) {
-	const conditions = validatePrimaryKeyConditions(pk, primaryKeys);
+	const uniqueConstraints = await getUniqueConstraints(table);
+	const conditions = validatePrimaryKeyConditions(pk, primaryKeys, uniqueConstraints);
 	let query = database.deleteFrom(table as never);
 	for (const [col, val] of Object.entries(conditions)) {
 		query = query.where(col as never, "=", val as never);
@@ -106,7 +176,7 @@ function buildDeleteQuery(
 	return query;
 }
 
-function buildUpdateQuery(
+async function buildUpdateQuery(
 	table: string,
 	pk: Record<string, JsonValue>,
 	data: Record<string, JsonValue>,
@@ -114,7 +184,8 @@ function buildUpdateQuery(
 	columns: string[],
 	schema: TableSchema,
 ) {
-	const conditions = validatePrimaryKeyConditions(pk, primaryKeys);
+	const uniqueConstraints = await getUniqueConstraints(table);
+	const conditions = validatePrimaryKeyConditions(pk, primaryKeys, uniqueConstraints);
 	const updateData = validateUpdateData(data, columns, primaryKeys, schema);
 
 	let query = database.updateTable(table as never).set(updateData);
@@ -155,7 +226,7 @@ async function executeUpdates(
 	logger.info(`admin: updating ${updates.length} rows in ${table}`);
 
 	for (const { pk, data } of updates) {
-		const query = buildUpdateQuery(table, pk, data, primaryKeys, columns, schema);
+		const query = await buildUpdateQuery(table, pk, data, primaryKeys, columns, schema);
 		const result = await query.executeTakeFirst();
 		count += Number(result.numUpdatedRows ?? 0);
 	}
@@ -185,7 +256,7 @@ async function executeDeletes(
 		);
 
 		for (const pk of batch) {
-			const query = buildDeleteQuery(table, pk, primaryKeys);
+			const query = await buildDeleteQuery(table, pk, primaryKeys);
 			const result = await query.executeTakeFirst();
 			count += Number(result.numDeletedRows ?? 0);
 		}
@@ -252,7 +323,7 @@ export async function deleteSingleRow(
 
 	const schema = await validateAndGetSchema(table);
 	const primaryKeys = getPrimaryKeyColumns(schema);
-	const query = buildDeleteQuery(table, pk, primaryKeys);
+	const query = await buildDeleteQuery(table, pk, primaryKeys);
 	const result = await query.executeTakeFirst();
 
 	if (Number(result.numDeletedRows ?? 0) === 0) {
@@ -287,7 +358,7 @@ export async function updateSingleRow(
 	const schema = await validateAndGetSchema(table);
 	const columns = getColumnNames(schema);
 	const primaryKeys = getPrimaryKeyColumns(schema);
-	const query = buildUpdateQuery(table, pk, data, primaryKeys, columns, schema);
+	const query = await buildUpdateQuery(table, pk, data, primaryKeys, columns, schema);
 	const result = await query.executeTakeFirst();
 
 	if (Number(result.numUpdatedRows ?? 0) === 0) {

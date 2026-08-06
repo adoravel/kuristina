@@ -1,3 +1,9 @@
+/**
+ * kuristina, a ~~kitchen~~ bathroom sink discord bot
+ * Copyright (c) 2025-2026 kyu.re
+ * SPDX-License-Identifier: AGPL-3.0-or-later
+ */
+
 import { arg, defineCommand } from "@kuristina/commands/core";
 import { repositories } from "@kuristina/database";
 import { allowedAliasManagers } from "./shared.tsx";

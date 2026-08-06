@@ -61,7 +61,6 @@ const runInspector = async (
 	pageSize = MAX_PAGE_SIZE,
 ): Promise<void> => {
 	let page = 0;
-	let messageId: bigint | undefined;
 
 	while (true) {
 		const { content, totalPages } = await renderPage(table, page, pageSize);
@@ -98,15 +97,7 @@ const runInspector = async (
 			</row>
 		);
 
-		if (messageId) {
-			await ctx.platform.helpers.editMessage(ctx.channelId, messageId, {
-				content,
-				components: [components],
-			});
-		} else {
-			const sent = await ctx.reply({ content, components: [components] }, { ephemeral: true });
-			if (sent) messageId = sent.id;
-		}
+		await ctx.reply({ content, components: [components] }, { ephemeral: true });
 
 		const winner = await Promise.race([
 			prevP.then(() => "prev" as const),
