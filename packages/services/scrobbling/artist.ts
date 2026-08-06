@@ -11,11 +11,12 @@ import type { ScrobbleError, ScrobbleProviderName } from "@kuristina/services/sc
 export interface ScrobbleArtist {
 	name: string;
 	href: string;
+	bio?: string;
 	tags?: { name: string; url?: string }[];
 	imageUrl: string;
 }
 
-export interface ExtendedScrobleArtist extends ScrobbleArtist {
+export interface ExtendedScrobbleArtist extends ScrobbleArtist {
 	individualUserScrobbles: number;
 }
 
@@ -26,7 +27,7 @@ export interface ArtistScrobbleProvider {
 		query: string,
 		exact: boolean,
 		username: string,
-	): AsyncResult<ExtendedScrobleArtist, ScrobbleError>;
+	): AsyncResult<ExtendedScrobbleArtist, ScrobbleError>;
 
 	getInfo(
 		query: string,
@@ -40,7 +41,7 @@ export class LastfmArtistScrobbleProvider implements ArtistScrobbleProvider {
 	getInfo(
 		query: string,
 		exact: boolean,
-	): AsyncResult<ExtendedScrobleArtist, ScrobbleError>;
+	): AsyncResult<ExtendedScrobbleArtist, ScrobbleError>;
 	getInfo(
 		artist: string,
 		exact: boolean,
@@ -51,7 +52,7 @@ export class LastfmArtistScrobbleProvider implements ArtistScrobbleProvider {
 		query: string,
 		exact: boolean,
 		username?: string,
-	): AsyncResult<ScrobbleArtist | ExtendedScrobleArtist, ScrobbleError> {
+	): AsyncResult<ScrobbleArtist | ExtendedScrobbleArtist, ScrobbleError> {
 		if (username) {
 			return mapAsync(
 				withLastFmCache("user_stats", "artist.getInfo", {
@@ -64,6 +65,7 @@ export class LastfmArtistScrobbleProvider implements ArtistScrobbleProvider {
 				imageUrl: $.highestQualityImage["#text"],
 				tags: $.tags?.tag,
 				href: $.url,
+				bio: $.bio?.summary,
 				individualUserScrobbles: Number($.stats?.userplaycount ?? 0),
 			}));
 		}
@@ -78,6 +80,7 @@ export class LastfmArtistScrobbleProvider implements ArtistScrobbleProvider {
 			name: $.name,
 			href: $.url,
 			tags: $.tags?.tag,
+			bio: $.bio?.summary,
 			imageUrl: $.highestQualityImage["#text"],
 		}));
 	}

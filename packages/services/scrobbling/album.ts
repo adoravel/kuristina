@@ -13,6 +13,7 @@ export interface ScrobbleAlbum {
 	artist: string;
 	href: string;
 	imageUrl: string;
+	bio?: string;
 }
 
 export interface ExtendedScrobbleAlbum extends ScrobbleAlbum {
@@ -62,6 +63,7 @@ export class LastfmAlbumScrobbleProvider implements AlbumScrobbleProvider {
 				name: $.name,
 				artist: $.artist,
 				href: $.url,
+				bio: $.wiki?.summary,
 				imageUrl: $.highestQualityImage["#text"],
 				individualUserScrobbles: Number($.userplaycount ?? 0),
 			}));
@@ -70,6 +72,7 @@ export class LastfmAlbumScrobbleProvider implements AlbumScrobbleProvider {
 			name: $.name,
 			artist: $.artist,
 			href: $.url,
+			bio: $.wiki?.summary,
 			imageUrl: $.highestQualityImage["#text"],
 		}));
 	}
