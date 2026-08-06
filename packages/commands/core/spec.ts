@@ -52,6 +52,13 @@ export interface DefineCommandOptions<A extends ArgsShape> {
 
 const SLASH_NAME_RE = /^[a-z0-9_-]{1,32}$/;
 
+function surfacesMatch(parent: CommandSurface, child: CommandSurface): boolean {
+	if (parent === child) return true;
+	if (parent === "both" && child === "text") return true;
+	if (parent === "both" && child === "slash") return true;
+	return false;
+}
+
 function checkSubcommandDepth(
 	rootName: string,
 	subcommands: readonly CommandSpec<any>[],
@@ -60,9 +67,11 @@ function checkSubcommandDepth(
 	errors: string[],
 ): void {
 	for (const sub of subcommands) {
-		if (sub.surfaces !== parentSurfaces) {
+		if (!surfacesMatch(parentSurfaces, sub.surfaces)) {
 			errors.push(
-				`"${rootName}" → "${sub.aliases[0]}": a subcommand's surfaces must match its parent's ` +
+				`"${rootName}" → "${
+					sub.aliases[0]
+				}": a subcommand's surfaces must be a subset of its parent's ` +
 					`(parent is "${parentSurfaces}", subcommand is "${sub.surfaces}")`,
 			);
 		}
@@ -79,7 +88,7 @@ function checkSubcommandDepth(
 					`"${rootName}" → "${sub.aliases[0]}" can't have both nested subcommands and its own args`,
 				);
 			}
-			checkSubcommandDepth(rootName, sub.subcommands, parentSurfaces, depth + 1, errors);
+			checkSubcommandDepth(rootName, sub.subcommands, sub.surfaces, depth + 1, errors);
 		}
 	}
 }
