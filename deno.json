@@ -15,7 +15,8 @@
 			"env": true,
 			"net": true,
 			"ffi": true,
-			"run": true
+			"run": true,
+			"sys": true
 		}
 	},
 	"imports": {
@@ -26,7 +27,8 @@
 		"@std/crypto": "jsr:@std/crypto@^1.1.0",
 		"@discordeno/bot": "npm:@discordeno/bot@^22.0.1-next.ff7c51d",
 		"@discordeno/types": "npm:@discordeno/types@^22.0.1-next.ff7c51d",
-		"dd-cache-proxy": "npm:dd-cache-proxy@^2.9.0"
+		"dd-cache-proxy": "npm:dd-cache-proxy@^2.9.0",
+		"scripts/": "./scripts/"
 	},
 	"compilerOptions": {
 		"jsx": "react-jsx",

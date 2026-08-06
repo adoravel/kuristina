@@ -25,7 +25,6 @@ export const configSchema = {
 		maintenanceIntervalMs: field.positiveInt(6 * 60 * 60 * 1000),
 		companionRetentionSeconds: field.positiveInt(30 * 60),
 		musicLinkCacheTtlSeconds: field.positiveInt(31 * 24 * 60 * 60),
-		tidalDeviceAuthTtlSeconds: field.positiveInt(10 * 60),
 	},
 	commands: {
 		defaultCooldownMs: field.positiveInt(3_000),
@@ -71,6 +70,7 @@ export const configSchema = {
 			baseUrl: field.stringOr("https://ws.audioscrobbler.com/2.0/"),
 			apiKey: field.stringOr(""),
 			secret: field.stringOr(""),
+			cacheTtlSeconds: field.positiveInt(12 * 60 * 60),
 		},
 		linkEmbeds: {
 			github: field.boolean(true),
