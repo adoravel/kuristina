@@ -38,3 +38,11 @@ export function waitForInteraction<T>(
 
 	return { customId, promise };
 }
+
+export function cancelWaiter(customId: string): void {
+	const entry = waiters.get(customId);
+	if (entry) {
+		clearTimeout(entry.timeoutId);
+		waiters.delete(customId);
+	}
+}
