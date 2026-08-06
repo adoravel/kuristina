@@ -76,7 +76,7 @@ function WhoKnows({
 			</section>
 			<hr spacing={2} />
 			<sub>
-				{ranked.length} of {totalLinked} linked members shown
+				{ranked.length} of {totalLinked} linked users shown
 				{" · "}
 				{PROVIDER}
 			</sub>
@@ -90,9 +90,12 @@ export default defineCommand({
 		"Shows who in this server has scrobbled a given artist the most, ranked by playcount. Requires a linked Last.fm account.",
 	category: "fm",
 	args: {
+		global: arg.boolean({
+			description: "whether this ranking won't be scoped to the current server",
+			required: false,
+		}),
 		query: arg.string({
 			description: "artist name",
-			required: false,
 			greedy: true,
 		}),
 	},
@@ -122,25 +125,35 @@ export default defineCommand({
 		});
 
 		if (!artistInfo.ok) {
-			return void await ctx.error("Artist not found");
+			return void await ctx.error("Artist not found.");
 		}
 
 		const { value: artist } = artistInfo;
 
-		if (!ctx.guildId) {
-			return void await ctx.error("This command can only be used in a server.");
+		if (artist.name.toLowerCase() !== query.toLowerCase()) {
+			await repositories.artistAliases.link(query, artist.name, "autocorrect");
 		}
+		const group = await repositories.artistAliases.getGroup(artist.name);
+		const names = group.ok ? group.value : [artist.name];
 
-		const linked = await fetchLinkedAccounts(ctx.guildId);
+		const linked = ctx.args.global || !ctx.guildId
+			? await repositories.scrobble.getAllForProvider(PROVIDER)
+			: await fetchLinkedAccounts(ctx.guildId);
+
 		if (!linked.ok || !linked.value?.size) {
 			return void await ctx.error("No one has linked an account yet.");
 		}
 
 		const entries = [...linked.value.entries()];
-		const settled = await fetchPlaycounts(
-			entries,
-			(username) => provider.artist.getInfo(query, true, username),
-		);
+		const settled = await fetchPlaycounts(entries, async (username) => {
+			const perAlias = await Promise.all(
+				names.map((n) => provider.artist.getInfo(n, true, username)),
+			);
+			const ok_ = perAlias.filter((r) => r.ok);
+			if (!ok_.length) return perAlias[0];
+			const summed = ok_.reduce((sum, r) => sum + r.value.individualUserScrobbles, 0);
+			return { ok: true, value: { ...ok_[0].value, individualUserScrobbles: summed } };
+		});
 
 		const { ranked, imageUrl } = rankResults(settled, MAX_SHOWN);
 
