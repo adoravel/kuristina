@@ -96,6 +96,16 @@ export class ScrobbleAccountRepository extends Repository {
 		});
 	}
 
+	async getAllForProvider(
+		provider: ScrobbleProviderName,
+	): Promise<Result<Map<bigint, string>, SqlError>> {
+		return await tryQuery(async () => {
+			const rows = await this.database.selectFrom("scrobble_accounts")
+				.select(["discord_id", "username"]).where("provider", "=", provider).execute();
+			return new Map(rows.map((r) => [BigInt(r.discord_id), r.username]));
+		});
+	}
+
 	async getAllForProviderInGuild(
 		provider: ScrobbleProviderName,
 		guildId: bigint,
