@@ -27,8 +27,6 @@ const isPngSource = (config: IconRegistration, url: string): boolean =>
 	url.startsWith("data:image/png") ||
 	/\.png(\?.*)?$/i.test(url);
 
-let forceRegenerate = false;
-
 const resolveProviderUrl = (config: IconRegistration): string => {
 	switch (config.provider) {
 		case "lucide":
@@ -126,10 +124,13 @@ const savePng = async (destPath: string | URL, data: Uint8Array): Promise<void> 
 	await Deno.writeFile(destPath, data);
 };
 
-const processIcon = async ([name, config]: [string, IconRegistration]): Promise<void> => {
+const processIcon = async (
+	force: boolean,
+	[name, config]: [string, IconRegistration],
+): Promise<void> => {
 	const destUrl = new URL(`${name}.png`, VENDORED_ICONS_DIR);
 
-	if (!forceRegenerate) {
+	if (!force) {
 		try {
 			return void await Deno.stat(destUrl);
 		} catch { /* no-op */ }
@@ -169,13 +170,12 @@ const processIcon = async ([name, config]: [string, IconRegistration]): Promise<
 export async function generateMissingIcons(
 	opts: { force?: boolean } = {},
 ): Promise<{ generated: number; skipped: number; failed: number }> {
-	forceRegenerate = opts.force ?? false;
 	await ensureDirectory(VENDORED_ICONS_DIR);
 
 	const entries = Object.entries(registeredIcons) as [string, IconRegistration][];
 	let skipped = 0;
 
-	if (!forceRegenerate) {
+	if (opts.force === false) {
 		for (const [name] of entries) {
 			try {
 				await Deno.stat(new URL(`${name}.png`, VENDORED_ICONS_DIR));
@@ -184,7 +184,7 @@ export async function generateMissingIcons(
 		}
 	}
 
-	const results = await mapWithConcurrency(entries, 10, processIcon);
+	const results = await mapWithConcurrency(entries, 10, (x) => processIcon(opts.force ?? false, x));
 	const generated = results.filter((r) => r.status === "fulfilled").length - skipped;
 	const failed = results.filter((r) => r.status === "rejected").length;
 
@@ -193,9 +193,10 @@ export async function generateMissingIcons(
 
 async function main() {
 	logger.info("starting icon generation pipeline");
-	forceRegenerate = Deno.args.includes("--force");
 
-	const { generated, skipped, failed } = await generateMissingIcons();
+	const { generated, skipped, failed } = await generateMissingIcons({
+		force: Deno.args.includes("--force"),
+	});
 	logger.yay(`icons: ${generated} generated, ${skipped} already vendored, ${failed} failed`);
 	if (failed > 0) Deno.exit(1);
 }
