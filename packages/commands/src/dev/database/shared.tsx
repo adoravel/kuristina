@@ -24,6 +24,46 @@ export const parseKeyValues = (input: string): Record<string, string> => {
 	return result.value;
 };
 
+export function evaluateValue(value: string): string {
+	if (value === "now()") {
+		return Math.floor(Date.now() / 1000).toString();
+	}
+
+	if (value === "now(ms)") {
+		return Date.now().toString();
+	}
+
+	const nowMatch = value.match(/^now\(([+-]?\d+)([smhd])\)$/);
+	if (nowMatch) {
+		const [, amount, unit] = nowMatch;
+		const num = parseInt(amount, 10);
+		const multipliers: Record<string, number> = {
+			s: 1,
+			m: 60,
+			h: 3600,
+			d: 86400,
+		};
+		const seconds = num * (multipliers[unit] || 1);
+		return Math.floor(Date.now() / 1000 + seconds).toString();
+	}
+
+	return value;
+}
+
+export function evaluateValues<T extends Record<string, unknown>>(
+	obj: T,
+): T {
+	const result: Record<string, unknown> = {};
+	for (const [key, value] of Object.entries(obj)) {
+		if (typeof value === "string") {
+			result[key] = evaluateValue(value);
+		} else {
+			result[key] = value;
+		}
+	}
+	return result as T;
+}
+
 export async function confirmAndApply(
 	ctx: Invocation,
 	changes: RowChange[],

@@ -4,17 +4,17 @@
  * SPDX-License-Identifier: AGPL-3.0-or-later
  */
 
-import { arg, defineCommand, ownerOnly } from "@kuristina/commands/core";
+import { string, defineCommand, ownerOnly } from "@kuristina/commands/core";
 import { assertEditableTable, fetchRow, validateAndGetSchema } from "@kuristina/database/admin";
-import { confirmAndApply, parseKeyValues } from "./shared.tsx";
+import { confirmAndApply, evaluateValues, parseKeyValues } from "./shared.tsx";
 
 export default defineCommand({
 	aliases: "set",
 	description: "Updates specific columns on a row. Shows a diff and asks for confirmation.",
 	args: {
-		table: arg.string({ description: "table name", required: true }),
-		pk: arg.string({ description: "primary key, e.g. word=hello or id=42", required: true }),
-		changes: arg.string({
+		table: string({ description: "table name", required: true }),
+		pk: string({ description: "primary key, e.g. word=hello or id=42", required: true }),
+		changes: string({
 			description: "column=value pairs, comma-separated",
 			required: true,
 			greedy: true,
@@ -28,7 +28,9 @@ export default defineCommand({
 		}
 
 		const pk = parseKeyValues(ctx.args.pk);
-		const changes = parseKeyValues(ctx.args.changes);
+
+		const rawChanges = parseKeyValues(ctx.args.changes);
+		const changes = evaluateValues(rawChanges);
 
 		const before = await fetchRow(ctx.args.table, pk);
 		if (!before) {

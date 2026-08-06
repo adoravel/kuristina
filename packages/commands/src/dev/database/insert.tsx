@@ -4,16 +4,16 @@
  * SPDX-License-Identifier: AGPL-3.0-or-later
  */
 
-import { arg, defineCommand, ownerOnly } from "@kuristina/commands/core";
+import { defineCommand, ownerOnly, string } from "@kuristina/commands/core";
 import { assertEditableTable, validateAndGetSchema } from "@kuristina/database/admin";
-import { confirmAndApply, parseKeyValues } from "./shared.tsx";
+import { confirmAndApply, evaluateValues, parseKeyValues } from "./shared.tsx";
 
 export default defineCommand({
 	aliases: "insert",
 	description: "Inserts a new row. Shows a diff and asks for confirmation.",
 	args: {
-		table: arg.string({ description: "table name", required: true }),
-		values: arg.string({
+		table: string({ description: "table name", required: true }),
+		values: string({
 			description: "column=value pairs, comma-separated",
 			required: true,
 			greedy: true,
@@ -26,7 +26,9 @@ export default defineCommand({
 			return void await ctx.error((e as Error).message);
 		}
 
-		const values = parseKeyValues(ctx.args.values);
+		const rawValues = parseKeyValues(ctx.args.values);
+		const values = evaluateValues(rawValues);
+
 		const schema = await validateAndGetSchema(ctx.args.table);
 		const columns = schema.columns.map((c) => c.name);
 
