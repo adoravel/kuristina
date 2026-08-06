@@ -92,7 +92,7 @@ function WhoKnowsAlbum({
 }
 
 export default defineCommand({
-	aliases: ["whoknowsalbum", "wka", "wkalbum", "album", "ep"],
+	aliases: ["album", "wka", "wkalbum", "whoknowsalbum", "ep"],
 	description:
 		"Shows who in this server has scrobbled a given album the most. Use `artist | album`, or omit to use your last played album. Requires a linked Last.fm account.",
 	category: "lastfm",

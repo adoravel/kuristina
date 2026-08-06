@@ -88,7 +88,7 @@ function WhoKnows({
 }
 
 export default defineCommand({
-	aliases: ["whoknows", "wk", "w", "artist", "musician", "band"],
+	aliases: ["artist", "whoknows", "wk", "w", "musician", "band"],
 	description:
 		"Shows who in this server has scrobbled a given artist the most, ranked by playcount. Requires a linked Last.fm account.",
 	category: "fm",
