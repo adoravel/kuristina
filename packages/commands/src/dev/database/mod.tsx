@@ -4,11 +4,11 @@
  * SPDX-License-Identifier: AGPL-3.0-or-later
  */
 
-import { defineCommand } from "@kuristina/commands/core";
-import { ownerOnly } from "@kuristina/commands/core";
+import { defineCommand, ownerOnly } from "@kuristina/commands/core";
 import inspect from "./inspect.tsx";
 import set from "./set.tsx";
 import del from "./delete.tsx";
+import insert from "./insert.tsx";
 import undo from "./undo.tsx";
 import history from "./history.tsx";
 
@@ -17,6 +17,8 @@ export default defineCommand({
 	surfaces: "text",
 	description: "Inspect and manage database rows, with diff preview and undo.",
 	middleware: [ownerOnly],
-	subcommands: [inspect, set, del, undo, history],
-	async exec() {},
+	subcommands: [inspect, set, del, insert, undo, history],
+	async exec(ctx) {
+		await ctx.error("inspect/set/del/insert/undo/history");
+	},
 });

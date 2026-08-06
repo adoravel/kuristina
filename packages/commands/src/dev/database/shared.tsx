@@ -8,39 +8,28 @@ import type { Invocation } from "@kuristina/commands/core";
 import { cancelWaiter, waitForInteraction } from "@kuristina/core";
 import {
 	applyPlan,
-	type MutationPlan,
+	createPlan,
+	parseKeyValuePairs,
 	recordApplied,
 	renderDiffMessage,
+	type RowChange,
 } from "@kuristina/database/admin";
 import { ButtonStyles, type Interaction } from "@kuristina/discord-bot";
 
-export const MAX_PLAN_ROWS = Number.MAX_SAFE_INTEGER;
-
-export function parseKeyValuePairs(input: string): Record<string, string> {
-	const out: Record<string, string> = {};
-	for (const pair of input.split(",")) {
-		const eq = pair.indexOf("=");
-		if (eq === -1) continue;
-		out[pair.slice(0, eq).trim()] = pair.slice(eq + 1).trim();
+export const parseKeyValues = (input: string): Record<string, string> => {
+	const result = parseKeyValuePairs(input);
+	if (!result.valid) {
+		throw new Error(result.message);
 	}
-	return out;
-}
+	return result.value;
+};
 
-export function coerceTypes(
-	reference: Record<string, unknown>,
-	changes: Record<string, string>,
-): Record<string, unknown> {
-	const out: Record<string, unknown> = {};
-	for (const [k, v] of Object.entries(changes)) {
-		const existing = reference[k];
-		if (typeof existing === "number") out[k] = Number(v);
-		else if (typeof existing === "bigint") out[k] = BigInt(v);
-		else out[k] = v;
-	}
-	return out;
-}
-
-export async function confirmAndApply(ctx: Invocation, plan: MutationPlan): Promise<void> {
+export async function confirmAndApply(
+	ctx: Invocation,
+	changes: RowChange[],
+	description: string,
+): Promise<void> {
+	const plan = createPlan(description, changes);
 	const rendered = renderDiffMessage(plan);
 
 	const { customId: confirmId, promise: confirmP } = waitForInteraction<Interaction>(
@@ -54,12 +43,15 @@ export async function confirmAndApply(ctx: Invocation, plan: MutationPlan): Prom
 		{ filter: (i) => i.user?.id === ctx.user.id },
 	);
 
+	const content = rendered.kind === "inline" ? rendered.content : `**${plan.description}**`;
+	const files = rendered.kind === "file" ? [rendered] : undefined;
+
 	await ctx.reply({
-		content: "content" in rendered ? rendered.content : `**${plan.description}**`,
-		...("blob" in rendered ? { files: [rendered] } : {}),
+		content,
+		files,
 		components: [
 			<row>
-				<button customId={confirmId} style={ButtonStyles.Danger}>Confirm</button>
+				<button customId={confirmId} style={ButtonStyles.Primary}>Confirm</button>
 				<button customId={cancelId} style={ButtonStyles.Secondary}>Cancel</button>
 			</row>,
 		],
@@ -74,21 +66,34 @@ export async function confirmAndApply(ctx: Invocation, plan: MutationPlan): Prom
 	cancelWaiter(cancelId);
 
 	if (winner !== "confirm") {
+		const msg = winner === "cancel"
+			? "cancelled, nothing changed"
+			: "confirmation timed out, nothing changed";
+
 		await ctx.reply({
-			content: winner === "cancel"
-				? "cancelled, nothing changed"
-				: "confirmation timed out, nothing changed",
+			content: msg,
+			components: [],
+			files: [],
 		});
 		return;
 	}
 
 	const applied = await applyPlan(plan);
-	if (!applied.ok) return void await ctx.error(`apply failed: ${applied.error.message}`);
+	if (!applied.ok) {
+		await ctx.reply({
+			content: `apply failed: ${applied.error.message}`,
+			components: [],
+			files: [],
+		});
+		return;
+	}
 
 	recordApplied(plan);
-	await ctx.success(
-		`applied: ${plan.description} (${plan.changes.length} row change${
+	await ctx.reply({
+		content: `applied: ${plan.description} (${plan.changes.length} row change${
 			plan.changes.length === 1 ? "" : "s"
 		})`,
-	);
+		components: [],
+		files: [],
+	});
 }

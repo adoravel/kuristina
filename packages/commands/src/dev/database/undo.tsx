@@ -5,16 +5,26 @@
  */
 
 import { defineCommand, ownerOnly } from "@kuristina/commands/core";
-import { invertPlan, popLast } from "@kuristina/database/admin";
+import { invertPlan, peekLastPlan, popLastPlan, type RowChange } from "@kuristina/database/admin";
 import { confirmAndApply } from "./shared.tsx";
 
 export default defineCommand({
 	aliases: "undo",
 	description: "Reverts the last applied change (in-memory history, lost on restart).",
 	async exec(ctx) {
-		const last = popLast();
-		if (!last) return void await ctx.error("nothing in history to undo");
-		await confirmAndApply(ctx, invertPlan(last));
+		const plan = peekLastPlan();
+		if (!plan) return void await ctx.error("nothing in history to undo");
+
+		try {
+			await confirmAndApply(
+				ctx,
+				invertPlan(plan).changes as RowChange[],
+				`undo: ${plan.description}`,
+			);
+			popLastPlan();
+		} catch (error: any) {
+			ctx.error("message" in error ? error.message : String(error));
+		}
 	},
 	middleware: [ownerOnly],
 });

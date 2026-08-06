@@ -5,8 +5,8 @@
  */
 
 import { arg, defineCommand, ownerOnly } from "@kuristina/commands/core";
-import { assertEditable, fetchRow, type MutationPlan } from "@kuristina/database/admin";
-import { coerceTypes, confirmAndApply, parseKeyValuePairs } from "./shared.tsx";
+import { assertEditableTable, fetchRow, validateAndGetSchema } from "@kuristina/database/admin";
+import { confirmAndApply, parseKeyValues } from "./shared.tsx";
 
 export default defineCommand({
 	aliases: "set",
@@ -22,35 +22,38 @@ export default defineCommand({
 	},
 	async exec(ctx) {
 		try {
-			assertEditable(ctx.args.table);
+			assertEditableTable(ctx.args.table);
 		} catch (e) {
 			return void await ctx.error((e as Error).message);
 		}
 
-		const pk = parseKeyValuePairs(ctx.args.pk);
-		if (!Object.keys(pk).length) {
-			return void await ctx.error("give me a primary key like `word=hello`");
-		}
+		const pk = parseKeyValues(ctx.args.pk);
+		const changes = parseKeyValues(ctx.args.changes);
 
 		const before = await fetchRow(ctx.args.table, pk);
 		if (!before) {
 			return void await ctx.error(`no row in \`${ctx.args.table}\` matching ${JSON.stringify(pk)}`);
 		}
 
-		const changes = parseKeyValuePairs(ctx.args.changes);
-		if (!Object.keys(changes).length) {
-			return void await ctx.error("give me at least one column=value change");
+		const schema = await validateAndGetSchema(ctx.args.table);
+		const after = { ...before };
+
+		for (const [k, v] of Object.entries(changes)) {
+			const col = schema.columns.find((c) => c.name === k);
+			if (!col) {
+				return void await ctx.error(`"${k}" doesn't exist in table "${ctx.args.table}"`);
+			}
+			if (col.isPrimaryKey) {
+				return void await ctx.error(`Cannot update primary key column "${k}"`);
+			}
+			after[k] = v;
 		}
 
-		const after = { ...before, ...coerceTypes(before, changes) };
-
-		const plan: MutationPlan = {
-			id: crypto.randomUUID(),
-			description: `set ${ctx.args.table} ${ctx.args.pk}`,
-			changes: [{ table: ctx.args.table, pk, before, after }],
-		};
-
-		await confirmAndApply(ctx, plan);
+		await confirmAndApply(
+			ctx,
+			[{ table: ctx.args.table, pk, before, after }],
+			`set ${ctx.args.table} ${ctx.args.pk}`,
+		);
 	},
 	middleware: [ownerOnly],
 });

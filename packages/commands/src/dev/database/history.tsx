@@ -5,20 +5,22 @@
  */
 
 import { defineCommand, ownerOnly } from "@kuristina/commands/core";
-import { peekHistory } from "@kuristina/database/admin";
+import { getHistory } from "@kuristina/database/admin";
 
 export default defineCommand({
 	aliases: "history",
 	description: "Shows recently applied changes this session.",
 	async exec(ctx) {
-		const entries = peekHistory();
+		const entries = getHistory();
 		if (!entries.length) {
 			return void await ctx.reply({ content: "no changes applied this session" });
 		}
 		await ctx.reply({
-			content: entries.map((p, i) => `${i + 1}. ${p.description} (${p.changes.length} rows)`).join(
-				"\n",
-			),
+			content: entries.map((p, i) =>
+				`${i + 1}. ${p.description} (${p.changes.length} row${
+					p.changes.length === 1 ? "" : "s"
+				}) @ ${new Date(p.createdAt).toLocaleTimeString()}`
+			).join("\n"),
 		});
 	},
 	middleware: [ownerOnly],
