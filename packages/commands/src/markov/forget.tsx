@@ -7,7 +7,7 @@
 import { arg, defineCommand } from "@kuristina/commands/core";
 import { ownerOnly } from "@kuristina/commands/core";
 import { database } from "@kuristina/database";
-import { createDeletePlan, type RowChange } from "@kuristina/database/admin";
+import { createDeletePlan } from "@kuristina/database/admin";
 import { confirmAndApply } from "../dev/database/shared.tsx";
 
 const MAX_FORGET_ROWS = 65535;
@@ -80,6 +80,6 @@ export default defineCommand({
 		);
 		(plan as any).changes = changes;
 
-		await confirmAndApply(ctx, plan.changes as RowChange[], plan.description);
+		await confirmAndApply(ctx, plan);
 	},
 });

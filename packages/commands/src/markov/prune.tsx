@@ -7,7 +7,7 @@
 import { arg, defineCommand } from "@kuristina/commands/core";
 import { ownerOnly } from "@kuristina/commands/core";
 import { database } from "@kuristina/database";
-import type { RowChange } from "@kuristina/database/admin";
+import { createPlan } from "@kuristina/database/admin";
 import { confirmAndApply } from "../dev/database/shared.tsx";
 
 const MAX_PRUNE_ROWS = 65535;
@@ -47,14 +47,15 @@ export default defineCommand({
 		const changes = rows.map((r) => ({
 			table: "markov_chain" as const,
 			pk: { id: r.id },
-			before: r as Record<string, unknown>,
+			before: r,
 			after: null,
 		}));
 
-		await confirmAndApply(
-			ctx,
-			changes as RowChange[],
+		const plan = createPlan(
 			`prune markov_chain entries with count <= ${minCount} (${rows.length} rows)`,
+			changes,
 		);
+
+		await confirmAndApply(ctx, plan);
 	},
 });

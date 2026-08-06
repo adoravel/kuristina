@@ -4,30 +4,21 @@
  * SPDX-License-Identifier: AGPL-3.0-or-later
  */
 
+import { err, ok, type Result } from "@kuristina/core";
 import { MAX_KEY_VALUE_PAIRS } from "./constants.ts";
 
-export interface ParseResult {
-	valid: true;
-	value: Record<string, string>;
-}
-
-export interface ParseError {
-	valid: false;
-	message: string;
-}
-
-export type ParseKeyValueResult = ParseResult | ParseError;
+export type ParseKeyValueResult = Result<Record<string, string>, string>;
 
 export function parseKeyValuePairs(input: string): ParseKeyValueResult {
 	const result: Record<string, string> = {};
 	let current = "";
 	let key = "";
-	let inQuotes = false;
+	let quoteChar: string | null = null;
 	let escaped = false;
 	let pairs = 0;
 
 	if (input.length === 0) {
-		return { valid: false, message: "Input is empty" };
+		return err("Input is empty");
 	}
 
 	for (let i = 0; i < input.length && pairs < MAX_KEY_VALUE_PAIRS; i++) {
@@ -45,15 +36,21 @@ export function parseKeyValuePairs(input: string): ParseKeyValueResult {
 		}
 
 		if (char === '"' || char === "'") {
-			inQuotes = !inQuotes;
+			if (quoteChar === null) {
+				quoteChar = char;
+			} else if (char === quoteChar) {
+				quoteChar = null;
+			} else {
+				current += char;
+			}
 			continue;
 		}
 
-		if (!inQuotes) {
+		if (quoteChar === null) {
 			if (char === "=" && !key) {
 				key = current.trim();
 				if (!key) {
-					return { valid: false, message: "Empty key before '='" };
+					return err("Empty key before '='");
 				}
 				current = "";
 				continue;
@@ -73,30 +70,30 @@ export function parseKeyValuePairs(input: string): ParseKeyValueResult {
 		current += char;
 	}
 
-	if (key && current !== undefined) {
+	if (key) {
 		result[key] = current.trim();
 	}
 
 	if (!Object.keys(result).length) {
-		return { valid: false, message: "No valid key=value pairs found" };
+		return err("No valid key=value pairs found");
 	}
 
-	return { valid: true, value: result };
+	return ok(result);
 }
 
 export function parseKeyValuePairsStrict(
 	input: string,
 	requiredKeys?: string[],
-): { valid: true; value: Record<string, string> } | { valid: false; message: string } {
+): ParseKeyValueResult {
 	const result = parseKeyValuePairs(input);
-	if (!result.valid) return result;
+	if (!result.ok) return result;
 
 	if (requiredKeys) {
 		const missing = requiredKeys.filter((k) => !(k in result.value));
 		if (missing.length) {
-			return { valid: false, message: `Missing required keys: ${missing.join(", ")}` };
+			return err(`Missing required keys: ${missing.join(", ")}`);
 		}
 	}
 
-	return { valid: true, value: result.value };
+	return ok(result.value);
 }

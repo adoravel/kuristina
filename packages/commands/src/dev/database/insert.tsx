@@ -5,8 +5,13 @@
  */
 
 import { defineCommand, ownerOnly, string } from "@kuristina/commands/core";
-import { assertEditableTable, validateAndGetSchema } from "@kuristina/database/admin";
-import { confirmAndApply, evaluateValues, parseKeyValues } from "./shared.tsx";
+import {
+	assertEditableTable,
+	createPlan,
+	getRequiredColumns,
+	validateAndGetSchema,
+} from "@kuristina/database/admin";
+import { confirmAndApply, evaluateValues, parseKeyValues, reportCommandError } from "./shared.tsx";
 
 export default defineCommand({
 	aliases: "insert",
@@ -37,13 +42,21 @@ export default defineCommand({
 				data[k] = v;
 			}
 
-			await confirmAndApply(
-				ctx,
-				[{ table: ctx.args.table, pk: {}, before: null, after: data as any }],
-				`insert into ${ctx.args.table}`,
-			);
-		} catch (e: any) {
-			await ctx.error("message" in e ? e.message : String(e));
+			const required = getRequiredColumns(schema);
+			const missing = required.filter((col) => !(col in data));
+			if (missing.length) {
+				return void await ctx.error(
+					`missing required column${missing.length === 1 ? "" : "s"}: ${missing.join(", ")}`,
+				);
+			}
+
+			const plan = createPlan(`insert into ${ctx.args.table}`, [
+				{ table: ctx.args.table, pk: {}, before: null, after: data as any },
+			]);
+
+			await confirmAndApply(ctx, plan);
+		} catch (e) {
+			await reportCommandError(ctx, e);
 		}
 	},
 	middleware: [ownerOnly],

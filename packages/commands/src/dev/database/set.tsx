@@ -7,17 +7,25 @@
 import { defineCommand, ownerOnly, string } from "@kuristina/commands/core";
 import {
 	assertEditableTable,
-	fetchRowsWhere,
+	buildSetChanges,
+	coerceValue,
+	createPlan,
+	findMatchingRows,
+	MAX_PLAN_ROWS,
+	parseKeyValuePairs,
 	validateAndGetSchema,
 } from "@kuristina/database/admin";
-import { confirmAndApply, evaluateValues, parseKeyValues } from "./shared.tsx";
+import { confirmAndApply, evaluateValue, reportCommandError } from "./shared.tsx";
 
 export default defineCommand({
 	aliases: "set",
 	description: "Updates specific columns on a row. Shows a diff and asks for confirmation.",
 	args: {
 		table: string({ description: "table name", required: true }),
-		pk: string({ description: "primary key, e.g. word=hello or id=42", required: true }),
+		where: string({
+			description: "column=value filter, comma-separated for multiple columns",
+			required: true,
+		}),
 		changes: string({
 			description: "column=value pairs, comma-separated",
 			required: true,
@@ -27,40 +35,54 @@ export default defineCommand({
 	async exec(ctx) {
 		try {
 			assertEditableTable(ctx.args.table);
-			const pk = parseKeyValues(ctx.args.pk);
 
-			const rawChanges = parseKeyValues(ctx.args.changes);
-			const changes = evaluateValues(rawChanges);
+			const filter = parseKeyValuePairs(ctx.args.where);
+			if (!filter.ok) return void await ctx.error(filter.error);
 
-			const rows = await fetchRowsWhere(ctx.args.table, pk, { limit: 1 });
-			if (!rows || !rows.length) {
+			if (!Object.keys(filter.value).length) {
+				return void await ctx.error("give me a filter like `discord_id=..,provider=..`");
+			}
+
+			const rows = await findMatchingRows(ctx.args.table, filter.value, MAX_PLAN_ROWS + 1);
+			if (!rows.length) {
 				return void await ctx.error(
-					`no row in \`${ctx.args.table}\` matching ${JSON.stringify(pk)}`,
+					`no rows in \`${ctx.args.table}\` match ${JSON.stringify(filter.value)}`,
+				);
+			}
+			if (rows.length > MAX_PLAN_ROWS) {
+				return void await ctx.error(
+					`that filter matches more than ${MAX_PLAN_ROWS} rows. narrow it before updating`,
 				);
 			}
 
-			const schema = await validateAndGetSchema(ctx.args.table);
-			const before = rows[0] ?? {};
-			const after = { ...before };
+			const rawChanges = parseKeyValuePairs(ctx.args.changes);
+			if (!rawChanges.ok) return void await ctx.error(rawChanges.error);
 
-			for (const [k, v] of Object.entries(changes)) {
-				const col = schema.columns.find((c) => c.name === k);
-				if (!col) {
-					return void await ctx.error(`"${k}" doesn't exist in table "${ctx.args.table}"`);
-				}
-				if (col.isPrimaryKey) {
-					return void await ctx.error(`Cannot update primary key column "${k}"`);
-				}
-				after[k] = v;
+			if (!Object.keys(rawChanges.value).length) {
+				return void await ctx.error("give me at least one column=value change");
 			}
 
-			await confirmAndApply(
-				ctx,
-				[{ table: ctx.args.table, pk, before, after }],
-				`set ${ctx.args.table} ${ctx.args.pk}`,
+			const schema = await validateAndGetSchema(ctx.args.table);
+			const coerced: Record<string, unknown> = {};
+			for (const [col, raw] of Object.entries(rawChanges.value)) {
+				const columnInfo = schema.columns.find((c) => c.name === col);
+				if (!columnInfo) {
+					return void await ctx.error(`"${col}" doesn't exist in table "${ctx.args.table}"`);
+				}
+				coerced[col] = coerceValue(evaluateValue(raw), columnInfo);
+			}
+
+			const changes = await buildSetChanges(ctx.args.table, rows, coerced);
+			const plan = createPlan(
+				`set ${ctx.args.table} where ${ctx.args.where}: ${ctx.args.changes} (${rows.length} row${
+					rows.length === 1 ? "" : "s"
+				})`,
+				changes,
 			);
-		} catch (e: any) {
-			await ctx.error("message" in e ? e.message : String(e));
+
+			await confirmAndApply(ctx, plan);
+		} catch (e) {
+			await reportCommandError(ctx, e);
 		}
 	},
 	middleware: [ownerOnly],

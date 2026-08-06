@@ -72,6 +72,21 @@ export const getColumnNames = (schema: TableSchema): string[] => schema.columns.
 export const getPrimaryKeyColumns = (schema: TableSchema): string[] =>
 	schema.columns.filter((c) => c.isPrimaryKey).map((c) => c.name);
 
+export function getRequiredColumns(schema: TableSchema): string[] {
+	const pkColumns = schema.columns.filter((c) => c.isPrimaryKey);
+	const rowidAliasName = pkColumns.length === 1 && pkColumns[0].type === "integer"
+		? pkColumns[0].name
+		: null;
+
+	return schema.columns
+		.filter((c) => {
+			if (c.name === rowidAliasName) return false;
+			if (c.isPrimaryKey) return true;
+			return c.notNull && c.defaultValue === null;
+		})
+		.map((c) => c.name);
+}
+
 export function coerceValue(
 	value: unknown,
 	column: ColumnInfo,

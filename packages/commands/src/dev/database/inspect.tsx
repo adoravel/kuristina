@@ -4,7 +4,7 @@
  * SPDX-License-Identifier: AGPL-3.0-or-later
  */
 
-import { arg, defineCommand, ownerOnly } from "@kuristina/commands/core";
+import { defineCommand, ownerOnly, string } from "@kuristina/commands/core";
 import type { Invocation } from "@kuristina/commands/core";
 import { cancelWaiter, waitForInteraction } from "@kuristina/core";
 import {
@@ -16,11 +16,9 @@ import {
 	validateAndGetSchema,
 } from "@kuristina/database/admin";
 import { ButtonStyles, type Interaction } from "@kuristina/discord-bot";
+import { reportCommandError } from "./shared.tsx";
 
-const formatRows = (
-	rows: Record<string, unknown>[],
-	columns: string[],
-): string => {
+const formatRows = (rows: Record<string, unknown>[], columns: string[]): string => {
 	const safe = rows.map((r) =>
 		Object.fromEntries(
 			Object.entries(r)
@@ -86,11 +84,7 @@ const runInspector = async (
 				<button customId={prevId} style={ButtonStyles.Secondary} disabled={page === 0}>
 					← Prev
 				</button>
-				<button
-					customId={nextId}
-					style={ButtonStyles.Secondary}
-					disabled={page >= totalPages - 1}
-				>
+				<button customId={nextId} style={ButtonStyles.Secondary} disabled={page >= totalPages - 1}>
 					Next →
 				</button>
 				<button customId={closeId} style={ButtonStyles.Danger}>✕ Close</button>
@@ -114,9 +108,9 @@ const runInspector = async (
 		} else if (winner === "next") {
 			page = Math.min(totalPages - 1, page + 1);
 		} else {
-			await ctx.reply({
-				content: winner === "close" ? "closed" : "inspector timed out",
-			}, { ephemeral: true });
+			await ctx.reply({ content: winner === "close" ? "closed" : "inspector timed out" }, {
+				ephemeral: true,
+			});
 			return;
 		}
 	}
@@ -125,13 +119,13 @@ const runInspector = async (
 export default defineCommand({
 	aliases: ["inspect", "browse"],
 	description: "Browses rows in an admin-editable table, paginated.",
-	args: { table: arg.string({ description: "table name", required: true }) },
+	args: { table: string({ description: "table name", required: true }) },
 	async exec(ctx) {
 		try {
 			assertEditableTable(ctx.args.table);
 			await runInspector(ctx, ctx.args.table);
-		} catch (e: any) {
-			await ctx.error("message" in e ? e.message : String(e));
+		} catch (e) {
+			await reportCommandError(ctx, e);
 		}
 	},
 	middleware: [ownerOnly],

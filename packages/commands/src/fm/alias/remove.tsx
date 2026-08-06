@@ -5,7 +5,7 @@
  */
 
 import { arg, defineCommand } from "@kuristina/commands/core";
-import { assertEditableTable, fetchRow } from "@kuristina/database/admin";
+import { assertEditableTable, createPlan, findMatchingRows } from "@kuristina/database/admin";
 import { confirmAndApply } from "../../dev/database/shared.tsx";
 import { allowedAliasManagers } from "./shared.tsx";
 
@@ -25,17 +25,20 @@ export default defineCommand({
 		}
 
 		const alias = ctx.args.alias.trim();
-		const pk = { name_key: alias.toLowerCase() };
+		const filter = { name_key: alias.toLowerCase() };
 
-		const before = await fetchRow("artist_aliases", pk);
+		const before = await findMatchingRows("artist_aliases", filter, 1);
 		if (!before) {
 			return void await ctx.error(`no alias found for "${alias}"`);
 		}
 
-		await confirmAndApply(
-			ctx,
-			[{ table: "artist_aliases", pk, before, after: null }],
-			`remove alias "${alias}"`,
-		);
+		const plan = createPlan(`remove alias "${alias}"`, [{
+			table: "artist_aliases",
+			pk: filter,
+			before: before[0] as any,
+			after: null,
+		}]);
+
+		await confirmAndApply(ctx, plan);
 	},
 });

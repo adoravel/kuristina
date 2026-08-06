@@ -5,40 +5,62 @@
  */
 
 import { defineCommand, ownerOnly, string } from "@kuristina/commands/core";
-import { assertEditableTable, fetchRowsWhere } from "@kuristina/database/admin";
-import { confirmAndApply, parseKeyValues } from "./shared.tsx";
+import {
+	assertEditableTable,
+	buildDeleteChanges,
+	createPlan,
+	findMatchingRows,
+	MAX_PLAN_ROWS,
+	parseKeyValuePairs,
+} from "@kuristina/database/admin";
+import { confirmAndApply, reportCommandError } from "./shared.tsx";
 
 export default defineCommand({
 	aliases: "delete",
 	description: "Deletes a row. Shows a diff and asks for confirmation.",
 	args: {
 		table: string({ description: "table name", required: true }),
-		pk: string({
-			description: "primary key, e.g. word=hello or id=42",
+		where: string({
+			description:
+				"column=value filter, comma-separated for multiple columns. not required to be the primary key",
 			required: true,
-			greedy: true,
 		}),
 	},
 	async exec(ctx) {
 		try {
 			assertEditableTable(ctx.args.table);
-			const pk = parseKeyValues(ctx.args.pk);
+			const filter = parseKeyValuePairs(ctx.args.where);
 
-			const rows = await fetchRowsWhere(ctx.args.table, pk, { limit: 1 });
-			if (!rows || !rows.length) {
+			if (!filter.ok) {
+				return await ctx.error(filter.error);
+			}
+			if (!Object.keys(filter.value).length) {
+				return void await ctx.error("give me a filter like `discord_id=..,provider=..`");
+			}
+
+			const rows = await findMatchingRows(ctx.args.table, filter.value, MAX_PLAN_ROWS + 1);
+			if (!rows.length) {
 				return void await ctx.error(
-					`no row in \`${ctx.args.table}\` matching ${JSON.stringify(pk)}`,
+					`no rows in \`${ctx.args.table}\` match ${JSON.stringify(filter.value)}`,
+				);
+			}
+			if (rows.length > MAX_PLAN_ROWS) {
+				return void await ctx.error(
+					`that filter matches more than ${MAX_PLAN_ROWS} rows. narrow it before deleting`,
 				);
 			}
 
-			const before = rows[0];
-			await confirmAndApply(
-				ctx,
-				[{ table: ctx.args.table, pk, before, after: null }],
-				`delete ${ctx.args.table} ${ctx.args.pk}`,
+			const changes = await buildDeleteChanges(ctx.args.table, rows);
+			const plan = createPlan(
+				`delete ${ctx.args.table} where ${ctx.args.where} (${rows.length} row${
+					rows.length === 1 ? "" : "s"
+				})`,
+				changes,
 			);
-		} catch (e: any) {
-			await ctx.error("message" in e ? e.message : String(e));
+
+			await confirmAndApply(ctx, plan);
+		} catch (e) {
+			await reportCommandError(ctx, e);
 		}
 	},
 	middleware: [ownerOnly],

@@ -8,6 +8,7 @@ export * from "./constants.ts";
 export * from "./types.ts";
 export * from "./schema.ts";
 export * from "./guard.ts";
+export * from "./pk.ts";
 export * from "./query.ts";
 export * from "./editor.ts";
 export * from "./history.ts";

@@ -8,18 +8,18 @@ import type { Invocation } from "@kuristina/commands/core";
 import { cancelWaiter, waitForInteraction } from "@kuristina/core";
 import {
 	applyPlan,
-	createPlan,
+	CONFIRM_TIMEOUT_MS,
+	type MutationPlan,
 	parseKeyValuePairs,
 	recordApplied,
 	renderDiffMessage,
-	type RowChange,
 } from "@kuristina/database/admin";
 import { ButtonStyles, type Interaction } from "@kuristina/discord-bot";
 
 export const parseKeyValues = (input: string): Record<string, string> => {
 	const result = parseKeyValuePairs(input);
-	if (!result.valid) {
-		throw new Error(`couldn't parse "${input}": ${result.message}`);
+	if (!result.ok) {
+		throw new Error(`couldn't parse "${input}": ${result.error}`);
 	}
 	return result.value;
 };
@@ -37,12 +37,7 @@ export function evaluateValue(value: string): string {
 	if (nowMatch) {
 		const [, amount, unit] = nowMatch;
 		const num = parseInt(amount, 10);
-		const multipliers: Record<string, number> = {
-			s: 1,
-			m: 60,
-			h: 3600,
-			d: 86400,
-		};
+		const multipliers: Record<string, number> = { s: 1, m: 60, h: 3600, d: 86400 };
 		const seconds = num * (multipliers[unit] || 1);
 		return Math.floor(Date.now() / 1000 + seconds).toString();
 	}
@@ -50,41 +45,41 @@ export function evaluateValue(value: string): string {
 	return value;
 }
 
-export function evaluateValues<T extends Record<string, unknown>>(
-	obj: T,
-): T {
+export function evaluateValues<T extends Record<string, unknown>>(obj: T): T {
 	const result: Record<string, unknown> = {};
 	for (const [key, value] of Object.entries(obj)) {
-		if (typeof value === "string") {
-			result[key] = evaluateValue(value);
-		} else {
-			result[key] = value;
-		}
+		result[key] = typeof value === "string" ? evaluateValue(value) : value;
 	}
 	return result as T;
 }
 
-export async function confirmAndApply(
-	ctx: Invocation,
-	changes: RowChange[],
-	description: string,
-): Promise<void> {
-	const plan = createPlan(description, changes);
+export async function reportCommandError(ctx: Invocation, e: unknown): Promise<void> {
+	const message = e instanceof Error
+		? e.message
+		: typeof e === "object" && e !== null && "message" in e
+		? String((e as { message: unknown }).message)
+		: String(e);
+	await ctx.error(message);
+}
+
+export async function confirmAndApply(ctx: Invocation, plan: MutationPlan): Promise<boolean> {
 	const rendered = renderDiffMessage(plan);
 
 	const { customId: confirmId, promise: confirmP } = waitForInteraction<Interaction>(
 		"db-confirm",
-		60_000,
+		CONFIRM_TIMEOUT_MS,
 		{ filter: (i) => i.user?.id === ctx.user.id },
 	);
 	const { customId: cancelId, promise: cancelP } = waitForInteraction<Interaction>(
 		"db-cancel",
-		60_000,
+		CONFIRM_TIMEOUT_MS,
 		{ filter: (i) => i.user?.id === ctx.user.id },
 	);
 
 	const content = rendered.kind === "inline" ? rendered.content : `**${plan.description}**`;
-	const files = rendered.kind === "file" ? [rendered] : undefined;
+	const files = rendered.kind === "file"
+		? [{ blob: rendered.blob, name: rendered.name }]
+		: undefined;
 
 	await ctx.reply({
 		content,
@@ -95,7 +90,7 @@ export async function confirmAndApply(
 				<button customId={cancelId} style={ButtonStyles.Secondary}>Cancel</button>
 			</row>,
 		],
-	});
+	}, { ephemeral: true });
 
 	const winner = await Promise.race([
 		confirmP.then(() => "confirm" as const),
@@ -106,16 +101,14 @@ export async function confirmAndApply(
 	cancelWaiter(cancelId);
 
 	if (winner !== "confirm") {
-		const msg = winner === "cancel"
-			? "cancelled, nothing changed"
-			: "confirmation timed out, nothing changed";
-
 		await ctx.reply({
-			content: msg,
+			content: winner === "cancel"
+				? "cancelled, nothing changed"
+				: "confirmation timed out, nothing changed",
 			components: [],
 			files: [],
-		});
-		return;
+		}, { ephemeral: true });
+		return false;
 	}
 
 	const applied = await applyPlan(plan);
@@ -124,8 +117,8 @@ export async function confirmAndApply(
 			content: `apply failed: ${applied.error.message}`,
 			components: [],
 			files: [],
-		});
-		return;
+		}, { ephemeral: true });
+		return false;
 	}
 
 	recordApplied(plan);
@@ -135,5 +128,6 @@ export async function confirmAndApply(
 		})`,
 		components: [],
 		files: [],
-	});
+	}, { ephemeral: true });
+	return true;
 }

@@ -20,7 +20,10 @@ export const isEditError = (e: unknown): e is EditError =>
 	"kind" in e &&
 	(e.kind === "validation" || e.kind === "sql");
 
-const BATCH_SIZE = 500;
+type QueryExecutor = Pick<
+	typeof database,
+	"selectFrom" | "insertInto" | "updateTable" | "deleteFrom"
+>;
 
 interface GroupedOps {
 	inserts: Record<string, JsonValue>[];
@@ -89,9 +92,7 @@ function validatePrimaryKeyConditions(
 
 	if (!Object.keys(conditions).length) {
 		const matched = findMatchingConstraint(pk, uniqueConstraints);
-		if (matched) {
-			return matched;
-		}
+		if (matched) return matched;
 	}
 
 	if (!Object.keys(conditions).length) {
@@ -162,14 +163,20 @@ function validateInsertData(
 	);
 }
 
+function describePk(pk: Record<string, JsonValue>): string {
+	return Object.entries(pk).map(([k, v]) => `${k}=${v}`).join(" ");
+}
+
 async function buildDeleteQuery(
+	db: QueryExecutor,
 	table: string,
 	pk: Record<string, JsonValue>,
 	primaryKeys: string[],
 ) {
 	const uniqueConstraints = await getUniqueConstraints(table);
 	const conditions = validatePrimaryKeyConditions(pk, primaryKeys, uniqueConstraints);
-	let query = database.deleteFrom(table as never);
+
+	let query = db.deleteFrom(table as never);
 	for (const [col, val] of Object.entries(conditions)) {
 		query = query.where(col as never, "=", val as never);
 	}
@@ -177,6 +184,7 @@ async function buildDeleteQuery(
 }
 
 async function buildUpdateQuery(
+	db: QueryExecutor,
 	table: string,
 	pk: Record<string, JsonValue>,
 	data: Record<string, JsonValue>,
@@ -188,7 +196,7 @@ async function buildUpdateQuery(
 	const conditions = validatePrimaryKeyConditions(pk, primaryKeys, uniqueConstraints);
 	const updateData = validateUpdateData(data, columns, primaryKeys, schema);
 
-	let query = database.updateTable(table as never).set(updateData);
+	let query = db.updateTable(table as never).set(updateData);
 	for (const [col, val] of Object.entries(conditions)) {
 		query = query.where(col as never, "=", val as never);
 	}
@@ -196,6 +204,7 @@ async function buildUpdateQuery(
 }
 
 async function executeInserts(
+	db: QueryExecutor,
 	table: string,
 	rows: Record<string, JsonValue>[],
 	schema: TableSchema,
@@ -206,13 +215,14 @@ async function executeInserts(
 	const validRows = rows.map((data) => validateInsertData(data, columns, schema));
 
 	logger.info(`admin: inserting ${validRows.length} rows into ${table}`);
-	await database.insertInto(table as never).values(validRows).execute();
+	await db.insertInto(table as never).values(validRows).execute();
 	logger.yay(`admin: inserted ${validRows.length} rows into ${table}`);
 
 	return validRows.length;
 }
 
 async function executeUpdates(
+	db: QueryExecutor,
 	table: string,
 	updates: Array<{ pk: Record<string, JsonValue>; data: Record<string, JsonValue> }>,
 	schema: TableSchema,
@@ -226,9 +236,20 @@ async function executeUpdates(
 	logger.info(`admin: updating ${updates.length} rows in ${table}`);
 
 	for (const { pk, data } of updates) {
-		const query = await buildUpdateQuery(table, pk, data, primaryKeys, columns, schema);
+		const query = await buildUpdateQuery(db, table, pk, data, primaryKeys, columns, schema);
 		const result = await query.executeTakeFirst();
-		count += Number(result.numUpdatedRows ?? 0);
+		const affected = Number(result.numUpdatedRows ?? 0);
+
+		if (affected !== 1) {
+			throw {
+				kind: "validation",
+				message: `expected to update exactly 1 row in ${table} (${
+					describePk(pk)
+				}), affected ${affected}. the row may have changed since this was previewed`,
+			};
+		}
+
+		count += affected;
 	}
 
 	logger.yay(`admin: updated ${count} rows in ${table}`);
@@ -236,6 +257,7 @@ async function executeUpdates(
 }
 
 async function executeDeletes(
+	db: QueryExecutor,
 	table: string,
 	pks: Record<string, JsonValue>[],
 	schema: TableSchema,
@@ -245,21 +267,23 @@ async function executeDeletes(
 	const primaryKeys = getPrimaryKeyColumns(schema);
 	let count = 0;
 
-	logger.warn(`admin: deleting ${pks.length} rows from ${table} in batches of ${BATCH_SIZE}`);
+	logger.warn(`admin: deleting ${pks.length} rows from ${table}`);
 
-	for (let i = 0; i < pks.length; i += BATCH_SIZE) {
-		const batch = pks.slice(i, i + BATCH_SIZE);
-		logger.info(
-			`admin: deleting batch ${Math.floor(i / BATCH_SIZE) + 1}/${
-				Math.ceil(pks.length / BATCH_SIZE)
-			}`,
-		);
+	for (const pk of pks) {
+		const query = await buildDeleteQuery(db, table, pk, primaryKeys);
+		const result = await query.executeTakeFirst();
+		const affected = Number(result.numDeletedRows ?? 0);
 
-		for (const pk of batch) {
-			const query = await buildDeleteQuery(table, pk, primaryKeys);
-			const result = await query.executeTakeFirst();
-			count += Number(result.numDeletedRows ?? 0);
+		if (affected !== 1) {
+			throw {
+				kind: "validation",
+				message: `expected to delete exactly 1 row in ${table} (${
+					describePk(pk)
+				}), affected ${affected}. the row may have already been removed`,
+			};
 		}
+
+		count += affected;
 	}
 
 	logger.yay(`admin: deleted ${count} rows from ${table}`);
@@ -267,6 +291,7 @@ async function executeDeletes(
 }
 
 async function executeGroupedOps(
+	db: QueryExecutor,
 	table: string,
 	ops: GroupedOps,
 ): Promise<{ inserted: number; updated: number; deleted: number }> {
@@ -276,11 +301,9 @@ async function executeGroupedOps(
 
 	const schema = await validateAndGetSchema(table);
 
-	const [inserted, updated, deleted] = await Promise.all([
-		executeInserts(table, ops.inserts, schema),
-		executeUpdates(table, ops.updates, schema),
-		executeDeletes(table, ops.deletes, schema),
-	]);
+	const deleted = await executeDeletes(db, table, ops.deletes, schema);
+	const updated = await executeUpdates(db, table, ops.updates, schema);
+	const inserted = await executeInserts(db, table, ops.inserts, schema);
 
 	logger.yay(`admin: ${table} done (${inserted} inserted, ${updated} updated, ${deleted} deleted)`);
 
@@ -293,14 +316,13 @@ export async function applyPlan(plan: MutationPlan): Promise<Result<void, EditEr
 
 	try {
 		const groups = groupChanges(plan.changes);
-		const results: Array<{ table: string; inserted: number; updated: number; deleted: number }> =
-			[];
+		for (const [table] of groups) assertEditableTable(table);
 
-		for (const [table, ops] of groups) {
-			assertEditableTable(table);
-			const result = await executeGroupedOps(table, ops);
-			results.push({ table, ...result });
-		}
+		await database.transaction().execute(async (trx) => {
+			for (const [table, ops] of groups) {
+				await executeGroupedOps(trx, table, ops);
+			}
+		});
 
 		const elapsed = (performance.now() - start).toFixed(2);
 		logger.yay(`admin: plan applied in ${elapsed}ms`);
@@ -308,7 +330,7 @@ export async function applyPlan(plan: MutationPlan): Promise<Result<void, EditEr
 		return ok(undefined);
 	} catch (e) {
 		const elapsed = (performance.now() - start).toFixed(2);
-		logger.boo(`admin: plan failed after ${elapsed}ms:`, e);
+		logger.boo(`admin: plan failed after ${elapsed}ms, rolled back:`, e);
 
 		if (isEditError(e)) return err(e);
 		return err({ kind: "validation", message: String(e) });
@@ -323,7 +345,7 @@ export async function deleteSingleRow(
 
 	const schema = await validateAndGetSchema(table);
 	const primaryKeys = getPrimaryKeyColumns(schema);
-	const query = await buildDeleteQuery(table, pk, primaryKeys);
+	const query = await buildDeleteQuery(database, table, pk, primaryKeys);
 	const result = await query.executeTakeFirst();
 
 	if (Number(result.numDeletedRows ?? 0) === 0) {
@@ -358,7 +380,7 @@ export async function updateSingleRow(
 	const schema = await validateAndGetSchema(table);
 	const columns = getColumnNames(schema);
 	const primaryKeys = getPrimaryKeyColumns(schema);
-	const query = await buildUpdateQuery(table, pk, data, primaryKeys, columns, schema);
+	const query = await buildUpdateQuery(database, table, pk, data, primaryKeys, columns, schema);
 	const result = await query.executeTakeFirst();
 
 	if (Number(result.numUpdatedRows ?? 0) === 0) {
