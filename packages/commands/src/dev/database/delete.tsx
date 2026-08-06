@@ -4,7 +4,7 @@
  * SPDX-License-Identifier: AGPL-3.0-or-later
  */
 
-import { arg, defineCommand, ownerOnly } from "@kuristina/commands/core";
+import { string, defineCommand, ownerOnly } from "@kuristina/commands/core";
 import { assertEditableTable, fetchRow } from "@kuristina/database/admin";
 import { confirmAndApply, parseKeyValues } from "./shared.tsx";
 
@@ -12,8 +12,12 @@ export default defineCommand({
 	aliases: "delete",
 	description: "Deletes a row. Shows a diff and asks for confirmation.",
 	args: {
-		table: arg.string({ description: "table name", required: true }),
-		pk: arg.string({ description: "primary key, e.g. word=hello or id=42", required: true }),
+		table: string({ description: "table name", required: true }),
+		pk: string({
+			description: "primary key, e.g. word=hello or id=42",
+			required: true,
+			greedy: true,
+		}),
 	},
 	async exec(ctx) {
 		try {

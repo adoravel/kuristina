@@ -56,7 +56,7 @@ const flag = (name: string): Parser<string> =>
 	few(literal("-"), insensitive(name)).map(`flag(-${name})`, (_, [, f]) => yay(f));
 
 const positional = <T>(name: string, kind: Lexer<T>) =>
-	few(skip, flag(name), pick(skip, literal("=")), kind).map(
+	few(skip, flag(name), skip, kind).map(
 		`arg(-${name})`,
 		(_, [, , , value]) => yay(value),
 	);
