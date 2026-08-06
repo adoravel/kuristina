@@ -8,12 +8,13 @@ import { defineCommand, user } from "@kuristina/commands/core";
 import nowplaying from "./nowplaying.tsx";
 import { login, logout, status } from "./login.tsx";
 import { update } from "./update.ts";
+import alias from "./alias/mod.tsx";
 
 export default defineCommand({
 	aliases: ["fm", "lastfm"],
 	description: "Last.fm commands.",
 	category: "lastfm",
-	subcommands: [nowplaying, login, logout, status, update],
+	subcommands: [nowplaying, login, logout, status, update, alias],
 	args: {
 		query: user({
 			description: "user mention or ID (for text mode only)",
