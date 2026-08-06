@@ -48,6 +48,7 @@ export interface KuristinaSchema {
 		display_name: string;
 		group_id: number;
 		source: "autocorrect" | "manual";
+		skip_autocorrect: number;
 	};
 	lastfm_response_cache: {
 		cache_key: string;
