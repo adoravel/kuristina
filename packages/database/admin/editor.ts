@@ -1,0 +1,299 @@
+import { database } from "@kuristina/database";
+import { err, ok, type Result } from "@kuristina/core";
+import type { SqlError } from "@kuristina/database";
+import { assertEditableTable, validateAndGetSchema } from "./guard.ts";
+import { coerceValue, getColumnNames, getPrimaryKeyColumns } from "./schema.ts";
+import type { JsonValue, MutationPlan, RowChange, TableSchema } from "./types.ts";
+
+export type EditError = SqlError | { kind: "validation"; message: string };
+
+export const isEditError = (e: unknown): e is EditError =>
+	typeof e === "object" &&
+	e !== null &&
+	"kind" in e &&
+	(e.kind === "validation" || e.kind === "sql");
+
+const BATCH_SIZE = 500;
+
+interface GroupedOps {
+	inserts: Record<string, JsonValue>[];
+	updates: Array<{ pk: Record<string, JsonValue>; data: Record<string, JsonValue> }>;
+	deletes: Record<string, JsonValue>[];
+}
+
+function groupChanges(changes: readonly RowChange[]): Map<string, GroupedOps> {
+	const groups = new Map<string, GroupedOps>();
+
+	for (const change of changes) {
+		if (!groups.has(change.table)) {
+			groups.set(change.table, { inserts: [], updates: [], deletes: [] });
+		}
+
+		const entry = groups.get(change.table)!;
+
+		if (change.after === null) {
+			entry.deletes.push(change.pk);
+		} else if (change.before === null) {
+			entry.inserts.push(change.after);
+		} else {
+			entry.updates.push({ pk: change.pk, data: change.after });
+		}
+	}
+
+	return groups;
+}
+
+function validatePrimaryKeyConditions(
+	pk: Record<string, JsonValue>,
+	primaryKeys: string[],
+): Record<string, JsonValue> {
+	const conditions = Object.fromEntries(
+		Object.entries(pk).filter(([k]) => primaryKeys.includes(k)),
+	);
+	if (!Object.keys(conditions).length) {
+		throw { kind: "validation", message: "No primary key conditions provided" };
+	}
+	return conditions;
+}
+
+function validateUpdateData(
+	data: Record<string, JsonValue>,
+	columns: string[],
+	primaryKeys: string[],
+	schema: TableSchema,
+): Record<string, JsonValue> {
+	const updateData = Object.fromEntries(
+		Object.entries(data)
+			.filter(([k]) => columns.includes(k) && !primaryKeys.includes(k))
+			.map(([k, v]) => {
+				const col = schema.columns.find((c) => c.name === k)!;
+				return [k, coerceValue(v, col)];
+			}),
+	);
+
+	if (!Object.keys(updateData).length) {
+		throw { kind: "validation", message: "No updatable columns provided" };
+	}
+
+	return updateData;
+}
+
+function validateInsertData(
+	data: Record<string, JsonValue>,
+	columns: string[],
+	schema: TableSchema,
+): Record<string, JsonValue> {
+	return Object.fromEntries(
+		Object.entries(data)
+			.filter(([k]) => columns.includes(k))
+			.map(([k, v]) => {
+				const col = schema.columns.find((c) => c.name === k)!;
+				return [k, coerceValue(v, col)];
+			}),
+	);
+}
+
+function buildDeleteQuery(
+	table: string,
+	pk: Record<string, JsonValue>,
+	primaryKeys: string[],
+) {
+	const conditions = validatePrimaryKeyConditions(pk, primaryKeys);
+	let query = database.deleteFrom(table as never);
+	for (const [col, val] of Object.entries(conditions)) {
+		query = query.where(col as never, "=", val as never);
+	}
+	return query;
+}
+
+function buildUpdateQuery(
+	table: string,
+	pk: Record<string, JsonValue>,
+	data: Record<string, JsonValue>,
+	primaryKeys: string[],
+	columns: string[],
+	schema: TableSchema,
+) {
+	const conditions = validatePrimaryKeyConditions(pk, primaryKeys);
+	const updateData = validateUpdateData(data, columns, primaryKeys, schema);
+
+	let query = database.updateTable(table as never).set(updateData);
+	for (const [col, val] of Object.entries(conditions)) {
+		query = query.where(col as never, "=", val as never);
+	}
+	return query;
+}
+
+async function executeInserts(
+	table: string,
+	rows: Record<string, JsonValue>[],
+	schema: TableSchema,
+): Promise<number> {
+	if (!rows.length) return 0;
+
+	const columns = getColumnNames(schema);
+	const validRows = rows.map((data) => validateInsertData(data, columns, schema));
+
+	logger.info(`admin: inserting ${validRows.length} rows into ${table}`);
+	await database.insertInto(table as never).values(validRows).execute();
+	logger.yay(`admin: inserted ${validRows.length} rows into ${table}`);
+
+	return validRows.length;
+}
+
+async function executeUpdates(
+	table: string,
+	updates: Array<{ pk: Record<string, JsonValue>; data: Record<string, JsonValue> }>,
+	schema: TableSchema,
+): Promise<number> {
+	if (!updates.length) return 0;
+
+	const columns = getColumnNames(schema);
+	const primaryKeys = getPrimaryKeyColumns(schema);
+	let count = 0;
+
+	logger.info(`admin: updating ${updates.length} rows in ${table}`);
+
+	for (const { pk, data } of updates) {
+		const query = buildUpdateQuery(table, pk, data, primaryKeys, columns, schema);
+		const result = await query.executeTakeFirst();
+		count += Number(result.numUpdatedRows ?? 0);
+	}
+
+	logger.yay(`admin: updated ${count} rows in ${table}`);
+	return count;
+}
+
+async function executeDeletes(
+	table: string,
+	pks: Record<string, JsonValue>[],
+	schema: TableSchema,
+): Promise<number> {
+	if (!pks.length) return 0;
+
+	const primaryKeys = getPrimaryKeyColumns(schema);
+	let count = 0;
+
+	logger.warn(`admin: deleting ${pks.length} rows from ${table} in batches of ${BATCH_SIZE}`);
+
+	for (let i = 0; i < pks.length; i += BATCH_SIZE) {
+		const batch = pks.slice(i, i + BATCH_SIZE);
+		logger.info(
+			`admin: deleting batch ${Math.floor(i / BATCH_SIZE) + 1}/${
+				Math.ceil(pks.length / BATCH_SIZE)
+			}`,
+		);
+
+		for (const pk of batch) {
+			const query = buildDeleteQuery(table, pk, primaryKeys);
+			const result = await query.executeTakeFirst();
+			count += Number(result.numDeletedRows ?? 0);
+		}
+	}
+
+	logger.yay(`admin: deleted ${count} rows from ${table}`);
+	return count;
+}
+
+async function executeGroupedOps(
+	table: string,
+	ops: GroupedOps,
+): Promise<{ inserted: number; updated: number; deleted: number }> {
+	logger.info(
+		`admin: processing ${table} (${ops.inserts.length} inserts, ${ops.updates.length} updates, ${ops.deletes.length} deletes)`,
+	);
+
+	const schema = await validateAndGetSchema(table);
+
+	const [inserted, updated, deleted] = await Promise.all([
+		executeInserts(table, ops.inserts, schema),
+		executeUpdates(table, ops.updates, schema),
+		executeDeletes(table, ops.deletes, schema),
+	]);
+
+	logger.yay(`admin: ${table} done (${inserted} inserted, ${updated} updated, ${deleted} deleted)`);
+
+	return { inserted, updated, deleted };
+}
+
+export async function applyPlan(plan: MutationPlan): Promise<Result<void, EditError>> {
+	const start = performance.now();
+	logger.info(`admin: applying plan "${plan.description}" (${plan.changes.length} changes)`);
+
+	try {
+		const groups = groupChanges(plan.changes);
+		const results: Array<{ table: string; inserted: number; updated: number; deleted: number }> =
+			[];
+
+		for (const [table, ops] of groups) {
+			assertEditableTable(table);
+			const result = await executeGroupedOps(table, ops);
+			results.push({ table, ...result });
+		}
+
+		const elapsed = (performance.now() - start).toFixed(2);
+		logger.yay(`admin: plan applied in ${elapsed}ms`);
+
+		return ok(undefined);
+	} catch (e) {
+		const elapsed = (performance.now() - start).toFixed(2);
+		logger.boo(`admin: plan failed after ${elapsed}ms:`, e);
+
+		if (isEditError(e)) return err(e);
+		return err({ kind: "validation", message: String(e) });
+	}
+}
+
+export async function deleteSingleRow(
+	table: string,
+	pk: Record<string, JsonValue>,
+): Promise<void> {
+	logger.warn(`admin: deleting single row from ${table}: ${JSON.stringify(pk)}`);
+
+	const schema = await validateAndGetSchema(table);
+	const primaryKeys = getPrimaryKeyColumns(schema);
+	const query = buildDeleteQuery(table, pk, primaryKeys);
+	const result = await query.executeTakeFirst();
+
+	if (Number(result.numDeletedRows ?? 0) === 0) {
+		logger.boo(`admin: no rows deleted from ${table}`);
+		throw { kind: "validation", message: "No rows were deleted" };
+	}
+
+	logger.yay(`admin: deleted row from ${table}`);
+}
+
+export async function insertSingleRow(
+	table: string,
+	data: Record<string, JsonValue>,
+): Promise<void> {
+	logger.info(`admin: inserting single row into ${table}: ${JSON.stringify(data)}`);
+
+	const schema = await validateAndGetSchema(table);
+	const columns = getColumnNames(schema);
+	const validData = validateInsertData(data, columns, schema);
+	await database.insertInto(table as never).values(validData).execute();
+
+	logger.yay(`admin: inserted row into ${table}`);
+}
+
+export async function updateSingleRow(
+	table: string,
+	pk: Record<string, JsonValue>,
+	data: Record<string, JsonValue>,
+): Promise<void> {
+	logger.info(`admin: updating single row in ${table}: ${JSON.stringify(pk)}`);
+
+	const schema = await validateAndGetSchema(table);
+	const columns = getColumnNames(schema);
+	const primaryKeys = getPrimaryKeyColumns(schema);
+	const query = buildUpdateQuery(table, pk, data, primaryKeys, columns, schema);
+	const result = await query.executeTakeFirst();
+
+	if (Number(result.numUpdatedRows ?? 0) === 0) {
+		logger.boo(`admin: no rows updated in ${table}`);
+		throw { kind: "validation", message: "No rows were updated" };
+	}
+
+	logger.yay(`admin: updated row in ${table}`);
+}

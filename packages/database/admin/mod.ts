@@ -4,9 +4,13 @@
  * SPDX-License-Identifier: AGPL-3.0-or-later
  */
 
-export * from "./plan.ts";
-export * from "./edit.ts";
-export * from "./diff.ts";
+export * from "./constants.ts";
+export * from "./types.ts";
+export * from "./schema.ts";
+export * from "./guard.ts";
 export * from "./query.ts";
+export * from "./editor.ts";
 export * from "./history.ts";
-export * from "./candidates.ts";
+export * from "./diff.ts";
+export * from "./parser.ts";
+export * from "./plan.ts";

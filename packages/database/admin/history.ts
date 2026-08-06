@@ -4,20 +4,22 @@
  * SPDX-License-Identifier: AGPL-3.0-or-later
  */
 
-import type { MutationPlan } from "./plan.ts";
+import type { MutationPlan } from "./types.ts";
+import { MAX_HISTORY } from "./constants.ts";
 
-const MAX_HISTORY = 20;
 const history: MutationPlan[] = [];
 
-export function recordApplied(plan: MutationPlan): void {
+export const recordApplied = (plan: MutationPlan): void => {
 	history.push(plan);
 	if (history.length > MAX_HISTORY) history.shift();
-}
+};
 
-export function popLast(): MutationPlan | undefined {
-	return history.pop();
-}
+export const peekLastPlan = (): MutationPlan | undefined => history[history.length - 1];
 
-export function peekHistory(): readonly MutationPlan[] {
-	return history;
-}
+export const popLastPlan = (): MutationPlan | undefined => history.pop();
+
+export const getHistory = (): readonly MutationPlan[] => history;
+
+export const clearHistory = (): void => {
+	history.length = 0;
+};
