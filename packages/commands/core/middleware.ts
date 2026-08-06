@@ -19,6 +19,7 @@ export interface Middleware {
 
 export const enum CommandGateReason {
 	NotOwner,
+	NotAllowed,
 	CooldownActive,
 	MissingPermissions,
 	OwnerOnly,
@@ -37,6 +38,17 @@ export const ownerOnly: Middleware = {
 		return { type: "continue" };
 	},
 };
+
+export const allowedUsers = (userIds: bigint[]): Middleware => ({
+	name: "allowed-users",
+	async execute(ctx) {
+		if (!userIds.includes(ctx.user.id)) {
+			await ctx.reply({ content: "You're not allowed to use this command." });
+			return { type: "stop", reason: CommandGateReason.NotAllowed };
+		}
+		return { type: "continue" };
+	},
+});
 
 export const permissions = (required: readonly string[]): Middleware => ({
 	name: "permissions",
