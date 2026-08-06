@@ -10,12 +10,15 @@ const BLOB_URL_PATTERN =
 import type { GitHubBlobRef } from "./types.ts";
 
 export function extractBlobRefs(content: string): GitHubBlobRef[] {
-	return [...content.matchAll(BLOB_URL_PATTERN)].map(([, owner, repo, ref, path, start, end]) => ({
+	const output = [...content.matchAll(BLOB_URL_PATTERN)].map((
+		[, owner, repo, ref, path, start, end],
+	) => ({
 		owner,
 		repo,
 		ref,
 		path: decodeURIComponent(path),
 		startLine: start ? parseInt(start, 10) : undefined,
 		endLine: end ? parseInt(end, 10) : start ? parseInt(start, 10) : undefined,
-	}));
+	})).filter(($) => $.startLine || $.endLine);
+	return output;
 }
