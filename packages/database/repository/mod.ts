@@ -24,7 +24,7 @@ export const repositories = {
 	musicLinks: new MusicLinkRepository(),
 	messageCompanions: new MessageCompanionRepository(),
 	guildProfile: new GuildProfileRepository(),
-	artistAlias: new ArtistAliasRepository(),
+	artistAliases: new ArtistAliasRepository(),
 	lastfmCache: new LastFmCacheRepository(),
 };
 
