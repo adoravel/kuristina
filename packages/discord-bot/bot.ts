@@ -203,12 +203,12 @@ export async function initialise(): Promise<Result<void, AppError>> {
 	await discord.start();
 
 	await confirmRestartIfPending(discord);
-	await reconcileIcons(discord);
 
 	const iconGen = await generateMissingIcons();
 	if (iconGen.generated > 0) {
 		logger.yay(`icons: generated ${iconGen.generated} missing icons at startup`);
 	}
+	await reconcileIcons(discord);
 
 	await runMaintenance();
 	const maintenanceInterval = config.sqlite.maintenanceIntervalMs;

@@ -14,7 +14,7 @@ const PALETTE = {
 	fg: "#b9bbc7",
 	success: "#57f287",
 	danger: "#ed4245",
-	warn: "#facc15",
+	warn: "#fac16b",
 } as const;
 
 type PaletteColor = keyof typeof PALETTE;
