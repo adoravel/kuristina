@@ -47,7 +47,7 @@ export const registeredIcons = {
 	check: { provider: "lucide", name: "check", variant: "success" },
 	x: { provider: "heroicons", name: "x-mark", variant: "danger", style: "outline" },
 	users: { provider: "heroicons", name: "users", style: "solid" },
-	crown: { provider: "lucide", name: "crown", variant: "warn" },
+	crown: { provider: "lucide", name: "crown", variant: "default" },
 	artist: { provider: "lucide", name: "mic-vocal", strokeWidth: 2 },
 	help: { provider: "lucide", name: "circle-question-mark" },
 	translate: { provider: "lucide", name: "languages" },
@@ -77,6 +77,7 @@ export const registeredIcons = {
 	repeat: { provider: "lucide", name: "repeat-2", variant: "success" },
 	comment: { provider: "lucide", name: "message-circle" },
 	star: { provider: "lucide", name: "star", variant: "warn" },
+	empty: { provider: "https://cdn.discordapp.com/emojis/1351872095910625341.png", name: "" },
 } as const satisfies Record<string, IconRegistration>;
 
 export type RegisteredIconName = keyof typeof registeredIcons;

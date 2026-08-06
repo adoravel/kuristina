@@ -11,6 +11,7 @@ import { Theme } from "@kuristina/discord-ui";
 import { getScrobbleProvider } from "@kuristina/services/scrobbling";
 import { getRecentTracks } from "@kuristina/services/lastfm";
 import {
+	extractParagraphs,
 	fetchLinkedAccounts,
 	fetchPlaycounts,
 	MAX_SHOWN,
@@ -39,22 +40,20 @@ function WhoKnows({
 	totalLinked: number;
 	artist: {
 		name: string;
+		bio?: string;
 		href: string;
-		tags?: string[];
-		image: string;
+		tags?: { name: string }[];
+		imageUrl: string;
 	};
 }) {
 	const maxCount = ranked[0]?.playcount ?? 0;
-
-	const tags = artist?.tags?.length
-		? artist.tags.slice(0, 4).map((tag) => `#${tag}`).join("  ")
-		: null;
+	const tags = artist.tags?.slice(0, 5)?.map(($) => `#${$.name}`)?.join("  ");
 
 	return (
 		<message>
 			<section>
 				<accessory>
-					<thumbnail url={artist.image} description={artist.name} />
+					<thumbnail url={artist.imageUrl} description={artist.name} />
 				</accessory>
 				<h3>
 					<icon name="artist" />
@@ -67,7 +66,9 @@ function WhoKnows({
 						{ranked.map((r, i) => (
 							<li>
 								<br />
-								{(i === 0 || r.playcount === maxCount) && <icon name="crown" />}
+								{(i === 0 || r.playcount === maxCount)
+									? <icon name="crown" />
+									: <icon name="empty" />}
 								{` <@${r.discordId}>`} — <strong>{r.playcount.toLocaleString()}</strong> plays
 							</li>
 						))}
@@ -75,11 +76,13 @@ function WhoKnows({
 				</blockquote>
 			</section>
 			<hr spacing={2} />
-			<sub>
-				{ranked.length} of {totalLinked} linked users shown
-				{" · "}
-				{PROVIDER}
-			</sub>
+			{artist.bio ? <sub>{extractParagraphs(artist.bio, 1, artist.href)}</sub> : (
+				<sub>
+					{ranked.length} of {totalLinked} linked members shown
+					{" · "}
+					{PROVIDER}
+				</sub>
+			)}
 		</message>
 	);
 }
@@ -119,9 +122,7 @@ export default defineCommand({
 
 		const provider = getScrobbleProvider(PROVIDER);
 		const artistInfo = await mapAsync(provider.artist.getInfo(query, false))((info) => {
-			const name = info.name || query;
-			const tags = info.tags?.slice(0, 5).map((t) => t.name);
-			return { name, tags, image: info.imageUrl, href: info.href };
+			return { ...info, name: info.name || query };
 		});
 
 		if (!artistInfo.ok) {
@@ -162,7 +163,7 @@ export default defineCommand({
 			return;
 		}
 
-		if (imageUrl && imageUrl !== artist.image) artist.image = imageUrl;
+		if (imageUrl && imageUrl !== artist.imageUrl) artist.imageUrl = imageUrl;
 
 		await ctx.reply(
 			<WhoKnows

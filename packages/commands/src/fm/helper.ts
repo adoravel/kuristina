@@ -7,6 +7,7 @@
 import { type AsyncResult, mapWithConcurrency, ok } from "@kuristina/core";
 import { repositories } from "@kuristina/database";
 import type { AppError } from "@kuristina/errors";
+import { md } from "@kuristina/discord-ui";
 
 export const PROVIDER = "last.fm" as const;
 export const MAX_SHOWN = 15;
@@ -21,6 +22,38 @@ export interface RankedResult {
 interface HasScrobbleData {
 	individualUserScrobbles: number;
 	imageUrl: string;
+}
+
+export function extractParagraphs(
+	content: string | undefined,
+	count: number,
+	url?: string | null,
+): string | undefined {
+	if (!content || count <= 0) return "";
+
+	let index = 0;
+	let reachedEnd = false;
+
+	for (let i = 0; i < count; i++) {
+		const nextBreak = content.indexOf("\n\n", index);
+
+		if (nextBreak === -1) {
+			reachedEnd = true;
+			break;
+		}
+		index = nextBreak + 2;
+	}
+
+	const extracted = reachedEnd ? content : content.slice(0, index - 2);
+	const trimmedResult = extracted.trim();
+
+	const firstPeriod = trimmedResult.indexOf(".");
+	let output = firstPeriod !== -1 ? trimmedResult.slice(0, firstPeriod + 1) : trimmedResult;
+
+	if (url) {
+		output += " " + md.link("Read more", url);
+	}
+	return output;
 }
 
 export function parseMusicQuery(query?: string): [string | undefined, string | undefined] {

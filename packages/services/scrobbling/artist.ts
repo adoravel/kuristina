@@ -80,7 +80,7 @@ export class LastfmArtistScrobbleProvider implements ArtistScrobbleProvider {
 			name: $.name,
 			href: $.url,
 			tags: $.tags?.tag,
-			bio: $.bio?.summary,
+			bio: $.bio?.summary ?? $.bio?.content,
 			imageUrl: $.highestQualityImage["#text"],
 		}));
 	}

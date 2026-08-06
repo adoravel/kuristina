@@ -13,6 +13,7 @@ export interface ScrobbleAlbum {
 	artist: string;
 	href: string;
 	imageUrl: string;
+	tags?: { name: string; url?: string }[];
 	bio?: string;
 }
 
@@ -64,6 +65,7 @@ export class LastfmAlbumScrobbleProvider implements AlbumScrobbleProvider {
 				artist: $.artist,
 				href: $.url,
 				bio: $.wiki?.summary,
+				tags: $.tags?.tag,
 				imageUrl: $.highestQualityImage["#text"],
 				individualUserScrobbles: Number($.userplaycount ?? 0),
 			}));
@@ -72,7 +74,8 @@ export class LastfmAlbumScrobbleProvider implements AlbumScrobbleProvider {
 			name: $.name,
 			artist: $.artist,
 			href: $.url,
-			bio: $.wiki?.summary,
+			tags: $.tags?.tag,
+			bio: $.wiki?.summary || $.wiki?.content,
 			imageUrl: $.highestQualityImage["#text"],
 		}));
 	}

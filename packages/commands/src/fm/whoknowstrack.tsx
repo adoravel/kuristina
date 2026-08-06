@@ -61,7 +61,9 @@ function WhoKnowsTrack({
 						{ranked.map((r, i) => (
 							<li>
 								<br />
-								{(i === 0 || r.playcount === maxCount) && <icon name="crown" />}
+								{(i === 0 || r.playcount === maxCount)
+									? <icon name="crown" />
+									: <icon name="empty" />}
 								{` <@${r.discordId}>`} — <strong>{r.playcount.toLocaleString()}</strong> plays
 							</li>
 						))}

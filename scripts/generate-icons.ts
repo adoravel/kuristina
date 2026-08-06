@@ -22,6 +22,11 @@ type HttpUrl = `http://${string}` | `https://${string}`;
 
 const isUrl = (s: string): s is HttpUrl => s.startsWith("http://") || s.startsWith("https://");
 
+const isPngSource = (config: IconRegistration, url: string): boolean =>
+	("png" in config && typeof config.png === "string") ||
+	url.startsWith("data:image/png") ||
+	/\.png(\?.*)?$/i.test(url);
+
 let forceRegenerate = false;
 
 const resolveProviderUrl = (config: IconRegistration): string => {
@@ -90,6 +95,25 @@ const fetchSvg = async (url: string): Promise<string> => {
 	return response.value;
 };
 
+const fetchPngBuffer = async (url: string, config: IconRegistration): Promise<Uint8Array> => {
+	if ("png" in config && typeof config.png === "string") {
+		const b64 = config.png.includes(",") ? config.png.split(",")[1] : config.png;
+		return Uint8Array.from(atob(b64), (c) => c.charCodeAt(0));
+	}
+
+	if (url.startsWith("data:")) {
+		const parts = url.split(",");
+		if (parts.length < 2) throw new Error("Invalid data URI");
+		const b64 = parts[1];
+		return Uint8Array.from(atob(b64), (c) => c.charCodeAt(0));
+	}
+
+	const resp = await fetch(url);
+	if (!resp.ok) throw new Error(`Failed to fetch PNG: ${resp.status}`);
+	const buffer = await resp.arrayBuffer();
+	return new Uint8Array(buffer);
+};
+
 const ensureDirectory = async (dirPath: string | URL): Promise<void> => {
 	try {
 		await Deno.mkdir(dirPath, { recursive: true });
@@ -113,8 +137,19 @@ const processIcon = async ([name, config]: [string, IconRegistration]): Promise<
 
 	try {
 		const url = resolveProviderUrl(config);
-		const rawSvg = await fetchSvg(url);
 
+		if (isPngSource(config, url)) {
+			const pngBuffer = await fetchPngBuffer(url, config);
+			await savePng(destUrl, pngBuffer);
+			const source = url.startsWith("data:")
+				? "Base64 data URI"
+				: "png" in config
+				? "Embedded base64"
+				: "Direct PNG URL";
+			return logger.yay(`generated ${destUrl.pathname} (from ${source})`);
+		}
+
+		const rawSvg = await fetchSvg(url);
 		const innerSvg = extractSvgInner(rawSvg);
 		const fgColor = getVariantColor(config.variant);
 		const attributes = buildSvgAttributes(config, fgColor);

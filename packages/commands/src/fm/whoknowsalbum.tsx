@@ -5,12 +5,12 @@
  */
 
 import { arg, defineCommand } from "@kuristina/commands/core";
-import { mapAsync } from "@kuristina/core";
 import { repositories } from "@kuristina/database";
 import { Theme } from "@kuristina/discord-ui";
 import { getScrobbleProvider } from "@kuristina/services/scrobbling";
 import { getRecentTracks } from "@kuristina/services/lastfm";
 import {
+	extractParagraphs,
 	fetchLinkedAccounts,
 	fetchPlaycounts,
 	MAX_SHOWN,
@@ -38,15 +38,23 @@ function WhoKnowsAlbum({
 }: {
 	ranked: RankedResult[];
 	totalLinked: number;
-	album: { name: string; artist: string; href: string; image: string };
+	album: {
+		name: string;
+		bio?: string;
+		artist: string;
+		href: string;
+		tags?: { name: string }[];
+		imageUrl: string;
+	};
 }) {
 	const maxCount = ranked[0]?.playcount ?? 0;
+	const tags = album.tags?.slice(0, 4)?.map(($) => `#${$.name}`)?.join("  ");
 
 	return (
 		<message>
 			<section>
 				<accessory>
-					<thumbnail url={album.image} description={album.name} />
+					<thumbnail url={album.imageUrl} description={album.name} />
 				</accessory>
 				<h3>
 					<icon name="disc" />
@@ -55,13 +63,16 @@ function WhoKnowsAlbum({
 				</h3>
 				<sub>
 					by <a href={`https://last.fm/music/${album.artist}`}>{album.artist}</a>
+					{tags && ` · ${tags}`}
 				</sub>
 				<blockquote>
 					<ol>
 						{ranked.map((r, i) => (
 							<li>
 								<br />
-								{(i === 0 || r.playcount === maxCount) && <icon name="crown" />}
+								{(i === 0 || r.playcount === maxCount)
+									? <icon name="crown" />
+									: <icon name="empty" />}
 								{` <@${r.discordId}>`} — <strong>{r.playcount.toLocaleString()}</strong> plays
 							</li>
 						))}
@@ -69,11 +80,13 @@ function WhoKnowsAlbum({
 				</blockquote>
 			</section>
 			<hr spacing={2} />
-			<sub>
-				{ranked.length} of {totalLinked} linked members shown
-				{" · "}
-				{PROVIDER}
-			</sub>
+			{album.bio ? <sub>{extractParagraphs(album.bio, 1, album.href)}</sub> : (
+				<sub>
+					{ranked.length} of {totalLinked} linked members shown
+					{" · "}
+					{PROVIDER}
+				</sub>
+			)}
 		</message>
 	);
 }
@@ -125,12 +138,7 @@ export default defineCommand({
 		}
 
 		const provider = getScrobbleProvider(PROVIDER);
-		const albumInfo = await mapAsync(provider.album.getInfo(artist, album, false))((info) => ({
-			name: info.name,
-			artist: info.artist,
-			image: info.imageUrl,
-			href: info.href,
-		}));
+		const albumInfo = await provider.album.getInfo(artist, album, false);
 
 		if (!albumInfo.ok) {
 			return void await ctx.error("album not found");
@@ -158,7 +166,7 @@ export default defineCommand({
 			return;
 		}
 
-		if (imageUrl && imageUrl !== resolvedAlbum.image) resolvedAlbum.image = imageUrl;
+		if (imageUrl && imageUrl !== resolvedAlbum.imageUrl) resolvedAlbum.imageUrl = imageUrl;
 
 		await ctx.reply(
 			<WhoKnowsAlbum
