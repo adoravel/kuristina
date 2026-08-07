@@ -1,15 +1,25 @@
 {
-	"workspace": ["./apps/*", "./packages/*"],
+	"workspace": [
+		"./apps/*",
+		"./packages/commands",
+		"./packages/config",
+		"./packages/core",
+		"./packages/database",
+		"./packages/errors",
+		"./packages/services",
+		"./packages/i18n",
+		"./packages/platform/discord/*"
+	],
 	"tasks": {
 		"check": "deno check apps/bot/main.ts",
-		"dev": "deno run --watch -P=lesbian-sex apps/bot/main.ts",
-		"start": "deno run -P=lesbian-sex apps/bot/main.ts",
+		"dev": "deno run --watch -P=default apps/bot/main.ts",
+		"start": "deno run -P=default apps/bot/main.ts",
 		"lint": "deno lint",
 		"test": "deno test --allow-env --allow-read",
 		"add-header": "deno fmt && deno run --allow-read --allow-write scripts/copyright.ts"
 	},
 	"permissions": {
-		"lesbian-sex": {
+		"default": {
 			"read": true,
 			"write": true,
 			"env": true,
@@ -20,29 +30,20 @@
 		}
 	},
 	"imports": {
-		"@std/encoding": "jsr:@std/encoding@^1.0.11",
-		"@std/path": "jsr:@std/path@^1.1.6",
-		"@std/fs": "jsr:@std/fs@^1.0.24",
-		"@std/fmt/colors": "jsr:@std/fmt@^1.0.10/colors",
-		"@std/crypto": "jsr:@std/crypto@^1.1.0",
-		"@discordeno/bot": "npm:@discordeno/bot@^22.0.1-next.ff7c51d",
-		"@discordeno/types": "npm:@discordeno/types@^22.0.1-next.ff7c51d",
-		"dd-cache-proxy": "npm:dd-cache-proxy@^2.9.0",
 		"scripts/": "./scripts/"
-	},
-	"compilerOptions": {
-		"jsx": "react-jsx",
-		"jsxImportSource": "@kuristina/discord-ui"
 	},
 	"lint": {
 		"rules": {
 			"exclude": ["no-explicit-any", "no-slow-types", "jsx-key", "jsx-button-has-type"]
 		}
 	},
+	"compilerOptions": {
+		"jsx": "react-jsx",
+		"jsxImportSource": "@kuristina/discord-ui"
+	},
 	"fmt": {
 		"useTabs": true,
 		"semiColons": true,
 		"lineWidth": 100
-	},
-	"test": { "include": ["packages/core/test/*.ts"] }
+	}
 }

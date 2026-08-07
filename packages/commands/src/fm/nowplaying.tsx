@@ -9,11 +9,11 @@ import {
 	getHighestQualityImage,
 	getRecentTracks,
 	type LastFmTrack,
-} from "@kuristina/services/lastfm";
+} from "@kuristina/services/music/last.fm";
 import { repositories } from "@kuristina/database";
 import { NoAccountMessage } from "./login.tsx";
 import { md } from "@kuristina/discord-ui";
-import { resolveSongLinkByQuery } from "@kuristina/services/musiclinks";
+import { resolveSongLinkByQuery } from "@kuristina/services/music/links";
 import { renderPlatformLinks } from "@kuristina/embeds/musiclinks";
 
 function NoScrobbles() {

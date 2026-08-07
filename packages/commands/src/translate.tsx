@@ -7,15 +7,20 @@
 import { describe } from "@kuristina/errors";
 import { defineCommand, string } from "@kuristina/commands/core";
 import type { Bot, Message } from "@kuristina/discord-bot";
-import { getTranslationProvider } from "@kuristina/services/translation";
+import { deepl } from "@kuristina/services/translation";
 import {
 	formatLanguage,
 	isSupportedSourceLang,
 	isSupportedTargetLang,
 	resolveFormality,
 	resolveModelType,
-} from "@kuristina/services/deepl";
-import type { Formality, ModelType, SourceLang, TargetLang } from "@kuristina/services/deepl";
+} from "@kuristina/services/translation/deepl";
+import type {
+	Formality,
+	ModelType,
+	SourceLang,
+	TargetLang,
+} from "@kuristina/services/translation/deepl";
 
 const DISCORD_EMOJI_RE = /<a?:\w+:\d+>/g;
 const UNICODE_EMOJI_RE =
@@ -172,15 +177,14 @@ export default defineCommand({
 			}
 		}
 
-		const provider = getTranslationProvider();
 		const [result, usage] = await Promise.all([
-			provider.translateOne(truncated, target, {
+			deepl.translateOne(truncated, target, {
 				sourceLang: source,
 				formality,
 				modelType,
 				preserveFormatting: true,
 			}),
-			provider.getUsage(),
+			deepl.getUsage(),
 		]);
 
 		if (!result.ok) {

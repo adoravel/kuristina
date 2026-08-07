@@ -9,14 +9,14 @@ import {
 	describe as lastfm$describe,
 	Errors as lastfm$Errors,
 	type LastFmError,
-} from "@kuristina/services/lastfm";
+} from "@kuristina/services/music/last.fm";
 import {
 	type ConfigError,
 	describe as config$describe,
 	Errors as config$Errors,
 } from "@kuristina/config";
 import { Errors as sql$Errors, type SqlError } from "@kuristina/database";
-import { type DeepLError, Errors as deepl$Errors } from "@kuristina/services/deepl";
+import { type DeepLError, Errors as deepl$Errors } from "@kuristina/services/translation/deepl";
 
 export type AppError =
 	| ConfigError

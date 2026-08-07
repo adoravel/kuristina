@@ -9,8 +9,8 @@ import type { AppError } from "@kuristina/errors";
 
 import { cfg, config } from "@kuristina/config";
 import type { SqlError } from "@kuristina/database";
-import { getTranslationProvider } from "@kuristina/services/translation";
-import type { TranslateOptions } from "@kuristina/services/deepl";
+import { deepl } from "@kuristina/services/translation";
+import type { TranslateOptions } from "@kuristina/services/translation/deepl";
 
 import type { DiscordClient, Message, Reaction } from "@kuristina/discord-client";
 
@@ -229,14 +229,13 @@ export async function translateReactedMessage(
 		splitSentences: "1",
 	};
 
-	const provider = getTranslationProvider();
-	let result = await provider.translateOne(message.content, "EN", params);
+	let result = await deepl.translateOne(message.content, "EN", params);
 	if (!result.ok) return result;
 
 	let { text, detectedSourceLang } = result.value;
 
 	if (detectedSourceLang.startsWith("EN")) {
-		result = await provider.translateOne(message.content, "PT-BR", params);
+		result = await deepl.translateOne(message.content, "PT-BR", params);
 		if (!result.ok) return result;
 		text = result.value.text;
 		detectedSourceLang = result.value.detectedSourceLang;

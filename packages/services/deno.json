@@ -3,21 +3,19 @@
 	"exports": {
 		"./markov": "./markov/mod.ts",
 		"./translation": "./translation/mod.ts",
-		"./deepl": "./deepl/mod.ts",
-		"./lastfm": "./lastfm/mod.ts",
-		"./musicbrainz": "./musicbrainz/mod.ts",
-		"./scrobbling": "./scrobbling/mod.ts",
-		"./musiclinks": "./musiclinks/mod.ts",
-		"./code-forge": "./code-forge/mod.ts",
-		"./github": "./github/mod.ts",
-		"./codeberg": "./codeberg/mod.ts",
-		"./twitter": "./twitter/mod.ts",
-		"./fediverse": "./fediverse/mod.ts"
-	},
-	"test": {
-		"include": ["tests/*.ts"]
+		"./translation/deepl": "./translation/deepl/mod.ts",
+		"./music/last.fm": "./music/lastfm/mod.ts",
+		"./music/brainz": "./music/brainz/mod.ts",
+		"./music/scrobbling": "./music/scrobbling/mod.ts",
+		"./music/links": "./music/links/mod.ts",
+		"./forges/github": "./forges/github/mod.ts",
+		"./forges/codeberg": "./forges/codeberg/mod.ts",
+		"./forges/code-forge": "./forges/code-forge/mod.ts",
+		"./social/twitter": "./social/twitter/mod.ts",
+		"./social/fediverse": "./social/fediverse/mod.ts"
 	},
 	"imports": {
-		"@std/encoding": "jsr:@std/encoding@^1.0.11"
+		"@std/encoding": "jsr:@std/encoding@^1.0.11",
+		"@std/fmt": "jsr:@std/fmt@^1.0.10"
 	}
 }

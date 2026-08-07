@@ -6,7 +6,7 @@
 
 import { defineCommand } from "@kuristina/commands/core";
 import { repositories } from "@kuristina/database";
-import { invalidateAllForUser } from "@kuristina/services/lastfm";
+import { invalidateAllForUser } from "@kuristina/services/music/last.fm";
 
 export const update = defineCommand({
 	aliases: ["update", "u"],

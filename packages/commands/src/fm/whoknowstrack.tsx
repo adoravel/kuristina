@@ -8,8 +8,8 @@ import { arg, defineCommand } from "@kuristina/commands/core";
 import { mapAsync } from "@kuristina/core";
 import { repositories } from "@kuristina/database";
 import { Theme } from "@kuristina/discord-ui";
-import { getScrobbleProvider } from "@kuristina/services/scrobbling";
-import { getRecentTracks } from "@kuristina/services/lastfm";
+import { getScrobbleProvider } from "@kuristina/services/music/scrobbling";
+import { getRecentTracks } from "@kuristina/services/music/last.fm";
 import {
 	fetchLinkedAccounts,
 	fetchPlaycounts,

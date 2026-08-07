@@ -1,0 +1,6 @@
+{
+	"commands.role.no_guild": "guild context is uninitialised",
+	"commands.role.applied": "-# <@&{roleId}>",
+	"commands.fm.no_query": "give me an artist name, e.g. `{prefix}whoknows Katelyn Bleh`",
+	"errors.execution_failed": "That command hit an error. Try again in a moment, or ping the retard in chief if it keeps happening."
+}

@@ -1,0 +1,9 @@
+{
+	"name": "@kuristina/discord-client",
+	"exports": "./mod.ts",
+	"imports": {
+		"@discordeno/bot": "npm:@discordeno/bot@^22.0.1-next.5f7a06c",
+		"@discordeno/types": "npm:@discordeno/types@^22.0.1-next.5f7a06c",
+		"dd-cache-proxy": "npm:dd-cache-proxy@^2.9.0"
+	}
+}

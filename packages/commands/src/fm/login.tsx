@@ -8,7 +8,7 @@ import { defineCommand } from "@kuristina/commands/core";
 import { flatMapAsync, mapAsync, waitForInteraction } from "@kuristina/core";
 import { repositories } from "@kuristina/database";
 import { Theme } from "@kuristina/discord-ui";
-import { getAuthToken, pollForSession } from "@kuristina/services/lastfm";
+import { getAuthToken, pollForSession } from "@kuristina/services/music/last.fm";
 import { ackWithMessage, ButtonStyles, type Interaction } from "@kuristina/discord-bot";
 
 const BUTTON_TIMEOUT_MS = 3 * 60_000;

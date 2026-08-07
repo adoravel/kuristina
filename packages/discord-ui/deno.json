@@ -1,7 +1,0 @@
-{
-	"name": "@kuristina/discord-ui",
-	"exports": {
-		".": "./mod.ts",
-		"./jsx-runtime": "./runtime.ts"
-	}
-}

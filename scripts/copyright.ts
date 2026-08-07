@@ -1,7 +1,8 @@
 #!/usr/bin/env -S deno run --allow-read --allow-write
+// deno-lint-ignore-file no-import-prefix
 
-import { walk } from "@std/fs";
-import { bold, cyan, dim, green, red, yellow } from "@std/fmt/colors";
+import { walk } from "jsr:@std/fs@^1.0.24";
+import { bold, cyan, dim, green, red, yellow } from "jsr:@std/fmt@^1.0.10/colors";
 
 const cfg = {
 	project: "kuristina",

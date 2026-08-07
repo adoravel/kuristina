@@ -1,0 +1,13 @@
+{
+	"name": "@kuristina/discord-bot",
+	"exports": {
+		".": "./mod.ts",
+		"./restart": "./lifecycle/restart.ts"
+	},
+	"imports": {
+		"@std/encoding": "jsr:@std/encoding@^1.0.7",
+		"@discordeno/bot": "npm:@discordeno/bot@^22.0.1-next.5f7a06c",
+		"@discordeno/types": "npm:@discordeno/types@^22.0.1-next.5f7a06c",
+		"dd-cache-proxy": "npm:dd-cache-proxy@^2.9.0"
+	}
+}

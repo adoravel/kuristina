@@ -6,6 +6,7 @@
 	},
 	"imports": {
 		"@db/sqlite": "jsr:@db/sqlite@^0.13.0",
-		"@kysely/kysely": "jsr:@kysely/kysely@^0.29.4"
+		"@kysely/kysely": "jsr:@kysely/kysely@^0.29.4",
+		"@std/path": "jsr:@std/path@^1.0.8"
 	}
 }
