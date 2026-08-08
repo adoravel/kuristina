@@ -18,6 +18,7 @@ export interface KuristinaSchema {
 		username: string;
 		is_default: Generated<number>;
 		linked_at: number;
+		session_key: string | null;
 	};
 	guild_members: {
 		discord_id: string;

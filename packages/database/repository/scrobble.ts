@@ -21,7 +21,8 @@ export class ScrobbleAccountRepository extends Repository {
 		discordId: bigint,
 		provider: ScrobbleProviderName,
 		username: string,
-		makeDefault: boolean,
+		sessionKey?: string,
+		makeDefault: boolean = true,
 	): Promise<Result<void, SqlError>> {
 		return await tryQuery(async () => {
 			await this.database.transaction().execute(async (trx) => {
@@ -38,17 +39,33 @@ export class ScrobbleAccountRepository extends Repository {
 						username,
 						is_default: makeDefault ? 1 : 0,
 						linked_at: Math.floor(Date.now() / 1000),
+						session_key: sessionKey,
 					})
 					.onConflict((oc) =>
 						oc.columns(["discord_id", "provider"]).doUpdateSet((eb) => ({
 							username: eb.ref("excluded.username"),
 							is_default: eb.ref("excluded.is_default"),
 							linked_at: eb.ref("excluded.linked_at"),
+							session_key: eb.ref("excluded.session_key"),
 						}))
 					)
 					.execute();
 			});
 		}).then((r) => (r.ok ? ok(undefined) : r));
+	}
+
+	async getSessionKey(
+		discordId: bigint,
+		provider: ScrobbleProviderName,
+	): Promise<Result<string | null, SqlError>> {
+		return await tryQuery(async () => {
+			const row = await this.database.selectFrom("scrobble_accounts")
+				.select("session_key")
+				.where("discord_id", "=", discordId.toString())
+				.where("provider", "=", provider)
+				.executeTakeFirst();
+			return row?.session_key ?? null;
+		});
 	}
 
 	async unlink(discordId: bigint, provider: ScrobbleProviderName): Promise<Result<void, SqlError>> {

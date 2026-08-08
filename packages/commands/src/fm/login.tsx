@@ -144,7 +144,13 @@ export const login = defineCommand({
 
 		const linked = flatMapAsync(pollForSession(tokenData.token))((session) =>
 			mapAsync<void, any>(
-				repositories.scrobble.link(ctx.user.id, "last.fm", session.username, true),
+				repositories.scrobble.link(
+					ctx.user.id,
+					"last.fm",
+					session.username,
+					session.sessionKey,
+					true,
+				),
 			)(() => session.username)
 		);
 
