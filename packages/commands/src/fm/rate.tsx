@@ -64,7 +64,7 @@ function LoveResultCard({ action, name, artist, image, url }: {
 
 function makeLoveCommand(action: "love" | "unlove") {
 	const aliases = action === "love"
-		? ["love", "would", "mrgghh", "fuckyeah", "lust", "favorite", "favorite", "l"]
+		? ["love", "would", "mrgghh", "fuckyeah", "lust", "favourite", "favorite", "l"]
 		: ["unlove", "unrate", "fuck", "ul", "hate", "unheart"];
 	const description = action === "love"
 		? "Loves a track on Last.fm."
