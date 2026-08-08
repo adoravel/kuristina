@@ -5,8 +5,18 @@
  */
 
 import { type AsyncResult, mapAsync } from "@kuristina/core";
-import { getTrackInfo, loveTrack, unloveTrack } from "@kuristina/services/music/last.fm";
+import {
+	getTrackInfo,
+	loveTrack,
+	scrobble as scrobbleTrack,
+	unloveTrack,
+} from "@kuristina/services/music/last.fm";
 import type { ScrobbleError, ScrobbleProviderName } from "@kuristina/services/music/scrobbling";
+
+interface ScrobbleResponse {
+	accepted: number;
+	ignored: number;
+}
 
 export interface ScrobbleTrackInfo {
 	name: string;
@@ -40,6 +50,13 @@ export interface TrackScrobbleProvider {
 	hate?(sessionKey: string, artist: string, track: string): AsyncResult<void, ScrobbleError>;
 
 	unrate?(sessionKey: string, artist: string, track: string): AsyncResult<void, ScrobbleError>;
+
+	scrobble(
+		sessionKey: string,
+		artist: string,
+		track: string,
+		ts: number,
+	): AsyncResult<ScrobbleResponse, ScrobbleError>;
 }
 
 export class LastfmTrackScrobbleProvider implements TrackScrobbleProvider {
@@ -86,5 +103,17 @@ export class LastfmTrackScrobbleProvider implements TrackScrobbleProvider {
 
 	unrate?(sessionKey: string, artist: string, track: string): AsyncResult<void, ScrobbleError> {
 		return unloveTrack(sessionKey, artist, track);
+	}
+
+	scrobble(
+		sessionKey: string,
+		artist: string,
+		track: string,
+		timestamp: number,
+	): AsyncResult<ScrobbleResponse, ScrobbleError> {
+		return mapAsync(scrobbleTrack(sessionKey, [{ artist, track, timestamp }]))(($) => ({
+			accepted: $.accepted ?? $["@attr"]["accepted"],
+			ignored: $.ignored ?? $["@attr"]["ignored"],
+		}));
 	}
 }
