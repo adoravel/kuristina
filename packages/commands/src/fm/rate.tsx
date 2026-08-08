@@ -6,8 +6,56 @@
 
 import { arg, defineCommand } from "@kuristina/commands/core";
 import { repositories } from "@kuristina/database";
-import { getScrobbleProvider } from "@kuristina/services/music/scrobbling";
+import {
+	getScrobbleProvider,
+	type TrackScrobbleProvider,
+} from "@kuristina/services/music/scrobbling";
 import { PROVIDER, resolveArtistAndTrack } from "./helper.ts";
+
+async function fetchTrackCard(provider: TrackScrobbleProvider, artist: string, track: string) {
+	const info = await provider.getInfo(artist, track, false);
+	return info.ok
+		? {
+			name: info.value.name,
+			artist: info.value.artist,
+			image: info.value.imageUrl,
+			url: info.value.href,
+		}
+		: undefined;
+}
+
+function LoveResultCard({ action, name, artist, image, url }: {
+	action: "love" | "unlove";
+	name: string;
+	artist: string;
+	image?: string;
+	url?: string;
+}) {
+	const title = url ? <a href={url}>{name} ↗</a> : name;
+
+	return (
+		<message>
+			<section>
+				{image && (
+					<accessory>
+						<thumbnail url={image} description={name} />
+					</accessory>
+				)}
+				<h3>
+					<icon name={action === "love" ? "heart" : "x"} />
+					{`  ${action === "love" ? "Loved" : "Un-loved"}`}
+				</h3>
+				<blockquote>
+					<strong>{title}</strong>
+					{" by "}
+					{artist}
+				</blockquote>
+			</section>
+			<hr spacing={2} />
+			<sub>{PROVIDER}</sub>
+		</message>
+	);
+}
 
 function makeLoveCommand(action: "love" | "unlove") {
 	const aliases = action === "love" ? ["love", "would", "mrgghh"] : ["unlove", "unrate", "fuck"];
@@ -63,8 +111,19 @@ function makeLoveCommand(action: "love" | "unlove") {
 			const result = await fn(sessionKey, artist, track);
 			if (!result.ok) return void await ctx.resolve(result);
 
-			await ctx.success(
-				`${action === "love" ? "Loved" : "Un-loved"} **${track}** by **${artist}**`,
+			const card = await fetchTrackCard(provider.track, artist, track);
+			await ctx.reply(
+				card
+					? (
+						<LoveResultCard
+							action={action}
+							name={card.name}
+							artist={card.artist}
+							image={card.image}
+							url={card.url}
+						/>
+					)
+					: <LoveResultCard action={action} name={track} artist={artist} />,
 			);
 		},
 	});
