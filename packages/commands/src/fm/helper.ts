@@ -150,6 +150,7 @@ type ResolveResult = { artist: string | undefined; track: string | undefined };
 
 export async function resolveArtistAndTrack(
 	ctx: { user: { id: bigint }; args: { query?: string; artist?: string; track?: string } },
+	album?: boolean,
 ): Promise<ResolveResult> {
 	const query = ctx.args.query?.trim();
 
@@ -167,10 +168,21 @@ export async function resolveArtistAndTrack(
 			const recentTrack = recent.ok ? recent.value.track[0] : undefined;
 			if (recentTrack) {
 				artist = recentTrack.artist["#text"] ?? recentTrack.artist.name;
-				track = recentTrack.name;
+				track = album === true
+					? (recentTrack.album?.["#text"] ?? recentTrack.name)
+					: recentTrack.name;
 			}
 		}
 	}
 
 	return { artist, track };
+}
+
+export async function getLatestArtist(ctx: { user: { id: bigint } }): Promise<string | undefined> {
+	const own = await repositories.scrobble.getDefault(ctx.user.id);
+	if (own.ok && own.value) {
+		const recent = await getRecentTracks(own.value.username, { limit: 1 });
+		const recentTrack = recent.ok ? recent.value.track[0] : undefined;
+		return recentTrack?.artist["#text"] ?? recentTrack?.artist?.name;
+	}
 }
