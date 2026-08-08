@@ -12,8 +12,13 @@ import {
 } from "@kuristina/services/music/scrobbling";
 import { PROVIDER, resolveArtistAndTrack } from "./helper.ts";
 
-async function fetchTrackCard(provider: TrackScrobbleProvider, artist: string, track: string) {
-	const info = await provider.getInfo(artist, track, false);
+async function fetchTrackCard(
+	provider: TrackScrobbleProvider,
+	artist: string,
+	track: string,
+	username: string,
+) {
+	const info = await provider.getInfo(artist, track, false, username);
 	return info.ok
 		? {
 			name: info.value.name,
@@ -31,7 +36,7 @@ function LoveResultCard({ action, name, artist, image, url }: {
 	image?: string;
 	url?: string;
 }) {
-	const title = url ? <a href={url}>{name} ↗</a> : name;
+	const title = <strong>{url ? <a href={url}>{name}</a> : name}</strong>;
 
 	return (
 		<message>
@@ -111,7 +116,10 @@ function makeLoveCommand(action: "love" | "unlove") {
 			const result = await fn(sessionKey, artist, track);
 			if (!result.ok) return void await ctx.resolve(result);
 
-			const card = await fetchTrackCard(provider.track, artist, track);
+			const user = await ctx.resolve(repositories.scrobble.getDefault(ctx.user.id));
+			if (!user) return;
+
+			const card = await fetchTrackCard(provider.track, artist, track, user.username);
 			await ctx.reply(
 				card
 					? (
