@@ -8,30 +8,39 @@ import { defineCommand, ownerOnly, string } from "@kuristina/commands/core";
 import type { Invocation } from "@kuristina/commands/core";
 import { cancelWaiter, waitForInteraction } from "@kuristina/core";
 import {
+	type AdminEditableTable,
 	assertEditableTable,
 	countRows,
 	DEFAULT_TIMEOUT_MS,
 	fetchRows,
 	MAX_PAGE_SIZE,
+	REDACTED_COLUMNS,
 	validateAndGetSchema,
 } from "@kuristina/database/admin";
 import { ButtonStyles, type Interaction } from "@kuristina/discord-bot";
 import { reportCommandError } from "./shared.tsx";
 
-const formatRows = (rows: Record<string, unknown>[], columns: string[]): string => {
+const formatRows = (
+	rows: Record<string, unknown>[],
+	columns: string[],
+	table: AdminEditableTable,
+): string => {
+	const redacted = REDACTED_COLUMNS[table] ?? [];
+
 	const safe = rows.map((r) =>
 		Object.fromEntries(
 			Object.entries(r)
-				.filter(([k]) => columns.includes(k))
+				.filter(([k]) => columns.includes(k) && !redacted.includes(k))
 				.map(([k, v]) => [k, typeof v === "bigint" ? v.toString() : v]),
 		)
 	);
+
 	const body = JSON.stringify(safe, null, 2);
-	return body.length > 1700 ? body.slice(0, 1697) + "..." : body;
+	return body.length > 1700 ? body.slice(0, 1697) + "…" : body;
 };
 
 const renderPage = async (
-	table: string,
+	table: AdminEditableTable,
 	page: number,
 	pageSize: number,
 ): Promise<{ content: string; totalPages: number; total: number }> => {
@@ -46,7 +55,7 @@ const renderPage = async (
 
 	return {
 		content: `**${table}:** page ${page + 1}/${totalPages} (${total} rows)\n\`\`\`json\n${
-			rows.length ? formatRows(rows, columns) : "(no rows)"
+			rows.length ? formatRows(rows, columns, table) : "(no rows)"
 		}\n\`\`\``,
 		totalPages,
 		total,
@@ -55,7 +64,7 @@ const renderPage = async (
 
 const runInspector = async (
 	ctx: Invocation,
-	table: string,
+	table: AdminEditableTable,
 	pageSize = MAX_PAGE_SIZE,
 ): Promise<void> => {
 	let page = 0;

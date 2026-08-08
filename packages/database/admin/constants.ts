@@ -14,6 +14,10 @@ export const ADMIN_EDITABLE_TABLES = [
 	"scrobble_accounts",
 ] as const;
 
+export const REDACTED_COLUMNS: Readonly<Partial<Record<AdminEditableTable, readonly string[]>>> = {
+	scrobble_accounts: ["session_key"],
+};
+
 export type AdminEditableTable = typeof ADMIN_EDITABLE_TABLES[number];
 
 export const MAX_HISTORY = 20;
