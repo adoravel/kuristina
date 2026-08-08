@@ -9,12 +9,13 @@ import nowplaying from "./nowplaying.tsx";
 import { login, logout, status } from "./login.tsx";
 import { update } from "./update.ts";
 import alias from "./alias/mod.tsx";
+import history from "./history.tsx";
 
 export default defineCommand({
 	aliases: ["fm", "lastfm"],
 	description: "Last.fm authentication commands",
 	category: "fm",
-	subcommands: [nowplaying, login, logout, status, update, alias],
+	subcommands: [nowplaying, login, logout, status, update, alias, history],
 	args: {
 		query: user({
 			description: "user mention or ID (for text mode only)",
