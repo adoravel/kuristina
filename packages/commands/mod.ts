@@ -37,6 +37,12 @@ export const commands = {
 		get whoknowstrack() {
 			return cmd("fm/whoknowstrack");
 		},
+		get love() {
+			return import("./src/fm/rate.tsx").then(($) => $.love);
+		},
+		get unrate() {
+			return import("./src/fm/rate.tsx").then(($) => $.unrate);
+		},
 	},
 	markov: {
 		get forget() {
@@ -68,6 +74,8 @@ export const commands = {
 			this.fm.whoknows,
 			this.fm.whoknowsalbum,
 			this.fm.whoknowstrack,
+			this.fm.love,
+			this.fm.unrate,
 			this.markov.forget,
 			this.markov.prune,
 			this.dev.restart,

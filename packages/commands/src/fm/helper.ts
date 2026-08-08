@@ -5,6 +5,7 @@
  */
 
 import { type AsyncResult, mapWithConcurrency, ok } from "@kuristina/core";
+import { getRecentTracks } from "@kuristina/services/music/last.fm";
 import { repositories } from "@kuristina/database";
 import type { AppError } from "@kuristina/errors";
 import { md } from "@kuristina/discord-ui";
@@ -143,4 +144,33 @@ export function rankResults<T extends HasScrobbleData>(
 		errors,
 		imageUrl: ranked.findLast((x) => x.data?.imageUrl)?.data?.imageUrl,
 	};
+}
+
+type ResolveResult = { artist: string | undefined; track: string | undefined };
+
+export async function resolveArtistAndTrack(
+	ctx: { user: { id: bigint }; args: { query?: string; artist?: string; track?: string } },
+): Promise<ResolveResult> {
+	const query = ctx.args.query?.trim();
+
+	let artist: string | undefined = ctx.args.artist;
+	let track: string | undefined = ctx.args.track;
+
+	if (query) {
+		[artist, track] = parseMusicQuery(query);
+	}
+
+	if (!artist || !track) {
+		const own = await repositories.scrobble.getDefault(ctx.user.id);
+		if (own.ok && own.value) {
+			const recent = await getRecentTracks(own.value.username, { limit: 1 });
+			const recentTrack = recent.ok ? recent.value.track[0] : undefined;
+			if (recentTrack) {
+				artist = recentTrack.artist["#text"] ?? recentTrack.artist.name;
+				track = recentTrack.name;
+			}
+		}
+	}
+
+	return { artist, track };
 }

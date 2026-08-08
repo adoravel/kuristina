@@ -6,18 +6,16 @@
 
 import { arg, defineCommand } from "@kuristina/commands/core";
 import { mapAsync } from "@kuristina/core";
-import { repositories } from "@kuristina/database";
 import { Theme } from "@kuristina/discord-ui";
 import { getScrobbleProvider } from "@kuristina/services/music/scrobbling";
-import { getRecentTracks } from "@kuristina/services/music/last.fm";
 import {
 	fetchLinkedAccounts,
 	fetchPlaycounts,
 	MAX_SHOWN,
-	parseMusicQuery,
 	PROVIDER,
 	type RankedResult,
 	rankResults,
+	resolveArtistAndTrack,
 } from "./helper.ts";
 
 function NoPlaysMessage({ artist, track }: { artist: string; track: string }) {
@@ -104,24 +102,7 @@ export default defineCommand({
 		}),
 	},
 	async exec(ctx) {
-		const query = ctx.args.query?.trim();
-
-		let artist: string | undefined = ctx.args.artist, track: string | undefined = ctx.args.track;
-		if (ctx.args.query) {
-			[artist, track] = parseMusicQuery(query);
-		}
-
-		if (!artist || !track) {
-			const own = await repositories.scrobble.getDefault(ctx.user.id);
-			if (own.ok && own.value) {
-				const recent = await getRecentTracks(own.value.username, { limit: 1 });
-				const recentTrack = recent.ok ? recent.value.track[0] : undefined;
-				if (recentTrack) {
-					artist = recentTrack.artist["#text"] ?? recentTrack.artist.name;
-					track = recentTrack.name;
-				}
-			}
-		}
+		const { artist, track } = await resolveArtistAndTrack(ctx);
 
 		if (!artist || !track) {
 			return void await ctx.error(
