@@ -105,7 +105,7 @@ export default defineCommand({
 		album: arg.string({ surfaces: ["slash"], required: false, description: "album name" }),
 	},
 	async exec(ctx) {
-		const { artist, track: album } = await resolveArtistAndTrack(ctx);
+		const { artist, track: album } = await resolveArtistAndTrack(ctx, true);
 
 		if (!artist || !album) {
 			return void await ctx.error(
@@ -119,9 +119,8 @@ export default defineCommand({
 
 		const provider = getScrobbleProvider(PROVIDER);
 		const albumInfo = await provider.album.getInfo(artist, album, false);
-
 		if (!albumInfo.ok) {
-			return void await ctx.error("album not found");
+			return void await ctx.error("Album not found.");
 		}
 
 		const { value: resolvedAlbum } = albumInfo;
