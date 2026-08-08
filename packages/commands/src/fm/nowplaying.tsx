@@ -108,8 +108,8 @@ function TrackCard(
 export default defineCommand({
 	aliases: ["now", "nowplaying", "np"],
 	description: "Shows your currently playing (or most recently played) track on Last.fm.",
-	category: "lastfm",
-	cooldownMs: 3000,
+	category: "fm",
+	cooldownMs: 3_000,
 	args: { user: arg.user({ description: "whose scrobbles to show" }) },
 	async exec(ctx) {
 		const userId = ctx.args.user ?? ctx.user.id;

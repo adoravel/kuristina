@@ -82,7 +82,7 @@ export default defineCommand({
 	aliases: ["track", "wkt", "wt", "wktrack", "whoknowstrack", "song"],
 	description:
 		"Shows who in this server has scrobbled a given track the most. Use `artist | track`, or omit to use your last played track. Requires a linked Last.fm account.",
-	category: "lastfm",
+	category: "fm",
 	args: {
 		query: arg.string({
 			description: "artist | track",

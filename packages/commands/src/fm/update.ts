@@ -11,7 +11,7 @@ import { invalidateAllForUser } from "@kuristina/services/music/last.fm";
 export const update = defineCommand({
 	aliases: ["update", "u"],
 	description: "Forces a fresh Last.fm fetch for your linked account.",
-	category: "lastfm",
+	category: "fm",
 	cooldownMs: 15_000,
 	async exec(ctx) {
 		const account = await ctx.resolve(repositories.scrobble.getDefault(ctx.user.id));

@@ -1,50 +1,73 @@
-/**
- * kuristina, a ~~kitchen~~ bathroom sink discord bot
- * Copyright (c) 2025-2026 kyu.re
- * SPDX-License-Identifier: AGPL-3.0-or-later
- */
-
 import { arg, defineCommand, getAllCommands } from "@kuristina/commands/core";
-import type { CommandSpec } from "@kuristina/commands/core";
-import { ErrorMessage, Theme } from "@kuristina/discord-ui";
+import type { CommandSpec, Invocation } from "@kuristina/commands/core";
+import { cancelWaiter, waitForInteraction } from "@kuristina/core";
+import { ButtonStyles, type CreateMessageOptions, type Interaction } from "@kuristina/discord-bot";
+import { Theme } from "@kuristina/discord-ui";
+
+const HELP_TIMEOUT_MS = 120_000;
 
 function isOwnerOnly(cmd: CommandSpec<any>): boolean {
 	return cmd.middleware.some((m) => m.name === "owner-only");
 }
 
-interface HelpCardProps {
-	commands: Array<{ name: string; description: string }>;
+function groupByCategory(commands: readonly CommandSpec<any>[]): Map<string, CommandSpec<any>[]> {
+	const groups = new Map<string, CommandSpec<any>[]>();
+	for (const cmd of commands) {
+		if (isOwnerOnly(cmd) || !cmd.category) continue;
+		const { category } = cmd;
+		if (!groups.has(category)) groups.set(category, []);
+		groups.get(category)!.push(cmd);
+	}
+	return groups;
 }
 
-function HelpCard({
-	commands,
-}: HelpCardProps) {
-	const len = Math.max(
-		...commands.map((cmd) => cmd.name.length),
-	);
+const centerString = (text: string, length: number): string => {
+	const leftPadding = Math.floor((length - text.length) / 2);
+	return text.padStart(text.length + leftPadding, " ").padEnd(length, " ");
+};
+
+const formatCategoryName = (name: string): string => {
+	if (name === "fm") return "Last.fm";
+	return name.charAt(0).toUpperCase() + name.slice(1);
+};
+
+function renderCategoryPage(
+	categories: string[],
+	groups: Map<string, CommandSpec<any>[]>,
+	page: number,
+): CreateMessageOptions {
+	const categoryKey = categories[page];
+	const commands = groups.get(categoryKey)!;
+
+	const categoryName = formatCategoryName(categoryKey);
+
+	const maxAliasLength = Math.max(...commands.map((c) => c.aliases[0].length));
+	const paddedLength = maxAliasLength + 4;
 
 	return (
 		<message>
 			<h3>
-				<icon name="help" /> List of commands
+				<icon name="help" />
+				{` ${categoryName}`} ({page + 1}/{categories.length})
 			</h3>
 			<hr spacing={2} />
 			<sub>
 				<ul>
-					{commands.map((cmd) => (
-						<li>
-							<strong>
-								<code>{cmd.name.padEnd(len, " ")}</code>
-							</strong>
-							{"    " + cmd.description}
-						</li>
-					))}
+					{commands.map((c) => {
+						const centeredAlias = centerString(c.aliases[0], paddedLength);
+						return (
+							<li>
+								<strong>
+									<kbd>{centeredAlias}</kbd>
+								</strong>
+								{`  `}
+								{c.description}
+							</li>
+						);
+					})}
 				</ul>
 			</sub>
-			<p>
-				Use <kbd>{Theme.prefix}help &lt;name&gt;</kbd>{" "}
-				to view more information about a specific command.
-			</p>
+			<p>Use `{Theme.prefix}help &lt;name&gt;` for details on a specific command.</p>
 			<hr spacing={2} />
 			<sub>
 				<a href={Theme.branding.repoUrl}>{Theme.branding.name}</a>{" "}
@@ -55,129 +78,132 @@ function HelpCard({
 	);
 }
 
-interface CommandDetailProps {
-	name: string;
-	description: string;
-	usage?: string;
-	examples?: string[];
-	aliases?: string[];
-	permissions?: string[];
-	subcommands?: string[];
+async function runCategoryBrowser(
+	ctx: Invocation,
+	categories: string[],
+	groups: Map<string, CommandSpec<any>[]>,
+): Promise<void> {
+	let page = 0;
+
+	while (true) {
+		const message = renderCategoryPage(categories, groups, page);
+
+		const { customId: prevId, promise: prevP } = waitForInteraction<Interaction>(
+			"help-prev",
+			HELP_TIMEOUT_MS,
+			{ filter: (i) => i.user?.id === ctx.user.id },
+		);
+		const { customId: nextId, promise: nextP } = waitForInteraction<Interaction>(
+			"help-next",
+			HELP_TIMEOUT_MS,
+			{ filter: (i) => i.user?.id === ctx.user.id },
+		);
+		const { customId: closeId, promise: closeP } = waitForInteraction<Interaction>(
+			"help-close",
+			HELP_TIMEOUT_MS,
+			{ filter: (i) => i.user?.id === ctx.user.id },
+		);
+
+		message.components?.push(
+			<row>
+				<button customId={prevId} style={ButtonStyles.Secondary} disabled={page === 0}>
+					← Prev
+				</button>
+				<button
+					customId={nextId}
+					style={ButtonStyles.Secondary}
+					disabled={page >= categories.length - 1}
+				>
+					Next →
+				</button>
+				<button customId={closeId} style={ButtonStyles.Danger}>✕</button>
+			</row>,
+		);
+		await ctx.reply(message);
+
+		const winner = await Promise.race([
+			prevP.then(() => "prev" as const),
+			nextP.then(() => "next" as const),
+			closeP.then(() => "close" as const),
+		]).catch(() => "timeout" as const);
+
+		cancelWaiter(prevId);
+		cancelWaiter(nextId);
+		cancelWaiter(closeId);
+
+		if (winner === "prev") page = Math.max(0, page - 1);
+		else if (winner === "next") page = Math.min(categories.length - 1, page + 1);
+		else return;
+	}
 }
 
-function CommandDetail({
-	name,
-	description,
-	usage,
-	examples,
-	aliases,
-	permissions,
-	subcommands,
-}: CommandDetailProps) {
-	return (
-		<message>
-			<h3>
-				<icon name="help" />
-				<strong>
-					<kbd>{name}</kbd>
-				</strong>
-			</h3>
-			<hr spacing={2} />
-			<p>{description}</p>
-			{usage && (
-				<>
-					<p>
-						<strong>Usage:</strong> <kbd>{usage}</kbd>
-					</p>
-				</>
-			)}
-			{aliases && aliases.length > 0 && (
-				<>
-					<p>
-						<strong>{`Aliases `}</strong>
-						{aliases.map((a) =>
-							// deno-lint-ignore jsx-key
-							<kbd>{a}</kbd>
-						).join(" ")}
-					</p>
-				</>
-			)}
-			{subcommands && subcommands.length > 0 && (
-				<>
-					<p>
-						<strong>{`Subcommands `}</strong>
-						{subcommands.map((s) =>
-							// deno-lint-ignore jsx-key
-							<kbd>{s}</kbd>
-						).join(" ")}
-					</p>
-				</>
-			)}
-			{examples && examples.length > 0 && (
-				<>
-					<hr spacing={2} />
-					<p>
-						<strong>Examples:</strong>
-					</p>
-					<ul>
-						{examples.map((ex) => (
-							<li>
-								<code>{ex}</code>
-							</li>
-						))}
-					</ul>
-				</>
-			)}
-			{permissions && permissions.length > 0 && (
-				<>
-					<hr spacing={2} />
-					<sub>Required permissions: {permissions.join(", ")}</sub>
-				</>
-			)}
-		</message>
+function findCommand(needle: string): CommandSpec<any> | undefined {
+	return getAllCommands().find(($) =>
+		!isOwnerOnly($) && $.aliases.some((a) => a.toLowerCase() === needle)
 	);
 }
 
 export default defineCommand({
 	aliases: "help",
-	description: "Lists commands, or shows detail for one.",
-	args: { command: arg.string({ description: "command name", required: false }) },
+	description: "Lists commands, browsable by category, or shows detail for one.",
+	args: {
+		command: arg.string({ description: "command name" }),
+		subcommand: arg.string({ description: "subcommand name, if the command has one" }),
+	},
 	async exec(ctx) {
-		const needle = ctx.args.command?.toLowerCase();
+		if (!ctx.args.command) {
+			const groups = groupByCategory(getAllCommands());
+			const categories = [...groups.keys()].sort().reverse();
+			if (!categories.length) return void await ctx.reply({ content: "no commands registered" });
+			await runCategoryBrowser(ctx, categories, groups);
+			return;
+		}
 
-		if (needle) {
-			const cmd = getAllCommands().find((c) =>
-				!isOwnerOnly(c) && c.aliases.some((a) => a.toLowerCase() === needle)
-			);
+		const cmd = findCommand(ctx.args.command.toLowerCase());
+		if (!cmd) return void await ctx.error(`command \`${ctx.args.command}\` not found`);
 
-			if (!cmd) {
-				return void await ctx.reply(
-					<ErrorMessage title="uh oh :(">
-						Command{" "}
-						<strong>
-							<kbd>{needle}</kbd>
-						</strong>{" "}
-						not found. Pwease, contact a developer if you firmly believe this is a mistake.
-					</ErrorMessage>,
-				);
-			}
+		const target = ctx.args.subcommand
+			? cmd.subcommands?.find((s) =>
+				s.aliases.some((a) => a.toLowerCase() === ctx.args.subcommand!.toLowerCase())
+			)
+			: cmd;
 
-			return void await ctx.reply(
-				<CommandDetail
-					name={cmd.aliases[0]}
-					description={cmd.description}
-					aliases={cmd.aliases.slice(1)}
-					subcommands={cmd.subcommands?.filter((s) => !isOwnerOnly(s)).map((s) => s.aliases[0])}
-				/>,
+		if (ctx.args.subcommand && !target) {
+			return void await ctx.error(
+				`\`${cmd.aliases[0]}\` has no subcommand \`${ctx.args.subcommand}\``,
 			);
 		}
 
-		await ctx.reply(
-			<HelpCard
-				commands={getAllCommands()
-					.filter((cmd) => !isOwnerOnly(cmd))
-					.map((cmd) => ({ name: cmd.aliases[0], description: cmd.description }))}
-			/>,
-		);
+		await ctx.reply({
+			content: (
+				<>
+					<h3>
+						<icon name="help" />{"  "}
+						<strong>
+							<kbd>{target!.aliases[0]}</kbd>
+						</strong>
+					</h3>
+					<hr spacing={2} />
+					<p>{target!.description}</p>
+					{target!.aliases.length > 1 && (
+						<p>
+							<strong>Aliases</strong>{" "}
+							{target!.aliases.slice(1).map((a) => <kbd>{a}</kbd>).join(" ")}
+						</p>
+					)}
+					{target === cmd && cmd.subcommands?.length && (
+						<p>
+							<strong>Subcommands</strong>{" "}
+							{cmd.subcommands.filter((s) => !isOwnerOnly(s)).map((s) => <kbd>{s.aliases[0]}</kbd>)
+								.join(" ")}
+							<sub>
+								&nbsp;· use <kbd>{Theme.prefix}help {cmd.aliases[0]} &lt;subcommand&gt;</kbd>{" "}
+								for details
+							</sub>
+						</p>
+					)}
+				</>
+			),
+		});
 	},
 });

@@ -93,8 +93,7 @@ export default defineCommand({
 	aliases: ["album", "wka", "wkalbum", "whoknowsalbum", "ep"],
 	description:
 		"Shows who in this server has scrobbled a given album the most. Use `artist | album`, or omit to use your last played album. Requires a linked Last.fm account.",
-	category: "lastfm",
-
+	category: "fm",
 	args: {
 		query: arg.string({
 			surfaces: ["text"],

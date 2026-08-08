@@ -49,22 +49,10 @@ function formatPath(path: string[]): string {
 	return path.join(" ");
 }
 
-function formatTiming(parseTime: number, execTime: number): string {
-	const total = parseTime + execTime;
-	const parts: string[] = [];
-
-	if (parseTime > 50) parts.push(`parse: ${yellow(parseTime.toFixed(0))}ms`);
-	else parts.push(`parse: ${dim(parseTime.toFixed(0))}ms`);
-
-	if (execTime > 100) parts.push(`exec: ${yellow(execTime.toFixed(0))}ms`);
-	else if (execTime > 500) parts.push(`exec: ${red(execTime.toFixed(0))}ms`);
-	else parts.push(`exec: ${dim(execTime.toFixed(0))}ms`);
-
-	if (total > 1000) parts.push(`total: ${red(total.toFixed(0))}ms`);
-	else if (total > 200) parts.push(`total: ${yellow(total.toFixed(0))}ms`);
-	else parts.push(`total: ${dim(total.toFixed(0))}ms`);
-
-	return parts.join(dim(", "));
+function formatTiming(name: string, time: number, threshold: number = 1): string {
+	if (time > 50 * threshold) return `${name}: ${yellow(time.toFixed(0))}ms`;
+	else if (time > 250 * threshold) return `${name}: ${red(time.toFixed(0))}ms`;
+	else return `${name}: ${dim(time.toFixed(0))}ms`;
 }
 
 export function commitCooldown(invocation: Invocation): void {
@@ -102,28 +90,33 @@ export async function wrapExecution(
 	if (!ok) return;
 
 	const parseEnd = performance.now();
-
+	const parseTime = parseEnd - start;
+	const parseTiming = formatTiming("parse", parseTime);
 	try {
+		logger.prefixed(
+			badge,
+			`${dim(fullPath)}${argsStr} executed by ${dim(userTag)} ${dim(italic(parseTiming))}`,
+		);
+
 		const execStart = performance.now();
 		await exec();
 		const execTime = performance.now() - execStart;
-		const parseTime = parseEnd - start;
-		const timings = formatTiming(parseTime, execTime);
+		const execTiming = formatTiming("exec", execTime, 2);
 
 		logger.prefixed(
 			badge,
-			`${dim(fullPath)}${argsStr} executed by ${dim(userTag)} ${dim(italic(timings))}`,
+			`${dim(fullPath)}${argsStr} executed by ${dim(userTag)} ${dim(italic(execTiming))}`,
 		);
-
 		commitCooldown(invocation);
 	} catch (error) {
 		const execTime = performance.now() - parseEnd;
-		const parseTime = parseEnd - start;
-		const timings = formatTiming(parseTime, execTime);
+		const execTiming = formatTiming("exec", execTime, 2);
 
 		logger.prefixed(
 			badge,
-			`${red(fullPath)}${argsStr} errored for ${dim(userTag)} ${dim(italic(timings))}`,
+			`${red(fullPath)}${argsStr} errored for ${dim(userTag)} ${
+				dim(italic(`${parseTiming} ${execTiming}`))
+			}`,
 		);
 		logger.boo(`execution error (${fullPath}):`, error);
 		throw error;

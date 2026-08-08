@@ -12,8 +12,8 @@ import alias from "./alias/mod.tsx";
 
 export default defineCommand({
 	aliases: ["fm", "lastfm"],
-	description: "Last.fm commands.",
-	category: "lastfm",
+	description: "Last.fm authentication commands",
+	category: "fm",
 	subcommands: [nowplaying, login, logout, status, update, alias],
 	args: {
 		query: user({

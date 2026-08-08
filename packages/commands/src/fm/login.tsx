@@ -108,8 +108,8 @@ function AccountMessage({ provider, username }: { provider: string; username: st
 export const login = defineCommand({
 	aliases: "login",
 	description: "Links your Last.fm account to the bot.",
-	category: "lastfm",
-	cooldownMs: 5000,
+	category: "fm",
+	cooldownMs: 5_000,
 	async exec(ctx) {
 		await ctx.defer();
 
@@ -162,8 +162,8 @@ export const login = defineCommand({
 export const logout = defineCommand({
 	aliases: "logout",
 	description: "Unlinks your Last.fm account from the bot.",
-	category: "lastfm",
-	cooldownMs: 3000,
+	category: "fm",
+	cooldownMs: 3_000,
 	async exec(ctx) {
 		const unlink = repositories.scrobble.unlink(ctx.user.id, "last.fm");
 		await mapAsync(unlink)(async () => void await ctx.reply(<UnlinkedMessage />));
@@ -173,8 +173,8 @@ export const logout = defineCommand({
 export const status = defineCommand({
 	aliases: "status",
 	description: "Shows your linked Last.fm account.",
-	category: "lastfm",
-	cooldownMs: 3000,
+	category: "fm",
+	cooldownMs: 3_000,
 	async exec(ctx) {
 		const current = await repositories.scrobble.getDefault(ctx.user.id);
 		await mapAsync(Promise.resolve(current))(async (account) => {

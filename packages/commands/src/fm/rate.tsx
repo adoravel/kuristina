@@ -18,8 +18,8 @@ function makeLoveCommand(action: "love" | "unlove") {
 	return defineCommand({
 		aliases,
 		description,
-		category: "lastfm",
-		cooldownMs: 3000,
+		category: "fm",
+		cooldownMs: 3_000,
 		args: {
 			query: arg.string({
 				description: "artist | track",
