@@ -5,7 +5,12 @@
  */
 
 import { type AsyncResult, mapAsync } from "@kuristina/core";
-import { getArtistInfo, withLastFmCache } from "@kuristina/services/music/last.fm";
+import {
+	getArtistInfo,
+	getArtistTopAlbums,
+	getArtistTopTracks,
+	withLastFmCache,
+} from "@kuristina/services/music/last.fm";
 import type { ScrobbleError, ScrobbleProviderName } from "@kuristina/services/music/scrobbling";
 
 export interface ScrobbleArtist {
@@ -18,6 +23,13 @@ export interface ScrobbleArtist {
 
 export interface ExtendedScrobbleArtist extends ScrobbleArtist {
 	individualUserScrobbles: number;
+}
+
+export interface ArtistTopMedia {
+	name: string;
+	playcount: number;
+	image: string;
+	href: string;
 }
 
 export interface ArtistScrobbleProvider {
@@ -33,6 +45,18 @@ export interface ArtistScrobbleProvider {
 		query: string,
 		exact: boolean,
 	): AsyncResult<ScrobbleArtist, ScrobbleError>;
+
+	getTopTracks(
+		query: string,
+		limit: number,
+		exact: boolean,
+	): AsyncResult<ArtistTopMedia[], ScrobbleError>;
+
+	getTopAlbums(
+		query: string,
+		limit: number,
+		exact: boolean,
+	): AsyncResult<ArtistTopMedia[], ScrobbleError>;
 }
 
 export class LastfmArtistScrobbleProvider implements ArtistScrobbleProvider {
@@ -83,5 +107,35 @@ export class LastfmArtistScrobbleProvider implements ArtistScrobbleProvider {
 			bio: $.bio?.summary ?? $.bio?.content,
 			imageUrl: $.highestQualityImage["#text"],
 		}));
+	}
+
+	getTopTracks(
+		query: string,
+		limit: number,
+		exact: boolean = false,
+	): AsyncResult<ArtistTopMedia[], ScrobbleError> {
+		return mapAsync(getArtistTopTracks(query, limit, !exact))((t) =>
+			t.map(($) => ({
+				name: $.name,
+				playcount: Number($.playcount),
+				href: $.url,
+				image: $.highestQualityImage["#text"],
+			}))
+		);
+	}
+
+	getTopAlbums(
+		query: string,
+		limit: number,
+		exact: boolean = false,
+	): AsyncResult<ArtistTopMedia[], ScrobbleError> {
+		return mapAsync(getArtistTopAlbums(query, limit, !exact))((t) =>
+			t.map(($) => ({
+				name: $.name,
+				playcount: Number($.playcount),
+				href: $.url,
+				image: $.highestQualityImage["#text"],
+			}))
+		);
 	}
 }
