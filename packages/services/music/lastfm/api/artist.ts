@@ -4,7 +4,7 @@
  * SPDX-License-Identifier: AGPL-3.0-or-later
  */
 
-import { type AsyncResult, map } from "@kuristina/core";
+import { type AsyncResult, mapAsync } from "@kuristina/core";
 import type { LastFmError } from "../errors.ts";
 import type { LastFmImage } from "../types.ts";
 import { request } from "../http.ts";
@@ -34,6 +34,20 @@ export interface LastFmArtist {
 	tags?: { tag: { name: string; url: string }[] };
 }
 
+export interface LastFmTopTrack {
+	name: string;
+	playcount: string;
+	url: string;
+	image: LastFmImage[];
+}
+
+export interface LastFmTopAlbum {
+	name: string;
+	playcount: string;
+	url: string;
+	image: LastFmImage[];
+}
+
 const FALLBACK_IMAGE: LastFmImage = {
 	"#text": "https://lastfm.freetls.fastly.net/i/u/300x300/2a96cbd8b46e442fc41c2b86b821562f.png",
 	size: "mega",
@@ -48,7 +62,7 @@ export function getHighestQualityImage(images?: LastFmImage[]): LastFmImage {
 		.find((img) => img?.["#text"]) ?? FALLBACK_IMAGE;
 }
 
-export async function getArtistInfo(
+export function getArtistInfo(
 	artist: string,
 	username?: string,
 	autocorrect = true,
@@ -60,8 +74,40 @@ export async function getArtistInfo(
 
 	type Response = { artist: LastFmArtist };
 
-	return map(await request<Response>("artist.getInfo", params))(($) => ({
+	return mapAsync(request<Response>("artist.getInfo", params))(($) => ({
 		...$.artist,
 		highestQualityImage: getHighestQualityImage($.artist.image),
 	}));
+}
+
+export function getArtistTopTracks(
+	artist: string,
+	limit = 10,
+	autocorrect: boolean = true,
+): AsyncResult<(LastFmTopTrack & { highestQualityImage: LastFmImage })[], LastFmError> {
+	const top = request<{ toptracks: { track: LastFmTopTrack[] } }>(
+		"artist.getTopTracks",
+		{ artist, limit, autocorrect: autocorrect ? 1 : 0 },
+		undefined,
+		false,
+	);
+	return mapAsync(top)(($) =>
+		$.toptracks.track.map((t) => ({ ...t, highestQualityImage: getHighestQualityImage(t.image) }))
+	);
+}
+
+export function getArtistTopAlbums(
+	artist: string,
+	limit = 10,
+	autocorrect: boolean = true,
+): AsyncResult<(LastFmTopAlbum & { highestQualityImage: LastFmImage })[], LastFmError> {
+	const top = request<{ topalbums: { album: LastFmTopAlbum[] } }>(
+		"artist.getTopAlbums",
+		{ artist, limit, autocorrect: autocorrect ? 1 : 0 },
+		undefined,
+		false,
+	);
+	return mapAsync(top)(($) =>
+		$.topalbums.album.map((a) => ({ ...a, highestQualityImage: getHighestQualityImage(a.image) }))
+	);
 }
