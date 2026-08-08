@@ -36,7 +36,7 @@ function md5(input: string): string {
 	return createHash("md5").update(input).digest("hex");
 }
 
-export async function request<T>(
+export async function request<T = { lfm: { status: string } }>(
 	method: string,
 	params: Record<string, string | number> = {},
 	sessionKey?: string,

@@ -5,7 +5,7 @@
  */
 
 import { type AsyncResult, mapAsync } from "@kuristina/core";
-import { getTrackInfo } from "@kuristina/services/music/last.fm";
+import { getTrackInfo, loveTrack, unloveTrack } from "@kuristina/services/music/last.fm";
 import type { ScrobbleError, ScrobbleProviderName } from "@kuristina/services/music/scrobbling";
 
 export interface ScrobbleTrackInfo {
@@ -34,6 +34,12 @@ export interface TrackScrobbleProvider {
 		track: string,
 		exact: boolean,
 	): AsyncResult<ScrobbleTrackInfo, ScrobbleError>;
+
+	love?(sessionKey: string, artist: string, track: string): AsyncResult<void, ScrobbleError>;
+
+	hate?(sessionKey: string, artist: string, track: string): AsyncResult<void, ScrobbleError>;
+
+	unrate?(sessionKey: string, artist: string, track: string): AsyncResult<void, ScrobbleError>;
 }
 
 export class LastfmTrackScrobbleProvider implements TrackScrobbleProvider {
@@ -72,5 +78,13 @@ export class LastfmTrackScrobbleProvider implements TrackScrobbleProvider {
 			href: $.url,
 			imageUrl: $.highestQualityImage["#text"],
 		}));
+	}
+
+	love?(sessionKey: string, artist: string, track: string): AsyncResult<void, ScrobbleError> {
+		return loveTrack(sessionKey, artist, track);
+	}
+
+	unrate?(sessionKey: string, artist: string, track: string): AsyncResult<void, ScrobbleError> {
+		return unloveTrack(sessionKey, artist, track);
 	}
 }
