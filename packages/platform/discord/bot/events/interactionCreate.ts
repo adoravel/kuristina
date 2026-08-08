@@ -10,6 +10,18 @@ import { dispatchSlashInteraction } from "@kuristina/commands/core";
 import { waiters } from "@kuristina/core";
 import { ackWithMessage } from "../interactions/respond.ts";
 
+const recentlyHandled = new Map<string, ReturnType<typeof setTimeout>>();
+const DEDUPE_WINDOW_MS = 15_000;
+
+function markHandledOnce(interactionId: string): boolean {
+	if (recentlyHandled.has(interactionId)) return false;
+	recentlyHandled.set(
+		interactionId,
+		setTimeout(() => recentlyHandled.delete(interactionId), DEDUPE_WINDOW_MS),
+	);
+	return true;
+}
+
 async function handleComponentInteraction(interaction: Interaction): Promise<boolean> {
 	const customId = interaction.data?.customId;
 	if (!customId) return false;
@@ -38,6 +50,10 @@ const interactionCreate: typeof discord.events.interactionCreate = async (intera
 	}
 
 	if (interaction.type === InteractionTypes.MessageComponent && interaction.data?.customId) {
+		if (!markHandledOnce(interaction.id.toString())) {
+			logger.warn(`interactionCreate: dropped duplicate delivery of interaction ${interaction.id}`);
+			return;
+		}
 		const handled = await handleComponentInteraction(interaction);
 		if (!handled) {
 			await discord.helpers.sendInteractionResponse(interaction.id, interaction.token, {

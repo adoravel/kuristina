@@ -18,8 +18,21 @@ export async function ackWithMessage(
 	content: CreateMessageOptions & { ephemeral?: boolean },
 ): Promise<void> {
 	const { ephemeral, ...data } = content;
-	await discord.helpers.sendInteractionResponse(interaction.id, interaction.token, {
-		type: InteractionResponseTypes.ChannelMessageWithSource,
-		data: { ...data, flags: ephemeral ? (data.flags ?? 0) | MessageFlags.Ephemeral : data.flags },
-	});
+	try {
+		await discord.helpers.sendInteractionResponse(interaction.id, interaction.token, {
+			type: InteractionResponseTypes.ChannelMessageWithSource,
+			data: { ...data, flags: ephemeral ? (data.flags ?? 0) | MessageFlags.Ephemeral : data.flags },
+		});
+	} catch (e) {
+		const alreadyAcked = e instanceof Error && e.message.includes("40060");
+		if (!alreadyAcked) throw e;
+
+		logger.warn(
+			`ackWithMessage: interaction ${interaction.id} was already acked, falling back to followup`,
+		);
+		await discord.helpers.sendFollowupMessage(interaction.token, {
+			...data,
+			flags: ephemeral ? (data.flags ?? 0) | MessageFlags.Ephemeral : data.flags,
+		});
+	}
 }
