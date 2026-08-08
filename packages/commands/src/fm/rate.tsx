@@ -36,7 +36,7 @@ function LoveResultCard({ action, name, artist, image, url }: {
 	image?: string;
 	url?: string;
 }) {
-	const title = <strong>{url ? <a href={url}>{name}</a> : name}</strong>;
+	const title = url ? <a href={url}>{name}</a> : name;
 
 	return (
 		<message>
@@ -63,7 +63,9 @@ function LoveResultCard({ action, name, artist, image, url }: {
 }
 
 function makeLoveCommand(action: "love" | "unlove") {
-	const aliases = action === "love" ? ["love", "would", "mrgghh"] : ["unlove", "unrate", "fuck"];
+	const aliases = action === "love"
+		? ["love", "would", "mrgghh", "fuckyeah", "lust", "favorite", "favorite", "l"]
+		: ["unlove", "unrate", "fuck", "ul", "hate", "unheart"];
 	const description = action === "love"
 		? "Loves a track on Last.fm."
 		: "Un-loves a track on Last.fm.";
