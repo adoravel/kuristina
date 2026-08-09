@@ -1,5 +1,5 @@
 /**
- * kuristina, a ~~kitchen~~ bathroom sink discord bot
+ * kuristina, a bathroom sink discord bot
  * Copyright (c) 2025-2026 kyu.re
  * SPDX-License-Identifier: AGPL-3.0-or-later
  */
@@ -20,6 +20,85 @@ export interface BlobSnippetCardProps {
 	repoMeta?: ForgeRepoMeta;
 }
 
+function RepoAvatar(
+	{ avatarUrl, owner, repo }: { avatarUrl?: string; owner: string; repo: string },
+) {
+	if (!avatarUrl) return null;
+	return (
+		<accessory>
+			<thumbnail url={avatarUrl} description={`${owner}/${repo}`} />
+		</accessory>
+	);
+}
+
+function RepoHeader({
+	icon,
+	url,
+	owner,
+	repo,
+}: {
+	icon: RegisteredIconName;
+	url: string;
+	owner: string;
+	repo: string;
+}) {
+	return (
+		<h3>
+			<icon name={icon} />{" "}
+			<a href={url}>
+				<strong>{owner}/</strong>
+				{repo}
+			</a>
+		</h3>
+	);
+}
+
+function RepoDescription({ description }: { description?: string }) {
+	if (!description) return null;
+	return <p>{description}</p>;
+}
+
+function FilePathRange(
+	{ path, startLine, endLine }: { path: string; startLine?: number; endLine?: number },
+) {
+	const range = startLine
+		? ` L${startLine}${endLine && endLine !== startLine ? `-L${endLine}` : ""}`
+		: "";
+	return (
+		<p>
+			<kbd>{path}</kbd>
+			{range}
+		</p>
+	);
+}
+
+function CodeSnippet({ snippet }: { snippet: Snippet }) {
+	return <pre lang={snippet.language}>{snippet.text}</pre>;
+}
+
+function SnippetFooter({
+	repoMeta,
+	truncated,
+	sourceLabel,
+}: {
+	repoMeta?: ForgeRepoMeta;
+	truncated: boolean;
+	sourceLabel: string;
+}) {
+	return (
+		<sub>
+			{repoMeta?.stars !== undefined && repoMeta.stars > 0 && (
+				<>
+					<icon name="star" /> {repoMeta.stars.toLocaleString()} ·
+				</>
+			)}
+			{repoMeta?.language && <>{repoMeta.language} ·</>}
+			{truncated ? `truncated to ${MAX_LINES} lines · ` : ""}
+			{sourceLabel}
+		</sub>
+	);
+}
+
 export function renderBlobSnippetCard({
 	icon,
 	sourceLabel,
@@ -32,43 +111,23 @@ export function renderBlobSnippetCard({
 	snippet,
 	repoMeta,
 }: BlobSnippetCardProps) {
-	const range = startLine
-		? ` L${startLine}${endLine && endLine !== startLine ? `-L${endLine}` : ""}`
-		: "";
-
 	return (
 		<message>
 			<section>
-				{repoMeta?.avatarUrl && (
-					<accessory>
-						<thumbnail url={repoMeta.avatarUrl} description={`${owner}/${repo}`} />
-					</accessory>
-				)}
-				<h3>
-					<icon name={icon} />{" "}
-					<a href={url}>
-						<strong>{owner}/</strong>
-						{repo}
-					</a>
-				</h3>
-				{repoMeta?.description && <p>{repoMeta.description}</p>}
-				<p>
-					<kbd>{path}</kbd>
-					{range}
-				</p>
+				<RepoAvatar avatarUrl={repoMeta?.avatarUrl} owner={owner} repo={repo} />
+				<RepoHeader icon={icon} url={url} owner={owner} repo={repo} />
+				<RepoDescription description={repoMeta?.description} />
+				<FilePathRange path={path} startLine={startLine} endLine={endLine} />
 			</section>
-			<pre lang={snippet.language}>{snippet.text}</pre>
+
+			<CodeSnippet snippet={snippet} />
+
 			<hr spacing={2} />
-			<sub>
-				{repoMeta?.stars !== undefined && repoMeta?.stars > 0 && (
-					<>
-						<icon name="star" /> {repoMeta.stars.toLocaleString()} ·
-					</>
-				)}
-				{repoMeta?.language && <>{repoMeta.language} ·</>}
-				{snippet.truncated ? `truncated to ${MAX_LINES} lines · ` : ""}
-				{sourceLabel}
-			</sub>
+			<SnippetFooter
+				repoMeta={repoMeta}
+				truncated={!!snippet.truncated}
+				sourceLabel={sourceLabel}
+			/>
 		</message>
 	);
 }

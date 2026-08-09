@@ -4,10 +4,10 @@
  * SPDX-License-Identifier: AGPL-3.0-or-later
  */
 
-import type { QuotedTweet, TweetInfo, TweetPoll } from "@kuristina/services/social/twitter";
+import type { QuotedTweet, TweetInfo } from "@kuristina/services/social/twitter";
 
 function truncateName(name: string): string {
-	return name.length > 24 ? `${name.slice(0, 23)}…` : name;
+	return name.length > 30 ? `${name.slice(0, 29)}…` : name;
 }
 
 function MediaGallery(
@@ -21,15 +21,15 @@ function MediaGallery(
 	);
 }
 
-function PollBlock({ poll }: { poll: TweetPoll }) {
-	return (
-		<blockquote>
-			{poll.choices.map((c) => `${c.label} — ${c.percentage}%`).join("\n")}
-			<br />
-			<sub>{poll.totalVotes.toLocaleString()} votes</sub>
-		</blockquote>
-	);
-}
+// function PollBlock({ poll }: { poll: TweetPoll }) {
+// return (
+// <blockquote>
+// {poll.choices.map((c) => `${c.label} — ${c.percentage}%`).join("\n")}
+// <br />
+// <sub>{poll.totalVotes.toLocaleString()} votes</sub>
+// </blockquote>
+// );
+// }
 
 function QuotedBlock({ quoted, sensitive }: { quoted: QuotedTweet; sensitive: boolean }) {
 	return (
@@ -42,49 +42,101 @@ function QuotedBlock({ quoted, sensitive }: { quoted: QuotedTweet; sensitive: bo
 	);
 }
 
-export function renderTweet(tweet: TweetInfo) {
+function AuthorAvatar({ avatarUrl }: { avatarUrl?: string }) {
+	if (!avatarUrl) return null;
 	return (
-		<message>
-			<section>
-				{tweet.authorAvatar && (
-					<accessory>
-						<thumbnail
-							url={tweet.authorAvatar ||
-								"https://upload.wikimedia.org/wikipedia/commons/0/03/Twitter_default_profile_400x400.png"}
-						/>
-					</accessory>
-				)}
-				<h3>
-					<icon name="twitter" />
-					<a href={tweet.url}>
-						{`  `}
-						{truncateName(tweet.author)} (@{tweet.handle})
-					</a>
-				</h3>
-				<p>
-					{tweet.possiblySensitive ? <spoiler>{tweet.text}</spoiler> : tweet.text}
-				</p>
-			</section>
+		<accessory>
+			<thumbnail
+				url={avatarUrl ||
+					"https://upload.wikimedia.org/wikipedia/commons/0/03/Twitter_default_profile_400x400.png"}
+			/>
+		</accessory>
+	);
+}
 
-			<MediaGallery media={tweet.mediaExtended} sensitive={tweet.possiblySensitive} />
+function TweetHeader({ url, author, handle }: { url: string; author: string; handle: string }) {
+	return (
+		<h3>
+			<icon name="twitter" />
+			{`  `}
+			<a href={url}>
+				{truncateName(author)} (@{handle})
+			</a>
+		</h3>
+	);
+}
 
-			{tweet.poll && <PollBlock poll={tweet.poll} />}
-			{tweet.quoted && <QuotedBlock quoted={tweet.quoted} sensitive={tweet.possiblySensitive} />}
+function TweetText({ text, sensitive }: { text: string; sensitive: boolean }) {
+	return <p>{sensitive ? <spoiler>{text}</spoiler> : text}</p>;
+}
 
-			{tweet.communityNote && (
-				<p>
-					<sub>
-						<icon name="help" /> <strong>Community Note:</strong> {tweet.communityNote}
-					</sub>
-				</p>
-			)}
+function CommunityNoteBlock({ note }: { note?: string }) {
+	if (!note) return null;
+	return (
+		<div>
+			<h3>
+				<icon name="help" />
+				{` `}Community Note
+			</h3>
+			<p>{note}</p>
+		</div>
+	);
+}
 
+function TweetFooter({
+	likes,
+	retweets,
+	replies,
+	dateEpoch,
+}: {
+	likes: number;
+	retweets: number;
+	replies: number;
+	dateEpoch: number;
+}) {
+	return (
+		<>
 			<hr />
 			<sub>
-				<icon name="heart" /> {tweet.likes} likes · <icon name="repeat" /> {tweet.retweets}{" "}
-				retweets · <icon name="comment" /> {tweet.replies} replies ·{" "}
-				{`<t:${Math.trunc(tweet.dateEpoch)}:F>`}
+				<icon name="heart" /> {likes} likes · <icon name="repeat" /> {retweets} retweets ·{" "}
+				<icon name="comment" /> {replies} replies · {`<t:${Math.trunc(dateEpoch)}:F>`}
 			</sub>
+		</>
+	);
+}
+
+export function renderTweet(tweet: TweetInfo) {
+	return (
+		<message root>
+			<div>
+				<section>
+					<AuthorAvatar avatarUrl={tweet.authorAvatar} />
+					<TweetHeader url={tweet.url} author={tweet.author} handle={tweet.handle} />
+					<TweetText text={tweet.text} sensitive={tweet.possiblySensitive} />
+				</section>
+
+				<MediaGallery media={tweet.mediaExtended} sensitive={tweet.possiblySensitive} />
+
+				<TweetFooter
+					likes={tweet.likes}
+					retweets={tweet.retweets}
+					replies={tweet.replies}
+					dateEpoch={tweet.dateEpoch}
+				/>
+			</div>
+			{tweet.quoted &&
+				(
+					<div>
+						{
+							// {tweet.poll && <PollBlock poll={tweet.poll} />}
+							// {tweet.poll && tweet.quoted && <hr spacing={2} />}
+						}
+						{tweet.quoted && (
+							<QuotedBlock quoted={tweet.quoted} sensitive={tweet.possiblySensitive} />
+						)}
+					</div>
+				)}
+			<CommunityNoteBlock note={tweet.communityNote} />
 		</message>
 	);
 }
