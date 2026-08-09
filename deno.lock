@@ -21,7 +21,6 @@
     "jsr:@std/path@^1.1.5": "1.1.6",
     "jsr:@std/toml@^1.0.11": "1.0.11",
     "npm:@discordeno/bot@^22.0.1-next.5f7a06c": "22.0.1-next.ff7c51d",
-    "npm:@discordeno/types@21": "21.0.0",
     "npm:@discordeno/types@^22.0.1-next.5f7a06c": "22.0.1-next.ff7c51d",
     "npm:@resvg/resvg-js@^2.6.2": "2.6.2",
     "npm:@types/culori@^4.0.1": "4.0.1",
@@ -95,14 +94,14 @@
       "dependencies": [
         "@discordeno/gateway",
         "@discordeno/rest",
-        "@discordeno/types@22.0.1-next.ff7c51d",
+        "@discordeno/types",
         "@discordeno/utils"
       ]
     },
     "@discordeno/gateway@22.0.1-next.ff7c51d": {
       "integrity": "sha512-08Bsgfx5YNEfvy0I2xq/eKxIUgUwPksNTooLMsm6czjOmjrlBr6hUzoe+jXYei9nXKDVEalTS/jca0INc3OMmg==",
       "dependencies": [
-        "@discordeno/types@22.0.1-next.ff7c51d",
+        "@discordeno/types",
         "@discordeno/utils",
         "ws"
       ],
@@ -113,12 +112,9 @@
     "@discordeno/rest@22.0.1-next.ff7c51d": {
       "integrity": "sha512-4DOGf75UMfscHoKgYq1z0AA6BnV2hdlzZxhxzS8wQ1Gk5tXfnhhKL+GLNblqDg4ylSY04vZIEY2qQfihhpMeWA==",
       "dependencies": [
-        "@discordeno/types@22.0.1-next.ff7c51d",
+        "@discordeno/types",
         "@discordeno/utils"
       ]
-    },
-    "@discordeno/types@21.0.0": {
-      "integrity": "sha512-TUZAEqqlXRNQji+NCaQo8DruzI8rXbBvMaZYsZvN9f03PrdSddzMOy3cjs4eeL6ZMVocmMVRIaVnB713blylCw=="
     },
     "@discordeno/types@22.0.1-next.ff7c51d": {
       "integrity": "sha512-h+Z9iA7Iu9w5Lepc7RyFvly8j47BYw2TW/xImWWqxAvU4HjnwehtnXk9vOkPoCGLy7TyP3zoqvILT21qDTCsFQ=="
@@ -126,7 +122,7 @@
     "@discordeno/utils@22.0.1-next.ff7c51d": {
       "integrity": "sha512-gEnFV5q1deexd7jbHTTUUlP93AbQTsxNmdAGcUeM/woQU+4v3ZXQK+LZe60LyQsBfmv0KSDMXSv32PNvus6lGg==",
       "dependencies": [
-        "@discordeno/types@22.0.1-next.ff7c51d"
+        "@discordeno/types"
       ]
     },
     "@resvg/resvg-js-android-arm-eabi@2.6.2": {
@@ -231,7 +227,7 @@
         "dependencies": [
           "jsr:@std/assert@^1.0.19",
           "jsr:@std/fmt@^1.0.10",
-          "npm:@discordeno/types@21"
+          "npm:@discordeno/types@^22.0.1-next.5f7a06c"
         ]
       },
       "packages/config": {

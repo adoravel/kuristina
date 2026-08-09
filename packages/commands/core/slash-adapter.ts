@@ -6,7 +6,7 @@
 
 import {
 	ApplicationCommandOptionTypes,
-	type CreateSlashApplicationCommand,
+	type CreateApplicationCommand,
 	DiscordApplicationIntegrationType,
 	DiscordInteractionContextType,
 	InteractionResponseTypes,
@@ -109,7 +109,7 @@ function toSlashOption(name: string, def: ArgDef<unknown>) {
 }
 
 export interface CompiledSlashCommand {
-	readonly registration: CreateSlashApplicationCommand;
+	readonly registration: CreateApplicationCommand;
 	readonly autocomplete: ReadonlyMap<string, AutocompleteHandler>;
 	dispatch(interaction: Interaction): Promise<void>;
 }
@@ -199,10 +199,10 @@ const hasContext = (contexts: readonly string[] | undefined, allowed: string[]) 
 	!contexts || contexts.some((c) => allowed.includes(c));
 
 export function toSlashCommand<A extends ArgsShape>(spec: CommandSpec<A>): CompiledSlashCommand {
-	const registration: CreateSlashApplicationCommand = {
+	const registration: CreateApplicationCommand = {
 		name: spec.aliases[0],
 		description: enforceDescriptionLimit(spec.description, `command ${spec.aliases[0]}`),
-		options: buildOptionsFor(spec) as CreateSlashApplicationCommand["options"],
+		options: buildOptionsFor(spec) as CreateApplicationCommand["options"],
 		contexts: spec.contexts?.map((c) => CONTEXT_MAP[c]),
 		integrationTypes: [
 			...(hasContext(spec.contexts, ["guild", "both"])
