@@ -4,15 +4,47 @@
  * SPDX-License-Identifier: AGPL-3.0-or-later
  */
 
+import { fetchWithRetry, ok } from "@kuristina/core";
+import { config } from "@kuristina/config";
 import type { Result } from "@kuristina/core";
 import type { NetworkError } from "@kuristina/core";
 import { fetchLineRangeSnippet, type Snippet } from "../code-forge/snippet.ts";
-import type { CodebergBlobRef } from "./types.ts";
+import type { ForgejoBlobRef } from "./types.ts";
+import type { ForgeRepoMeta } from "../code-forge/types.ts";
+import { repositories } from "@kuristina/database";
 
 export async function fetchSnippet(
-	ref: CodebergBlobRef,
+	ref: ForgejoBlobRef,
 ): Promise<Result<Snippet, NetworkError>> {
 	const url =
-		`https://codeberg.org/${ref.owner}/${ref.repo}/raw/${ref.refKind}/${ref.ref}/${ref.path}`;
-	return await fetchLineRangeSnippet(url, ref, "Codeberg");
+		`https://${ref.instance}/${ref.owner}/${ref.repo}/raw/${ref.refKind}/${ref.ref}/${ref.path}`;
+	return await fetchLineRangeSnippet(url, ref, ref.instance);
+}
+
+export async function fetchRepoMeta(
+	instance: string,
+	owner: string,
+	repo: string,
+): Promise<Result<ForgeRepoMeta, NetworkError>> {
+	const cacheKey = `forgejo-repo-meta:${instance}:${owner}/${repo}`;
+	const cached = await repositories.cache.get<ForgeRepoMeta>(cacheKey, 3 * 60 * 60);
+	if (cached.ok && cached.value) return ok(cached.value);
+
+	const url = `https://${instance}/api/v1/repos/${owner}/${repo}`;
+	const result = await fetchWithRetry<{
+		description?: string;
+		stars_count?: number;
+		language?: string;
+		owner?: { avatar_url?: string };
+	}>(url, {
+		headers: { "User-Agent": config.network.userAgent },
+		retry: { maxAttempts: 2, baseDelayMs: 500 },
+	});
+	if (!result.ok) return result;
+	return ok({
+		description: result.value.description || undefined,
+		stars: result.value.stars_count ?? 0,
+		language: result.value.language || undefined,
+		avatarUrl: result.value.owner?.avatar_url,
+	});
 }

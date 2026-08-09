@@ -4,5 +4,9 @@
  * SPDX-License-Identifier: AGPL-3.0-or-later
  */
 
-export * from "./types.ts";
-export * from "./snippet.ts";
+export interface ForgeRepoMeta {
+	description?: string;
+	stars: number;
+	language?: string;
+	avatarUrl?: string;
+}

@@ -4,15 +4,22 @@
  * SPDX-License-Identifier: AGPL-3.0-or-later
  */
 
-import type { CodebergBlobRef } from "./types.ts";
+import type { ForgejoBlobRef } from "./types.ts";
 
-const BLOB_URL_PATTERN =
-	/https:\/\/codeberg\.org\/([\w.-]+)\/([\w.-]+)\/src\/(branch|commit)\/([^/\s]+)\/([^\s#?]+)(?:#L(\d+)(?:-L?(\d+))?)?/g;
+function buildBlobPattern(instances: readonly string[]): RegExp {
+	const hosts = instances.map((h) => h.trim().replace(/[.*+?^${}()|[\]\\]/g, "\\$&")).join("|");
+	return new RegExp(
+		`https:\\/\\/(${hosts})\\/([\\w.-]+)\\/([\\w.-]+)\\/src\\/(branch|commit)\\/([^/\\s]+)\\/([^\\s#?]+)(?:#L(\\d+)(?:-L?(\\d+))?)?`,
+		"g",
+	);
+}
 
-export function extractBlobRefs(content: string): CodebergBlobRef[] {
-	return [...content.matchAll(BLOB_URL_PATTERN)].map((
-		[, owner, repo, refKind, ref, path, start, end],
+export function extractBlobRefs(content: string, instances: readonly string[]): ForgejoBlobRef[] {
+	if (!instances.length) return [];
+	return [...content.matchAll(buildBlobPattern(instances))].map((
+		[, instance, owner, repo, refKind, ref, path, start, end],
 	) => ({
+		instance,
 		owner,
 		repo,
 		refKind: refKind as "branch" | "commit",

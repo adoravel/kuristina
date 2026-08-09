@@ -9,7 +9,7 @@ import { err, ok, type Result } from "@kuristina/core";
 import { Errors, type NetworkError } from "@kuristina/core";
 import { config } from "@kuristina/config";
 
-const MAX_LINES = 25;
+export const MAX_LINES = 32;
 
 const LANG_MAP: Record<string, string> = {
 	ts: "typescript",
@@ -81,10 +81,10 @@ export async function fetchLineRangeSnippet(
 	const start = Math.max(1, ref.startLine ?? 1);
 	const requestedEnd = ref.endLine ?? Math.min(lines.length, start + MAX_LINES - 1);
 	const end = Math.min(requestedEnd, lines.length, start + MAX_LINES - 1);
-	// const width = String(end).length;
+	const width = String(end).length;
 
 	const text = lines.slice(start - 1, end)
-		// .map((line, i) => `${String(start + i).padStart(width, " ")} | ${line}`)
+		.map((line, i) => `${String(start + i).padStart(width, " ")} │ ${line}`)
 		.join("\n");
 
 	return ok({ language: languageFor(ref.path), text, truncated: requestedEnd > end });
