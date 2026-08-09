@@ -74,7 +74,8 @@ export const configSchema = {
 		},
 		linkEmbeds: {
 			github: field.boolean(true),
-			codeberg: field.boolean(true),
+			forgejo: field.boolean(true),
+			forgejoInstances: field.stringOr("codeberg.org"),
 			twitter: field.boolean(true),
 			fediverse: field.boolean(true),
 			maxPerMessage: field.positiveInt(3),

@@ -5,7 +5,7 @@
  */
 
 import type { RegisteredIconName } from "@kuristina/discord-ui";
-import type { Snippet } from "@kuristina/services/forges/code-forge";
+import { type ForgeRepoMeta, MAX_LINES, type Snippet } from "@kuristina/services/forges/code-forge";
 
 export interface BlobSnippetCardProps {
 	icon: RegisteredIconName;
@@ -17,6 +17,7 @@ export interface BlobSnippetCardProps {
 	startLine?: number;
 	endLine?: number;
 	snippet: Snippet;
+	repoMeta?: ForgeRepoMeta;
 }
 
 export function renderBlobSnippetCard({
@@ -29,6 +30,7 @@ export function renderBlobSnippetCard({
 	startLine,
 	endLine,
 	snippet,
+	repoMeta,
 }: BlobSnippetCardProps) {
 	const range = startLine
 		? ` L${startLine}${endLine && endLine !== startLine ? `-L${endLine}` : ""}`
@@ -36,21 +38,35 @@ export function renderBlobSnippetCard({
 
 	return (
 		<message>
-			<h3>
-				<icon name={icon} />{" "}
-				<a href={url}>
-					<strong>{owner}/</strong>
-					{repo}
-				</a>
-			</h3>
-			<p>
-				<kbd>{path}</kbd>
-				{range}
-			</p>
+			<section>
+				{repoMeta?.avatarUrl && (
+					<accessory>
+						<thumbnail url={repoMeta.avatarUrl} description={`${owner}/${repo}`} />
+					</accessory>
+				)}
+				<h3>
+					<icon name={icon} />{" "}
+					<a href={url}>
+						<strong>{owner}/</strong>
+						{repo}
+					</a>
+				</h3>
+				{repoMeta?.description && <p>{repoMeta.description}</p>}
+				<p>
+					<kbd>{path}</kbd>
+					{range}
+				</p>
+			</section>
 			<pre lang={snippet.language}>{snippet.text}</pre>
 			<hr spacing={2} />
 			<sub>
-				{snippet.truncated ? "truncated to 25 lines · " : ""}
+				{repoMeta?.stars !== undefined && repoMeta?.stars > 0 && (
+					<>
+						<icon name="star" /> {repoMeta.stars.toLocaleString()} ·
+					</>
+				)}
+				{repoMeta?.language && <>{repoMeta.language} ·</>}
+				{snippet.truncated ? `truncated to ${MAX_LINES} lines · ` : ""}
 				{sourceLabel}
 			</sub>
 		</message>

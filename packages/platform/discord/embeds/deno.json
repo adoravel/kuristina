@@ -4,7 +4,7 @@
 		"./code-forge": "./code-forge/mod.tsx",
 		"./twitter": "./twitter/mod.tsx",
 		"./github": "./github/mod.tsx",
-		"./codeberg": "./codeberg/mod.tsx",
+		"./forgejo": "./forgejo/mod.tsx",
 		"./fediverse": "./fediverse/mod.tsx",
 		"./musiclinks": "./musiclinks/mod.tsx"
 	}

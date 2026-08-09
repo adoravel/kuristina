@@ -5,7 +5,7 @@
  */
 
 import { handleGitHubLinks } from "./github.ts";
-import { handleCodebergLinks } from "./codeberg.ts";
+import { handleForgejoLinks } from "./forgejo.ts";
 import { handleTwitterLinks } from "./twitter.ts";
 import { handleFediverseLinks } from "./fediverse.ts";
 import { handleMusicLinks } from "./musiclinks.ts";
@@ -16,7 +16,7 @@ import { repositories } from "@kuristina/database";
 
 const PROVIDERS = [
 	handleGitHubLinks,
-	handleCodebergLinks,
+	handleForgejoLinks,
 	handleTwitterLinks,
 	handleFediverseLinks,
 	handleMusicLinks,

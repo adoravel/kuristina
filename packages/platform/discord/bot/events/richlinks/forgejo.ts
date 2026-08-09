@@ -5,36 +5,43 @@
  */
 
 import { config } from "@kuristina/config";
-import { extractBlobRefs, fetchSnippet } from "@kuristina/services/forges/codeberg";
-import { renderSnippet } from "@kuristina/embeds/codeberg";
+import { extractBlobRefs, fetchRepoMeta, fetchSnippet } from "@kuristina/services/forges/forgejo";
+import { renderSnippet } from "@kuristina/embeds/forgejo";
 import { reconcileCompanions } from "./shared.ts";
 import type { Message } from "../../types.ts";
 import type discord from "../../bot.ts";
 import type { MessageCompanion } from "@kuristina/database";
 
-export async function handleCodebergLinks(
+export async function handleForgejoLinks(
 	bot: typeof discord,
 	message: Message,
 	ex?: MessageCompanion[],
 ): Promise<void> {
-	if (!config.modules.linkEmbeds.codeberg) return;
-	if (!message.content.includes("codeberg.org")) return;
+	if (!config.modules.linkEmbeds.forgejo) return;
+	const instances = config.modules.linkEmbeds.forgejoInstances.split(",").map((s) => s.trim())
+		.filter(Boolean);
+	if (!instances.some((host) => message.content.includes(host))) return;
 
-	const refs = extractBlobRefs(message.content).slice(0, config.modules.linkEmbeds.maxPerMessage);
+	const refs = extractBlobRefs(message.content, instances).slice(
+		0,
+		config.modules.linkEmbeds.maxPerMessage,
+	);
 	if (!refs.length) return;
 
 	await reconcileCompanions(
 		bot,
 		message,
-		"richlink:codeberg",
+		"richlink:forgejo",
 		refs,
 		(ref) =>
-			`${ref.owner}/${ref.repo}/${ref.path}#L${ref.startLine ?? ""}-L${
+			`${ref.instance}/${ref.owner}/${ref.repo}/${ref.path}#L${ref.startLine ?? ""}-L${
 				ref.endLine ?? ""
 			}@${ref.ref}`,
 		async (ref) => {
 			const snippet = await fetchSnippet(ref);
-			return snippet.ok ? renderSnippet(ref, snippet.value) : undefined;
+			if (!snippet.ok) return undefined;
+			const meta = await fetchRepoMeta(ref.instance, ref.owner, ref.repo);
+			return renderSnippet(ref, snippet.value, meta.ok ? meta.value : undefined);
 		},
 		ex,
 	);

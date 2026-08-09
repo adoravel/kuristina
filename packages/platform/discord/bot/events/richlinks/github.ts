@@ -5,7 +5,7 @@
  */
 
 import { config } from "@kuristina/config";
-import { extractBlobRefs, fetchSnippet } from "@kuristina/services/forges/github";
+import { extractBlobRefs, fetchRepoMeta, fetchSnippet } from "@kuristina/services/forges/github";
 import { renderSnippet } from "@kuristina/embeds/github";
 import { reconcileCompanions } from "./shared.ts";
 import type { Message } from "../../types.ts";
@@ -34,7 +34,10 @@ export async function handleGitHubLinks(
 			}@${ref.ref}`,
 		async (ref) => {
 			const snippet = await fetchSnippet(ref);
-			return snippet.ok ? renderSnippet(ref, snippet.value) : undefined;
+
+			if (!snippet.ok) return undefined;
+			const meta = await fetchRepoMeta(ref.owner, ref.repo);
+			return renderSnippet(ref, snippet.value, meta.ok ? meta.value : undefined);
 		},
 		ex,
 	);
