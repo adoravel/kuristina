@@ -7,6 +7,7 @@
 export interface TweetInfo {
 	author: string;
 	handle: string;
+	authorAvatar?: string;
 	text: string;
 	url: string;
 	likes: number;
@@ -19,6 +20,11 @@ export interface TweetInfo {
 	dateEpoch: number;
 	tweetID: string;
 	tweetURL: string;
+	possiblySensitive: boolean;
+	communityNote?: string;
+	poll?: TweetPoll;
+	quoted?: QuotedTweet;
+	isRetweet: boolean;
 }
 
 export interface MediaExtended {
@@ -31,4 +37,17 @@ export interface MediaExtended {
 	thumbnail_url?: string;
 	type: "image" | "video" | "gif";
 	url: string;
+}
+
+export interface TweetPoll {
+	choices: { label: string; percentage: number }[];
+	totalVotes: number;
+}
+
+export interface QuotedTweet {
+	author: string;
+	handle: string;
+	text: string;
+	url: string;
+	mediaExtended: MediaExtended[];
 }

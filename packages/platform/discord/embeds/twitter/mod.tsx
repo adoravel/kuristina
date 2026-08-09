@@ -4,32 +4,81 @@
  * SPDX-License-Identifier: AGPL-3.0-or-later
  */
 
-import type { TweetInfo } from "@kuristina/services/social/twitter";
+import type { QuotedTweet, TweetInfo, TweetPoll } from "@kuristina/services/social/twitter";
+
+function truncateName(name: string): string {
+	return name.length > 19 ? `${name.slice(0, 18)}…` : name;
+}
+
+function MediaGallery(
+	{ media, sensitive }: { media: TweetInfo["mediaExtended"]; sensitive: boolean },
+) {
+	if (!media.length) return null;
+	return (
+		<gallery>
+			{media.map((m) => <gallery-item url={m.url} description={m.altText} spoiler={sensitive} />)}
+		</gallery>
+	);
+}
+
+function PollBlock({ poll }: { poll: TweetPoll }) {
+	return (
+		<blockquote>
+			{poll.choices.map((c) => `${c.label} — ${c.percentage}%`).join("\n")}
+			<br />
+			<sub>{poll.totalVotes.toLocaleString()} votes</sub>
+		</blockquote>
+	);
+}
+
+function QuotedBlock({ quoted, sensitive }: { quoted: QuotedTweet; sensitive: boolean }) {
+	return (
+		<blockquote>
+			<strong>{truncateName(quoted.author)}</strong> (@{quoted.handle})
+			<br />
+			{quoted.text}
+			<MediaGallery media={quoted.mediaExtended} sensitive={sensitive} />
+		</blockquote>
+	);
+}
 
 export function renderTweet(tweet: TweetInfo) {
-	const hasMedia = tweet.mediaExtended && tweet.mediaExtended.length > 0;
-
 	return (
 		<message>
-			<h3>
-				<icon name="twitter" />
-				<a href={tweet.url}>
-					{`  `}
-					{tweet.author.length > 19 ? `${tweet.author.slice(0, 18)}…` : tweet.author}{" "}
-					(@{tweet.handle})
-				</a>
-			</h3>
-			<p>{tweet.text}</p>
-			{hasMedia && (
-				<gallery>
-					{tweet.mediaExtended.map((media) => (
-						<gallery-item
-							url={media.url}
-							description={media.altText}
+			<section>
+				{tweet.authorAvatar && (
+					<accessory>
+						<thumbnail
+							url={tweet.authorAvatar ||
+								"https://upload.wikimedia.org/wikipedia/commons/0/03/Twitter_default_profile_400x400.png"}
 						/>
-					))}
-				</gallery>
+					</accessory>
+				)}
+				<h3>
+					<icon name="twitter" />
+					<a href={tweet.url}>
+						{`  `}
+						{truncateName(tweet.author)} (@{tweet.handle})
+					</a>
+				</h3>
+				<p>
+					{tweet.possiblySensitive ? <spoiler>{tweet.text}</spoiler> : tweet.text}
+				</p>
+			</section>
+
+			<MediaGallery media={tweet.mediaExtended} sensitive={tweet.possiblySensitive} />
+
+			{tweet.poll && <PollBlock poll={tweet.poll} />}
+			{tweet.quoted && <QuotedBlock quoted={tweet.quoted} sensitive={tweet.possiblySensitive} />}
+
+			{tweet.communityNote && (
+				<p>
+					<sub>
+						<icon name="help" /> <strong>Community Note:</strong> {tweet.communityNote}
+					</sub>
+				</p>
 			)}
+
 			<hr />
 			<sub>
 				<icon name="heart" /> {tweet.likes} likes · <icon name="repeat" /> {tweet.retweets}{" "}

@@ -7,7 +7,7 @@
 import { err, fetchWithRetry, type Result } from "@kuristina/core";
 import { Errors, type NetworkError } from "@kuristina/core";
 import { parseStatusUrl } from "./extractor.ts";
-import type { MediaExtended, TweetInfo } from "./types.ts";
+import type { MediaExtended, QuotedTweet, TweetInfo, TweetPoll } from "./types.ts";
 
 interface VxTwitterResponse {
 	date: string;
@@ -23,6 +23,12 @@ interface VxTwitterResponse {
 	tweetURL?: string;
 	user_name: string;
 	user_screen_name: string;
+	user_profile_image_url?: string;
+	possibly_sensitive?: boolean;
+	communityNote?: string | null;
+	pollData?: { options: { name: string; votes: number; percent: number }[] } | null;
+	qrt?: VxTwitterResponse | null;
+	retweetURL?: string | null;
 }
 
 interface VxTwitterMediaExtended {
@@ -48,6 +54,25 @@ function mapMediaExtended(media: VxTwitterMediaExtended[] = []): MediaExtended[]
 	}));
 }
 
+function mapPoll(poll?: VxTwitterResponse["pollData"]): TweetPoll | undefined {
+	if (!poll?.options?.length) return undefined;
+	return {
+		totalVotes: poll.options.reduce((sum, o) => sum + o.votes, 0),
+		choices: poll.options.map((o) => ({ label: o.name, percentage: o.percent })),
+	};
+}
+
+function mapQuoted(qrt?: VxTwitterResponse | null): QuotedTweet | undefined {
+	if (!qrt) return undefined;
+	return {
+		author: qrt.user_name,
+		handle: qrt.user_screen_name,
+		text: qrt.text,
+		url: qrt.tweetURL ?? "",
+		mediaExtended: mapMediaExtended(qrt.media_extended),
+	};
+}
+
 export async function fetchTweet(url: string): Promise<Result<TweetInfo, NetworkError>> {
 	const parsed = parseStatusUrl(url);
 	if (!parsed) {
@@ -68,6 +93,7 @@ export async function fetchTweet(url: string): Promise<Result<TweetInfo, Network
 		value: {
 			author: value.user_name,
 			handle: value.user_screen_name,
+			authorAvatar: value.user_profile_image_url,
 			text: value.text,
 			url,
 			likes: value.likes ?? 0,
@@ -80,6 +106,11 @@ export async function fetchTweet(url: string): Promise<Result<TweetInfo, Network
 			dateEpoch: value.date_epoch,
 			tweetID: value.tweetID ?? parsed.id,
 			tweetURL: value.tweetURL ?? url,
+			possiblySensitive: value.possibly_sensitive ?? false,
+			communityNote: value.communityNote || undefined,
+			poll: mapPoll(value.pollData),
+			quoted: mapQuoted(value.qrt),
+			isRetweet: !!value.retweetURL,
 		},
 	};
 }

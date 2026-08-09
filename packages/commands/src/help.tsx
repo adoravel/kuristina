@@ -216,38 +216,33 @@ export default defineCommand({
 			return void await ctx.error(`command \`${tokens.join(" ")}\` not found`);
 		}
 
-		await ctx.reply({
-			content: (
-				<>
-					<h3>
-						<icon name="help" />{"  "}
-						<strong>
-							<kbd>{tokens.join(" ")}</kbd>
-						</strong>
-					</h3>
-					<hr spacing={2} />
-					<p>{target.description}</p>
-					{target.aliases.length > 1 && (
-						<p>
-							<strong>Aliases</strong>{" "}
-							{target.aliases.slice(1).map((a) => <kbd>{a}</kbd>).join(" ")}
-						</p>
-					)}
-					{target.subcommands?.length && (
-						<p>
-							<strong>Subcommands</strong>{" "}
-							{target.subcommands.filter((s) => !isOwnerOnly(s)).map((s) => (
-								<kbd>{s.aliases[0]}</kbd>
-							))
-								.join(" ")}
-							<sub>
-								&nbsp;· use <kbd>{Theme.prefix}help {tokens.join(" ")} &lt;subcommand&gt;</kbd>{" "}
-								for details
-							</sub>
-						</p>
-					)}
-				</>
-			),
-		});
+		await ctx.reply(
+			<message>
+				<h3>
+					<icon name="help" />{"  "}
+					<strong>
+						<kbd>{tokens.join(" ")}</kbd>
+					</strong>
+				</h3>
+				<hr spacing={2} />
+				<p>{target.description}</p>
+				{target.aliases.length > 1 && (
+					<p>
+						<strong>Aliases</strong> {target.aliases.slice(1).map((a) => <kbd>{a}</kbd>).join(" ")}
+					</p>
+				)}
+				{target.subcommands?.length && (
+					<p>
+						<strong>Subcommands</strong>{" "}
+						{target.subcommands.filter((s) => !isOwnerOnly(s)).map((s) => <kbd>{s.aliases[0]}</kbd>)
+							.join(" ")}
+						<sub>
+							&nbsp;· use <kbd>{Theme.prefix}help {tokens.join(" ")} &lt;subcommand&gt;</kbd>{" "}
+							for details
+						</sub>
+					</p>
+				)}
+			</message>,
+		);
 	},
 });
