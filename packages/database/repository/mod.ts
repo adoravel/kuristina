@@ -9,7 +9,7 @@ import { ScrobbleAccountRepository } from "./scrobble.ts";
 import { IconRepository } from "./icon.ts";
 import { StateRepository } from "./state.ts";
 import { GuildMemberRepository } from "./members.ts";
-import { MusicLinkRepository } from "./musiclinks.ts";
+import { ExternalCacheRepository } from "./cache.ts";
 import { MessageCompanionRepository } from "./message_companions.ts";
 import { GuildProfileRepository } from "./guild_profile.ts";
 import { ArtistAliasRepository } from "./artist_alias.ts";
@@ -21,7 +21,7 @@ export const repositories = {
 	icon: new IconRepository(),
 	state: new StateRepository(),
 	members: new GuildMemberRepository(),
-	musicLinks: new MusicLinkRepository(),
+	cache: new ExternalCacheRepository(),
 	messageCompanions: new MessageCompanionRepository(),
 	guildProfile: new GuildProfileRepository(),
 	artistAliases: new ArtistAliasRepository(),

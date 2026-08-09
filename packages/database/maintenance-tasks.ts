@@ -10,8 +10,8 @@ import { repositories } from "./repository/mod.ts";
 
 export function registerDefaultPurgeTasks(): void {
 	registerPurgeTask(
-		"music_link_cache",
-		() => repositories.musicLinks.purgeExpired(config.sqlite.musicLinkCacheTtlSeconds),
+		"external_cache",
+		() => repositories.cache.purgeExpired(config.sqlite.musicLinkCacheTtlSeconds),
 	);
 	registerPurgeTask(
 		"message_companions",

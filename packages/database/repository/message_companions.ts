@@ -8,7 +8,7 @@ import { ok, type Result } from "@kuristina/core";
 import { type SqlError, tryQuery } from "@kuristina/database";
 import { Repository } from "./helper.ts";
 
-export type RichLinkProvider = "github" | "codeberg" | "twitter" | "fediverse" | "musiclinks";
+export type RichLinkProvider = "github" | "forgejo" | "twitter" | "fediverse" | "musiclinks";
 
 export type CompanionKind = "command" | `richlink:${RichLinkProvider}`;
 
