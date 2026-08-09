@@ -22,6 +22,7 @@ export interface LastFmTrack {
 	playcount?: number;
 	userplaycount?: number;
 	readonly "@attr"?: { nowplaying?: string };
+	readonly wiki?: { summary?: string; content?: string };
 }
 
 export interface ScrobbleTrack {

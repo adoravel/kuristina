@@ -11,7 +11,11 @@ import { MUSIC_PLATFORMS, type MusicLinkResult, type MusicPlatform } from "./typ
 interface OdesliResponse {
 	entityUniqueId: string;
 	linksByPlatform: Record<string, { url: string }>;
-	entitiesByUniqueId: Record<string, { title: string; artistName?: string; thumbnailUrl?: string }>;
+
+	entitiesByUniqueId: Record<
+		string,
+		{ title: string; artistName?: string; thumbnailUrl?: string; type?: string }
+	>;
 }
 
 export async function resolveViaOdesli(
@@ -36,6 +40,7 @@ export async function resolveViaOdesli(
 		title: entity.title,
 		artist: entity.artistName,
 		thumbnailUrl: entity.thumbnailUrl,
+		kind: entity.type === "album" ? "album" : "song",
 		links,
 		source: "odesli" as const,
 	});

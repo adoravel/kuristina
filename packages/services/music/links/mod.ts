@@ -12,6 +12,7 @@ import { normaliseSongUrl } from "./utils.ts";
 import { resolveViaOdesli } from "./odesli.ts";
 import { findAppleMusicUrl } from "./itunes.ts";
 import type { MusicLinkResult } from "./types.ts";
+import { config } from "@kuristina/config";
 
 async function backfillAppleMusic(result: MusicLinkResult): Promise<MusicLinkResult> {
 	if (result.links.appleMusic) return result;
@@ -26,13 +27,15 @@ export function resolveSongLink(
 ): AsyncResult<MusicLinkResult, NetworkError | SqlError> {
 	const normalised = normaliseSongUrl(rawUrl);
 
-	return flatMapAsync(repositories.musicLinks.get<MusicLinkResult>(normalised))(async (hit) => {
+	return flatMapAsync(
+		repositories.cache.get<MusicLinkResult>(normalised, config.sqlite.musicLinkCacheTtlSeconds),
+	)(async (hit) => {
 		if (hit) return ok(hit);
 
 		return await flatMapAsync<MusicLinkResult, any>(resolveViaOdesli(normalised))(
 			async (resolved) => {
 				const final = await backfillAppleMusic(resolved);
-				await repositories.musicLinks.set(normalised, final);
+				await repositories.cache.set(normalised, final);
 				return ok(final);
 			},
 		);

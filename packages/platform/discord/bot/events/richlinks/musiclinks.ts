@@ -5,6 +5,7 @@
  */
 
 import { extractMusicUrls, resolveSongLink } from "@kuristina/services/music/links";
+import { getMusicMetadata } from "@kuristina/services/music/metadata";
 import { renderMusicLinkCard } from "@kuristina/embeds/musiclinks";
 import { reconcileCompanions } from "./shared.ts";
 import type { Message } from "../../types.ts";
@@ -27,7 +28,12 @@ export async function handleMusicLinks(
 		(url) => url,
 		async (url) => {
 			const link = await resolveSongLink(url);
-			return link.ok ? renderMusicLinkCard(link.value) : undefined;
+			if (!link.ok) return undefined;
+
+			const metadata = link.value.artist
+				? await getMusicMetadata(link.value.artist, link.value.title, link.value.kind ?? "song")
+				: undefined;
+			return renderMusicLinkCard(link.value, metadata?.ok ? metadata.value : undefined);
 		},
 		ex,
 	);

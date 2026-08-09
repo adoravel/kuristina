@@ -34,4 +34,5 @@ export interface MusicLinkResult {
 	thumbnailUrl?: string;
 	links: Partial<Record<MusicPlatform, string>>;
 	source: "odesli" | "odesli+itunes";
+	kind?: "song" | "album";
 }

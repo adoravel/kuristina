@@ -17,6 +17,13 @@ export interface MusicBrainzArtist {
 	disambiguation?: string;
 }
 
+export interface MusicBrainzRelease {
+	id: string;
+	title: string;
+	date?: string;
+	score: number;
+}
+
 export async function searchArtist(
 	name: string,
 ): Promise<Result<MusicBrainzArtist | undefined, NetworkError>> {
@@ -37,4 +44,29 @@ export async function correctArtistName(name: string): Promise<string> {
 	const result = await searchArtist(name);
 	if (!result.ok || !result.value || result.value.score < 90) return name;
 	return result.value.name;
+}
+
+export async function searchRelease(
+	artist: string,
+	title: string,
+): Promise<Result<MusicBrainzRelease | undefined, NetworkError>> {
+	const url = new URL(`${BASE}/release`);
+	url.searchParams.set("query", `artist:"${artist}" AND release:"${title}"`);
+	url.searchParams.set("fmt", "json");
+	url.searchParams.set("limit", "1");
+
+	const result = await fetchWithRetry<
+		{ releases: { id: string; title: string; date?: string; score: number }[] }
+	>(
+		url.toString(),
+		{
+			headers: { "User-Agent": config.network.userAgent },
+			retry: { maxAttempts: 3, baseDelayMs: 1100 },
+		},
+	);
+	if (!result.ok) return result;
+
+	const release = result.value.releases[0];
+	if (!release || release.score < 80) return ok(undefined);
+	return ok(release);
 }

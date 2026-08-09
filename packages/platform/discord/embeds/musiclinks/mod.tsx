@@ -6,6 +6,11 @@
 
 import { md, Theme } from "@kuristina/discord-ui";
 import { type MusicLinkResult, PLATFORM_LABELS } from "@kuristina/services/music/links";
+import type { MusicMetadata } from "@kuristina/services/music/metadata";
+
+function truncate(text: string, max: number): string {
+	return text.length > max ? `${text.slice(0, max - 1).trimEnd()}…` : text;
+}
 
 export function renderPlatformLinks(result: MusicLinkResult): string[] {
 	return Object.entries(result.links)
@@ -21,7 +26,7 @@ function getPlatformDisplay(platform: string) {
 	return { label, icon };
 }
 
-export function renderMusicLinkCard(result: MusicLinkResult) {
+export function renderMusicLinkCard(result: MusicLinkResult, metadata?: MusicMetadata) {
 	return (
 		<message>
 			<section>
@@ -36,6 +41,15 @@ export function renderMusicLinkCard(result: MusicLinkResult) {
 					{result.title}
 					{result.artist ? ` by ${result.artist}` : ""}
 				</h3>
+				{metadata?.description && <p>{truncate(metadata.description, 350)}</p>}
+				{metadata?.releaseDate && (
+					<>
+						<sub>
+							<icon name="calendar" /> Released on {metadata.releaseDate}
+						</sub>
+						<br />
+					</>
+				)}
 				<ul>
 					{Object.entries(result.links).map(([platform, url]) => {
 						const { label, icon } = getPlatformDisplay(platform);
