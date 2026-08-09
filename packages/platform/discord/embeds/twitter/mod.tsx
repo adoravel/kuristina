@@ -7,7 +7,7 @@
 import type { QuotedTweet, TweetInfo, TweetPoll } from "@kuristina/services/social/twitter";
 
 function truncateName(name: string): string {
-	return name.length > 19 ? `${name.slice(0, 18)}…` : name;
+	return name.length > 24 ? `${name.slice(0, 23)}…` : name;
 }
 
 function MediaGallery(

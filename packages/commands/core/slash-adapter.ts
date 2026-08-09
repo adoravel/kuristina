@@ -12,7 +12,12 @@ import {
 	InteractionResponseTypes,
 	MessageFlags,
 } from "@discordeno/types";
-import discord, { type Interaction, resolveChannel, resolveGuild } from "@kuristina/discord-bot";
+import discord, {
+	ackWithMessage,
+	type Interaction,
+	resolveChannel,
+	resolveGuild,
+} from "@kuristina/discord-bot";
 
 import type { ArgsShape, CommandSpec, InferArgs } from "./spec.ts";
 import type { ArgDef, AutocompleteHandler } from "./argument.ts";
@@ -73,20 +78,11 @@ function buildInvocationBase<A>(interaction: Interaction, args: A): InvocationBa
 					await discord.helpers.editOriginalInteractionResponse(interaction.token, content);
 				} else {
 					acked = true;
-					await discord.helpers.sendInteractionResponse(interaction.id, interaction.token, {
-						type: InteractionResponseTypes.ChannelMessageWithSource,
-						data: {
-							...content,
-							flags: opts?.ephemeral
-								? (content.flags ?? 0) | MessageFlags.Ephemeral
-								: content.flags,
-						},
-					});
+					ackWithMessage(interaction, { ...content, ephemeral: opts?.ephemeral });
 				}
 			} catch (e) {
 				logger.warn("slash reply failed:", e);
 			}
-			return undefined;
 		},
 	};
 }

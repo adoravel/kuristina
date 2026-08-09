@@ -12,8 +12,7 @@ function Scrobbled({ artist, track }: { artist: string; track: string }) {
 			</h3>
 			<sub>
 				<strong>
-					<a href={`https://last.fm/music/${track}`}></a>
-					{track}
+					<a href={`https://last.fm/music/${track}`}>{track}</a>
 				</strong>{" "}
 				by <a href={`https://last.fm/music/${artist}`}>{artist}</a>
 			</sub>
