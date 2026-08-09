@@ -21,6 +21,9 @@ export const commands = {
 	get translate() {
 		return cmd("translate");
 	},
+	get embed() {
+		return cmd("embed");
+	},
 	fm: {
 		get root() {
 			return import("./src/fm/mod.ts").then((m) => m.default);
@@ -93,6 +96,7 @@ export const commands = {
 			this.dev.restart,
 			this.dev.update,
 			this.dev.database,
+			this.embed,
 		];
 	},
 };
