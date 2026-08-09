@@ -78,7 +78,7 @@ function buildInvocationBase<A>(interaction: Interaction, args: A): InvocationBa
 					await discord.helpers.editOriginalInteractionResponse(interaction.token, content);
 				} else {
 					acked = true;
-					ackWithMessage(interaction, { ...content, ephemeral: opts?.ephemeral });
+					await ackWithMessage(interaction, { ...content, ephemeral: opts?.ephemeral });
 				}
 			} catch (e) {
 				logger.warn("slash reply failed:", e);

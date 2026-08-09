@@ -195,25 +195,29 @@ export const timestamp = few(
 		}),
 );
 
+export const COMMAND_PREFIXES = [
+	"!",
+	"/",
+	"$",
+	":3c",
+	":3",
+	"kuristina",
+	"kuriss",
+	"kuris",
+	"kurie",
+	"kuriis",
+	"kuriiis",
+	"kuriii",
+	"kurii",
+	"kuri",
+	`<@${getConfig().discord.applicationId}>`,
+];
+
 export const prefix: Parser<string> = toParser((stream) => {
 	const parser = pick(
-		...[
-			"!",
-			"/",
-			"$",
-			":3c",
-			":3",
-			"kuristina",
-			"kuriss",
-			"kuris",
-			"kurie",
-			"kuriis",
-			"kuriiis",
-			"kuriii",
-			"kurii",
-			"kuri",
-			`<@${getConfig().discord.applicationId}>`,
-		].map((p) => few(literal(p), optional(skip)).map("prefix", (_, [matched]) => yay(matched))),
+		...COMMAND_PREFIXES.map((p) =>
+			few(literal(p), optional(skip)).map("prefix", (_, [matched]) => yay(matched))
+		),
 	);
 	return parser(stream);
 }, "prefix");

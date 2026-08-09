@@ -14,9 +14,9 @@ export function extractStatusUrls(content: string): string[] {
 		let url = match[0];
 
 		const remaining = content.substring(match.index! + url.length);
-		if (remaining.startsWith("?")) {
-			continue;
-		}
+		//		if (remaining.startsWith("?")) {
+		//			continue;
+		//		}
 
 		const nextChar = remaining[0];
 		if (nextChar === "/" || nextChar === "&") {

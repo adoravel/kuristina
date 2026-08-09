@@ -8,14 +8,20 @@ import discord from "@kuristina/discord-bot";
 import { StringStream } from "@kuristina/commands";
 import { handleRichLinks } from "./richlinks/mod.ts";
 import { repositories } from "@kuristina/database";
-import { executeTextCommand } from "@kuristina/commands/core";
+import { COMMAND_PREFIXES, executeTextCommand } from "@kuristina/commands/core";
 
 export const messageCreate: typeof discord.events.messageCreate = async (message) => {
 	if (message.author.bot || !message.guildId) return;
 
+	const input = message.content.toLowerCase().trim();
+	if (!input) return;
+
+	if (!COMMAND_PREFIXES.some((p) => input.startsWith(p))) {
+		return await handleRichLinks(discord, message).catch(() => {});
+	}
+
 	const stream = new StringStream(message.content);
 	await executeTextCommand(message, stream).catch(() => {});
-	await handleRichLinks(discord, message).catch(() => {});
 };
 
 export const messageDelete: typeof discord.events.messageDelete = async (message) => {
