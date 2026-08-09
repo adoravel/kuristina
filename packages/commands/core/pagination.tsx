@@ -15,6 +15,7 @@ export interface PaginatorOptions {
 	readonly id: string;
 	readonly timeoutMs?: number;
 	readonly totalPages?: number;
+	readonly ephemeral?: boolean;
 
 	renderPage(page: number): Promise<CreateMessageOptions> | CreateMessageOptions;
 }
@@ -59,7 +60,7 @@ export async function runPaginator(ctx: Invocation, opts: PaginatorOptions): Pro
 					<button customId={closeId} style={ButtonStyles.Danger}>✕</button>
 				</row>,
 			],
-		});
+		}, { ephemeral: opts.ephemeral });
 
 		const winner = await Promise.race([
 			prevP.then((i) => ({ kind: "prev" as const, interaction: i })),

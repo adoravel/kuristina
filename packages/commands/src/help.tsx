@@ -4,18 +4,10 @@
  * SPDX-License-Identifier: AGPL-3.0-or-later
  */
 
-import { arg, defineCommand, getAllCommands } from "@kuristina/commands/core";
+import { arg, defineCommand, getAllCommands, runPaginator } from "@kuristina/commands/core";
 import type { CommandSpec, Invocation } from "@kuristina/commands/core";
-import { cancelWaiter, waitForInteraction } from "@kuristina/core";
-import {
-	ackDeferUpdate,
-	ButtonStyles,
-	type CreateMessageOptions,
-	type Interaction,
-} from "@kuristina/discord-bot";
+import type { CreateMessageOptions } from "@kuristina/discord-bot";
 import { Theme } from "@kuristina/discord-ui";
-
-const HELP_TIMEOUT_MS = 120_000;
 
 function isOwnerOnly(cmd: CommandSpec<any>): boolean {
 	return cmd.middleware.some((m) => m.name === "owner-only");
@@ -111,69 +103,16 @@ function renderCategoryPage(
 	);
 }
 
-async function runCategoryBrowser(
+function runCategoryBrowser(
 	ctx: Invocation,
 	categories: string[],
 	groups: Map<string, FlattenedCommand[]>,
 ): Promise<void> {
-	let page = 0;
-
-	while (true) {
-		const message = renderCategoryPage(categories, groups, page);
-
-		const { customId: prevId, promise: prevP } = waitForInteraction<Interaction>(
-			"help-prev",
-			HELP_TIMEOUT_MS,
-			{ filter: (i) => i.user?.id === ctx.user.id },
-		);
-		const { customId: nextId, promise: nextP } = waitForInteraction<Interaction>(
-			"help-next",
-			HELP_TIMEOUT_MS,
-			{ filter: (i) => i.user?.id === ctx.user.id },
-		);
-		const { customId: closeId, promise: closeP } = waitForInteraction<Interaction>(
-			"help-close",
-			HELP_TIMEOUT_MS,
-			{ filter: (i) => i.user?.id === ctx.user.id },
-		);
-
-		message.components?.push(
-			<row>
-				<button customId={prevId} style={ButtonStyles.Secondary} disabled={page === 0}>
-					← Prev
-				</button>
-				<button
-					customId={nextId}
-					style={ButtonStyles.Secondary}
-					disabled={page >= categories.length - 1}
-				>
-					Next →
-				</button>
-				<button customId={closeId} style={ButtonStyles.Danger}>✕</button>
-			</row>,
-		);
-		await ctx.reply(message);
-
-		const winner = await Promise.race([
-			prevP.then((i) => ({ kind: "prev" as const, interaction: i })),
-			nextP.then((i) => ({ kind: "next" as const, interaction: i })),
-			closeP.then((i) => ({ kind: "close" as const, interaction: i })),
-		]).catch(() => ({ kind: "timeout" as const, interaction: undefined }));
-
-		cancelWaiter(prevId);
-		cancelWaiter(nextId);
-		cancelWaiter(closeId);
-
-		if (winner.interaction) {
-			await ackDeferUpdate(winner.interaction).catch((e) =>
-				logger.warn("help: failed to ack pagination click:", e)
-			);
-		}
-
-		if (winner.kind === "prev") page = Math.max(0, page - 1);
-		else if (winner.kind === "next") page = Math.min(categories.length - 1, page + 1);
-		else return;
-	}
+	return runPaginator(ctx, {
+		id: "help",
+		totalPages: categories.length,
+		renderPage: (page) => renderCategoryPage(categories, groups, page),
+	});
 }
 
 function resolvePath(tokens: string[]): CommandSpec<any> | undefined {
