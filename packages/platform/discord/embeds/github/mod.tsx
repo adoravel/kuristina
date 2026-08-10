@@ -15,7 +15,7 @@ export function renderSnippet(
 ) {
 	return renderBlobSnippetCard({
 		icon: "github",
-		sourceLabel: "github.com",
+		sourceLabel: "GitHub",
 		url: `https://github.com/${ref.owner}/${ref.repo}/blob/${ref.ref}/${ref.path}`,
 		owner: ref.owner,
 		repo: ref.repo,

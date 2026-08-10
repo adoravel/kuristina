@@ -75,6 +75,7 @@ export const registeredIcons = {
 	codeberg: { provider: "simpleicons", name: "codeberg" },
 	forgejo: { provider: "simpleicons", name: "forgejo" },
 	github: { provider: "simpleicons", name: "github" },
+	git: { provider: "simpleicons", name: "git" },
 	lastfm: { provider: "simpleicons", name: "lastdotfm" },
 	repeat: { provider: "lucide", name: "repeat-2", variant: "success" },
 	comment: { provider: "lucide", name: "message-circle" },
@@ -82,6 +83,7 @@ export const registeredIcons = {
 	empty: { provider: "https://cdn.discordapp.com/emojis/1351872095910625341.png", name: "" },
 	calendar: { provider: "lucide", name: "calendar" },
 	waypoints: { provider: "lucide", name: "waypoints" },
+	scrollText: { provider: "lucide", name: "scroll-text" },
 } as const satisfies Record<string, IconRegistration>;
 
 export type RegisteredIconName = keyof typeof registeredIcons;

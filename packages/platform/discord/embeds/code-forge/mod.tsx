@@ -4,6 +4,8 @@
  * SPDX-License-Identifier: AGPL-3.0-or-later
  */
 
+// deno-lint-ignore-file jsx-curly-braces
+
 import type { RegisteredIconName } from "@kuristina/discord-ui";
 import { type ForgeRepoMeta, MAX_LINES, type Snippet } from "@kuristina/services/forges/code-forge";
 
@@ -32,19 +34,18 @@ function RepoAvatar(
 }
 
 function RepoHeader({
-	icon,
 	url,
 	owner,
 	repo,
 }: {
-	icon: RegisteredIconName;
 	url: string;
 	owner: string;
 	repo: string;
 }) {
 	return (
 		<h3>
-			<icon name={icon} />{" "}
+			<icon name="git" />
+			{`  `}
 			<a href={url}>
 				<strong>{owner}/</strong>
 				{repo}
@@ -55,20 +56,27 @@ function RepoHeader({
 
 function RepoDescription({ description }: { description?: string }) {
 	if (!description) return null;
-	return <p>{description}</p>;
+	const desc = description.length > 80 ? `${name.slice(0, 79)}…` : description;
+	return <p>{desc}</p>;
 }
 
 function FilePathRange(
 	{ path, startLine, endLine }: { path: string; startLine?: number; endLine?: number },
 ) {
+	const hasEndLine = endLine && endLine !== startLine;
 	const range = startLine
-		? ` L${startLine}${endLine && endLine !== startLine ? `-L${endLine}` : ""}`
+		? `  line${hasEndLine ? "s" : ""} ${startLine}${hasEndLine ? ` until ${endLine}` : ""}`
 		: "";
 	return (
-		<p>
-			<kbd>{path}</kbd>
-			{range}
-		</p>
+		<>
+			<p>{"\u200b"}</p>
+			<sub>
+				<icon name="waypoints" />
+				{`  `}
+				<kbd>{path}</kbd>
+				{range}
+			</sub>
+		</>
 	);
 }
 
@@ -80,21 +88,34 @@ function SnippetFooter({
 	repoMeta,
 	truncated,
 	sourceLabel,
+	icon,
 }: {
+	icon: RegisteredIconName;
 	repoMeta?: ForgeRepoMeta;
 	truncated: boolean;
 	sourceLabel: string;
 }) {
 	return (
 		<sub>
+			<icon name={icon} />
+			{`  ${sourceLabel}`}
 			{repoMeta?.stars !== undefined && repoMeta.stars > 0 && (
 				<>
-					<icon name="star" /> {repoMeta.stars.toLocaleString()} ·
+					{`  ·  `}
+					<icon name="star" />
+					{`  `}
+					{`${repoMeta.stars} star${repoMeta.stars > 1 ? "s" : ""}`}
 				</>
 			)}
-			{repoMeta?.language && <>{repoMeta.language} ·</>}
-			{truncated ? `truncated to ${MAX_LINES} lines · ` : ""}
-			{sourceLabel}
+			{repoMeta?.language && (
+				<>
+					{`  ·  `}
+					<icon name="scrollText" />
+					{`  `}
+					{repoMeta.language}
+				</>
+			)}
+			{truncated ? `  · truncated to ${MAX_LINES} lines` : ""}
 		</sub>
 	);
 }
@@ -115,7 +136,7 @@ export function renderBlobSnippetCard({
 		<message>
 			<section>
 				<RepoAvatar avatarUrl={repoMeta?.avatarUrl} owner={owner} repo={repo} />
-				<RepoHeader icon={icon} url={url} owner={owner} repo={repo} />
+				<RepoHeader url={url} owner={owner} repo={repo} />
 				<RepoDescription description={repoMeta?.description} />
 				<FilePathRange path={path} startLine={startLine} endLine={endLine} />
 			</section>
@@ -124,6 +145,7 @@ export function renderBlobSnippetCard({
 
 			<hr spacing={2} />
 			<SnippetFooter
+				icon={icon}
 				repoMeta={repoMeta}
 				truncated={!!snippet.truncated}
 				sourceLabel={sourceLabel}
