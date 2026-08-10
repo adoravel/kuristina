@@ -57,6 +57,7 @@ function TweetHeader({ url, author, handle }: { url: string; author: string; han
 }
 
 function TweetText({ text, sensitive }: { text: string; sensitive: boolean }) {
+	if (!text) return null;
 	return <p>{sensitive ? <spoiler>{text}</spoiler> : text}</p>;
 }
 
@@ -107,13 +108,38 @@ function TweetFooter({
 }
 
 export function renderTweet(tweet: TweetInfo) {
+	console.log(		<message root>
+			<div>
+				<section>
+					<AuthorAvatar avatarUrl={tweet.authorAvatar} />
+					<TweetHeader url={tweet.url} author={tweet.author} handle={tweet.handle} />
+					<TweetText text={tweet.text} sensitive={tweet.possiblySensitive} />
+				</section>
+
+				<MediaGallery media={tweet.mediaExtended} sensitive={tweet.possiblySensitive} />
+
+				<TweetFooter
+					likes={tweet.likes}
+					retweets={tweet.retweets}
+					replies={tweet.replies}
+					dateEpoch={tweet.dateEpoch}
+				/>
+			</div>
+			{tweet.quoted &&
+				(
+					<div>
+						<QuotedBlock quoted={tweet.quoted} sensitive={tweet.possiblySensitive} />
+					</div>
+				)}
+			<CommunityNoteBlock note={tweet.communityNote} />
+		</message>)
 	return (
 		<message root>
 			<div>
 				<section>
 					<AuthorAvatar avatarUrl={tweet.authorAvatar} />
 					<TweetHeader url={tweet.url} author={tweet.author} handle={tweet.handle} />
-					{tweet.text && <TweetText text={tweet.text} sensitive={tweet.possiblySensitive} />}
+					<TweetText text={tweet.text} sensitive={tweet.possiblySensitive} />
 				</section>
 
 				<MediaGallery media={tweet.mediaExtended} sensitive={tweet.possiblySensitive} />

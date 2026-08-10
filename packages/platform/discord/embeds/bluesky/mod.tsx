@@ -32,6 +32,7 @@ function PostHeader({ url, author, handle }: { url: string; author: string; hand
 }
 
 function PostText({ text, sensitive }: { text: string; sensitive: boolean }) {
+	if (!text) return null;
 	return <p>{sensitive ? <spoiler>{text}</spoiler> : text}</p>;
 }
 
@@ -87,7 +88,7 @@ export function renderBskyPost(post: BskyPostInfo) {
 			<section>
 				<AuthorAvatar avatarUrl={post.authorAvatar} />
 				<PostHeader url={post.url} author={post.author} handle={post.handle} />
-				{post.text && <PostText text={post.text} sensitive={post.possiblySensitive} />}
+				<PostText text={post.text} sensitive={post.possiblySensitive} />
 			</section>
 
 			<MediaGallery media={post.mediaExtended} sensitive={post.possiblySensitive} />
