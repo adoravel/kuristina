@@ -71,7 +71,7 @@ function HistoryPage({ tracks, page }: { tracks: LastFmTrack[]; page: number }) 
 								)}
 								<strong>{t.name}</strong>
 								{" by "}
-								{t.artist["#text"] ?? t.artist.name}
+								{`${t.artist["#text"] ?? t.artist.name} `}
 								<br />
 								<sub>{live ? "now playing" : t.date?.uts ? `<t:${t.date.uts}:R>` : ""}</sub>
 							</li>
