@@ -15,14 +15,12 @@ export interface TweetInfo {
 	replies: number;
 	mediaURLs: string[];
 	mediaExtended: MediaExtended[];
-	hashtags: string[];
 	date: string;
 	dateEpoch: number;
 	tweetID: string;
 	tweetURL: string;
 	possiblySensitive: boolean;
 	communityNote?: string;
-	poll?: TweetPoll;
 	quoted?: QuotedTweet;
 	isRetweet: boolean;
 }
@@ -37,11 +35,6 @@ export interface MediaExtended {
 	thumbnail_url?: string;
 	type: "image" | "video" | "gif";
 	url: string;
-}
-
-export interface TweetPoll {
-	choices: { label: string; percentage: number }[];
-	totalVotes: number;
 }
 
 export interface QuotedTweet {
