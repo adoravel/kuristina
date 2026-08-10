@@ -17,8 +17,7 @@ export async function handleBlueskyLinks(
 	message: Message,
 	ex?: MessageCompanion[],
 ): Promise<void> {
-	if (!config.modules.linkEmbeds.twitter) return;
-	if (!message.content.includes("x.com") && !message.content.includes("twitter.com")) return;
+	if (!config.modules.linkEmbeds.bluesky) return;
 
 	const urls = extractBskyUrls(message.content).slice(0, config.modules.linkEmbeds.maxPerMessage);
 	if (!urls.length) return;

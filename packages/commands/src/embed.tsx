@@ -26,9 +26,31 @@ import { renderFediPost } from "@kuristina/embeds/fediverse";
 import { extractMusicUrls, resolveSongLink } from "@kuristina/services/music/links";
 import { getMusicMetadata } from "@kuristina/services/music/metadata";
 import { renderMusicLinkCard } from "@kuristina/embeds/musiclinks";
+import { fetchBskyPost, parseBskyUrl } from "@kuristina/services/social/bluesky";
+import { renderBskyPost } from "@kuristina/embeds/bluesky";
 
 async function tryRender(url: string): Promise<CreateMessageOptions | undefined> {
 	const { linkEmbeds } = config.modules;
+
+	if (extractMusicUrls(url).length) {
+		const link = await resolveSongLink(url);
+		if (link.ok) {
+			const metadata = link.value.artist
+				? await getMusicMetadata(link.value.artist, link.value.title, link.value.kind ?? "song")
+				: undefined;
+			return renderMusicLinkCard(link.value, metadata?.ok ? metadata.value : undefined);
+		}
+	}
+
+	if (linkEmbeds.twitter && parseStatusUrl(url)) {
+		const tweet = await fetchTweet(url);
+		if (tweet.ok) return renderTweet(tweet.value);
+	}
+
+	if (linkEmbeds.bluesky && parseBskyUrl(url)) {
+		const tweet = await fetchBskyPost(url);
+		if (tweet.ok) return renderBskyPost(tweet.value);
+	}
 
 	if (linkEmbeds.github) {
 		const [ref] = extractGitHub(url);
@@ -53,24 +75,9 @@ async function tryRender(url: string): Promise<CreateMessageOptions | undefined>
 		}
 	}
 
-	if (linkEmbeds.twitter && parseStatusUrl(url)) {
-		const tweet = await fetchTweet(url);
-		if (tweet.ok) return renderTweet(tweet.value);
-	}
-
 	if (linkEmbeds.fediverse && parseFediUrl(url)) {
 		const post = await fetchFediPost(url);
 		if (post.ok) return renderFediPost(post.value);
-	}
-
-	if (extractMusicUrls(url).length) {
-		const link = await resolveSongLink(url);
-		if (link.ok) {
-			const metadata = link.value.artist
-				? await getMusicMetadata(link.value.artist, link.value.title, link.value.kind ?? "song")
-				: undefined;
-			return renderMusicLinkCard(link.value, metadata?.ok ? metadata.value : undefined);
-		}
 	}
 
 	return undefined;
@@ -78,7 +85,7 @@ async function tryRender(url: string): Promise<CreateMessageOptions | undefined>
 
 export default defineCommand({
 	aliases: "embed",
-	description: "Shows a rich for a GitHub/Forgejo/Twitter/Fediverse/song/album link.",
+	description: "Shows a rich for a GitHub/Forgejo/Twitter/Bluesky/Fediverse/song/album link.",
 	args: {
 		url: arg.string({ description: "The link to embed", required: true, greedy: true }),
 	},

@@ -5,7 +5,7 @@
  */
 
 const pattern =
-	/https?:\/\/(?:bsky\.app|witchsky\.app|deer\.social|catsky\.social)\/profile\/([\w.-]+)\/post\/([\w]+)/g;
+	/https?:\/\/(?:bsky\.app|witchsky\.app|deer\.social|catsky\.social)\/profile\/([\w.:-]+)\/post\/([\w]+)/g;
 
 const ALLOWED_HOSTS = new Set(["bsky.app", "witchsky.app", "deer.social", "catsky.social"]);
 

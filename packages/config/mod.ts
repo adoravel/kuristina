@@ -74,6 +74,7 @@ export const configSchema = {
 		},
 		linkEmbeds: {
 			github: field.boolean(true),
+			bluesky: field.boolean(true),
 			forgejo: field.boolean(true),
 			forgejoInstances: field.stringOr("codeberg.org"),
 			twitter: field.boolean(true),

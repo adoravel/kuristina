@@ -41,7 +41,9 @@ function MediaGallery(
 	if (!media.length) return null;
 	return (
 		<gallery>
-			{media.map((m) => <gallery-item url={m.url} description={m.altText} spoiler={sensitive} />)}
+			{media.map((m) => (
+				<gallery-item url={m.url} description={m.altText || undefined} spoiler={sensitive} />
+			))}
 		</gallery>
 	);
 }
@@ -49,23 +51,31 @@ function MediaGallery(
 function PostFooter({
 	likes,
 	reposts,
-	quotes,
 	replies,
 	dateEpoch,
 }: {
 	likes: number;
 	reposts: number;
-	quotes: number;
 	replies: number;
 	dateEpoch: number;
 }) {
 	return (
 		<>
-			<hr />
+			<hr spacing={2} />
 			<sub>
-				<icon name="heart" /> {likes} likes · <icon name="repeat" /> {reposts} reposts ·{" "}
-				<icon name="repeat" /> {quotes} quotes · <icon name="comment" /> {replies} replies ·{" "}
-				{`<t:${dateEpoch}:F>`}
+				<icon name="heart" />
+				{`  `}
+				{likes}
+				{` `}like{`${likes > 1 ? "s" : ""}  ·  `}
+				<icon name="repeat" />
+				{`  `}
+				{reposts}
+				{` `}repost{`${reposts > 1 ? "s" : ""}  ·  `}
+				<icon name="comment" />
+				{`  `}
+				{replies}
+				{` `}repl{`${replies > 1 ? "ies" : "y"}  ·  `}
+				{`<t:${Math.trunc(dateEpoch)}:F>`}
 			</sub>
 		</>
 	);
@@ -85,7 +95,6 @@ export function renderBskyPost(post: BskyPostInfo) {
 			<PostFooter
 				likes={post.likes}
 				reposts={post.reposts}
-				quotes={post.quotes}
 				replies={post.replies}
 				dateEpoch={post.dateEpoch}
 			/>

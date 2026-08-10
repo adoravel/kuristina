@@ -88,8 +88,19 @@ function TweetFooter({
 		<>
 			<hr />
 			<sub>
-				<icon name="heart" /> {likes} likes · <icon name="repeat" /> {retweets} retweets ·{" "}
-				<icon name="comment" /> {replies} replies · {`<t:${Math.trunc(dateEpoch)}:F>`}
+				<icon name="heart" />
+				{`  `}
+				{likes}
+				{` `}like{`${likes > 1 ? "s" : ""}  ·  `}
+				<icon name="repeat" />
+				{`  `}
+				{retweets}
+				{` `}retweet{`${retweets > 1 ? "s" : ""}  ·  `}
+				<icon name="comment" />
+				{`  `}
+				{replies}
+				{` `}repl{`${replies > 1 ? "ies" : "y"}  ·  `}
+				{`<t:${Math.trunc(dateEpoch)}:F>`}
 			</sub>
 		</>
 	);
