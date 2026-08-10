@@ -21,16 +21,6 @@ function MediaGallery(
 	);
 }
 
-// function PollBlock({ poll }: { poll: TweetPoll }) {
-// return (
-// <blockquote>
-// {poll.choices.map((c) => `${c.label} — ${c.percentage}%`).join("\n")}
-// <br />
-// <sub>{poll.totalVotes.toLocaleString()} votes</sub>
-// </blockquote>
-// );
-// }
-
 function QuotedBlock({ quoted, sensitive }: { quoted: QuotedTweet; sensitive: boolean }) {
 	return (
 		<blockquote>
@@ -127,13 +117,7 @@ export function renderTweet(tweet: TweetInfo) {
 			{tweet.quoted &&
 				(
 					<div>
-						{
-							// {tweet.poll && <PollBlock poll={tweet.poll} />}
-							// {tweet.poll && tweet.quoted && <hr spacing={2} />}
-						}
-						{tweet.quoted && (
-							<QuotedBlock quoted={tweet.quoted} sensitive={tweet.possiblySensitive} />
-						)}
+						<QuotedBlock quoted={tweet.quoted} sensitive={tweet.possiblySensitive} />
 					</div>
 				)}
 			<CommunityNoteBlock note={tweet.communityNote} />
