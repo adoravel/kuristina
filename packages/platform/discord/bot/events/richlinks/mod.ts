@@ -13,13 +13,15 @@ import { BitwisePermissionFlags, type Message } from "../../types.ts";
 import type discord from "../../bot.ts";
 import { hasChannelPermission } from "../../resolve.ts";
 import { repositories } from "@kuristina/database";
+import { handleBlueskyLinks } from "./bluesky.ts";
 
 const PROVIDERS = [
+	handleMusicLinks,
+	handleTwitterLinks,
+	handleBlueskyLinks,
 	handleGitHubLinks,
 	handleForgejoLinks,
-	handleTwitterLinks,
 	handleFediverseLinks,
-	handleMusicLinks,
 ];
 
 export async function handleRichLinks(bot: typeof discord, message: Message): Promise<void> {
