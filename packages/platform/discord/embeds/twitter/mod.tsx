@@ -113,7 +113,7 @@ export function renderTweet(tweet: TweetInfo) {
 				<section>
 					<AuthorAvatar avatarUrl={tweet.authorAvatar} />
 					<TweetHeader url={tweet.url} author={tweet.author} handle={tweet.handle} />
-					<TweetText text={tweet.text} sensitive={tweet.possiblySensitive} />
+					{tweet.text && <TweetText text={tweet.text} sensitive={tweet.possiblySensitive} />}
 				</section>
 
 				<MediaGallery media={tweet.mediaExtended} sensitive={tweet.possiblySensitive} />

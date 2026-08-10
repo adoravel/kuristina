@@ -87,7 +87,7 @@ export function renderBskyPost(post: BskyPostInfo) {
 			<section>
 				<AuthorAvatar avatarUrl={post.authorAvatar} />
 				<PostHeader url={post.url} author={post.author} handle={post.handle} />
-				<PostText text={post.text} sensitive={post.possiblySensitive} />
+				{post.text && <PostText text={post.text} sensitive={post.possiblySensitive} />}
 			</section>
 
 			<MediaGallery media={post.mediaExtended} sensitive={post.possiblySensitive} />

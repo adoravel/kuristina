@@ -86,7 +86,7 @@ function HistoryPage({ tracks, page }: { tracks: LastFmTrack[]; page: number }) 
 }
 
 export default defineCommand({
-	aliases: "history",
+	aliases: ["recent", "history"],
 	description: "Shows your (or someone's) recent Last.fm scrobbles.",
 	category: "fm",
 	cooldownMs: 3_000,
