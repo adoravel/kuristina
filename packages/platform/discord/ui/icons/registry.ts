@@ -64,6 +64,7 @@ export const registeredIcons = {
 	soundcloud: { provider: "simpleicons", name: "soundcloud" },
 	tidal: { provider: "simpleicons", name: "tidal" },
 	deezer: { provider: "simpleicons", name: "deezer" },
+	bluesky: { provider: "simpleicons", name: "bluesky" },
 	disc: { provider: "lucide", name: "disc-3" },
 	waveform: { provider: "lucide", name: "audio-waveform", strokeWidth: 2 },
 	twitter: {
@@ -80,6 +81,7 @@ export const registeredIcons = {
 	star: { provider: "lucide", name: "star", variant: "warn" },
 	empty: { provider: "https://cdn.discordapp.com/emojis/1351872095910625341.png", name: "" },
 	calendar: { provider: "lucide", name: "calendar" },
+	waypoints: { provider: "lucide", name: "waypoints" },
 } as const satisfies Record<string, IconRegistration>;
 
 export type RegisteredIconName = keyof typeof registeredIcons;

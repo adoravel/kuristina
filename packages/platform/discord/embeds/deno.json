@@ -3,6 +3,7 @@
 	"exports": {
 		"./code-forge": "./code-forge/mod.tsx",
 		"./twitter": "./twitter/mod.tsx",
+		"./bluesky": "./bluesky/mod.tsx",
 		"./github": "./github/mod.tsx",
 		"./forgejo": "./forgejo/mod.tsx",
 		"./fediverse": "./fediverse/mod.tsx",
