@@ -21,7 +21,7 @@ export interface TweetInfo {
 	tweetURL: string;
 	possiblySensitive: boolean;
 	communityNote?: string;
-	quoted?: QuotedTweet;
+	quoted?: TweetInfo;
 	isRetweet: boolean;
 }
 
@@ -35,12 +35,4 @@ export interface MediaExtended {
 	thumbnail_url?: string;
 	type: "image" | "video" | "gif";
 	url: string;
-}
-
-export interface QuotedTweet {
-	author: string;
-	handle: string;
-	text: string;
-	url: string;
-	mediaExtended: MediaExtended[];
 }
