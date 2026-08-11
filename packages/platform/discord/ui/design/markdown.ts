@@ -24,7 +24,9 @@ export const md = {
 	},
 	quote: (text: string): string => text.split("\n").map((line) => `> ${line}`).join("\n"),
 	link: (label: string, url: string): string => {
-		const safeLabel = label.replaceAll("]", "\\]");
+		const cleanLabel = label.replace(/[\p{Extended_Pictographic}\p{Emoji_Presentation}]/gu, "")
+			.trim();
+		const safeLabel = cleanLabel.replace(/[\[\]]/g, "\\$&");
 		const safeUrl = url.replaceAll(" ", "+").replace(
 			/[!'()*\[\]]/g,
 			(c) => `%${c.charCodeAt(0).toString(16).toUpperCase()}`,
