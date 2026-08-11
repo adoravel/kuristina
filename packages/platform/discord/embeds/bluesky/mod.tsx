@@ -7,7 +7,7 @@
 import type { BskyPostInfo } from "@kuristina/services/social/bluesky";
 
 function truncateName(name: string): string {
-	return name.length > 30 ? `${name.slice(0, 29)}…` : name;
+	return name.length > 32 ? `${name.slice(0, 31)}…` : name;
 }
 
 function AuthorAvatar({ avatarUrl }: { avatarUrl?: string }) {
@@ -60,22 +60,39 @@ function PostFooter({
 	replies: number;
 	dateEpoch: number;
 }) {
+	const stats = [
+		{
+			icon: "heart" as const,
+			label: `like${likes > 1 ? "s" : ""}`,
+			value: likes,
+		},
+		{
+			icon: "repeat" as const,
+			label: `reskeet${reposts > 1 ? "s" : ""}`,
+			value: reposts,
+		},
+		{
+			icon: "comment" as const,
+			label: `repl${replies > 1 ? "ies" : "y"}`,
+			value: replies,
+		},
+	].filter((s) => s.value > 0);
+
 	return (
 		<>
-			<hr spacing={2} />
+			<hr />
 			<sub>
-				<icon name="heart" />
-				{`  `}
-				{likes}
-				{` `}like{`${likes > 1 ? "s" : ""}  ·  `}
-				<icon name="repeat" />
-				{`  `}
-				{reposts}
-				{` `}repost{`${reposts > 1 ? "s" : ""}  ·  `}
-				<icon name="comment" />
-				{`  `}
-				{replies}
-				{` `}repl{`${replies > 1 ? "ies" : "y"}  ·  `}
+				{stats.map((s, i) => (
+					<>
+						{i > 0 && "  ·  "}
+						<icon name={s.icon} />
+						{`  `}
+						{s.value}
+						{` `}
+						{s.label}
+					</>
+				))}
+				{stats.length > 0 && "  ·  "}
 				{`<t:${Math.trunc(dateEpoch)}:F>`}
 			</sub>
 		</>
