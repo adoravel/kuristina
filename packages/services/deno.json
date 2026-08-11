@@ -12,8 +12,7 @@
 		"./forges/github": "./forges/github/mod.ts",
 		"./forges/forgejo": "./forges/forgejo/mod.ts",
 		"./forges/code-forge": "./forges/code-forge/mod.ts",
-		"./social/twitter": "./social/twitter/mod.ts",
-		"./social/bluesky": "./social/bluesky/mod.ts",
+		"./social/fx": "./social/fx/mod.ts",
 		"./social/fediverse": "./social/fediverse/mod.ts"
 	},
 	"imports": {

@@ -5,7 +5,7 @@
  */
 
 import { config } from "@kuristina/config";
-import { extractBskyUrls, fetchBskyPost } from "@kuristina/services/social/bluesky";
+import { extractBskyUrls, fetchBsky } from "@kuristina/services/social/fx";
 import { renderBskyPost } from "@kuristina/embeds/bluesky";
 import { reconcileCompanions } from "./shared.ts";
 import type { Message } from "../../types.ts";
@@ -19,17 +19,17 @@ export async function handleBlueskyLinks(
 ): Promise<void> {
 	if (!config.modules.linkEmbeds.bluesky) return;
 
-	const urls = extractBskyUrls(message.content).slice(0, config.modules.linkEmbeds.maxPerMessage);
+	const urls = extractBskyUrls(message.content);
 	if (!urls.length) return;
 
 	await reconcileCompanions(
 		bot,
 		message,
 		"richlink:bluesky",
-		urls,
+		urls.slice(0, config.modules.linkEmbeds.maxPerMessage),
 		(url) => url,
 		async (url) => {
-			const tweet = await fetchBskyPost(url);
+			const tweet = await fetchBsky(url);
 			return tweet.ok ? renderBskyPost(tweet.value) : undefined;
 		},
 		ex,

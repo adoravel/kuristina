@@ -5,7 +5,7 @@
  */
 
 import { config } from "@kuristina/config";
-import { extractStatusUrls, fetchTweet } from "@kuristina/services/social/twitter";
+import { extractTwitterUrls, fetchTwitter } from "@kuristina/services/social/fx";
 import { renderTweet } from "@kuristina/embeds/twitter";
 import { reconcileCompanions } from "./shared.ts";
 import type { Message } from "../../types.ts";
@@ -18,19 +18,18 @@ export async function handleTwitterLinks(
 	ex?: MessageCompanion[],
 ): Promise<void> {
 	if (!config.modules.linkEmbeds.twitter) return;
-	if (!message.content.includes("x.com") && !message.content.includes("twitter.com")) return;
 
-	const urls = extractStatusUrls(message.content).slice(0, config.modules.linkEmbeds.maxPerMessage);
+	const urls = extractTwitterUrls(message.content);
 	if (!urls.length) return;
 
 	await reconcileCompanions(
 		bot,
 		message,
 		"richlink:twitter",
-		urls,
+		urls.slice(0, config.modules.linkEmbeds.maxPerMessage),
 		(url) => url,
 		async (url) => {
-			const tweet = await fetchTweet(url);
+			const tweet = await fetchTwitter(url);
 			return tweet.ok ? renderTweet(tweet.value) : undefined;
 		},
 		ex,

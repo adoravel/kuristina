@@ -19,14 +19,18 @@ import {
 	fetchSnippet as fjSnippet,
 } from "@kuristina/services/forges/forgejo";
 import { renderSnippet as renderForgejo } from "@kuristina/embeds/forgejo";
-import { fetchTweet, parseStatusUrl } from "@kuristina/services/social/twitter";
+import {
+	fetchBsky,
+	fetchTwitter,
+	parseBskyUrl,
+	parseTwitterUrl,
+} from "@kuristina/services/social/fx";
 import { renderTweet } from "@kuristina/embeds/twitter";
 import { fetchFediPost, parseFediUrl } from "@kuristina/services/social/fediverse";
 import { renderFediPost } from "@kuristina/embeds/fediverse";
 import { extractMusicUrls, resolveSongLink } from "@kuristina/services/music/links";
 import { getMusicMetadata } from "@kuristina/services/music/metadata";
 import { renderMusicLinkCard } from "@kuristina/embeds/musiclinks";
-import { fetchBskyPost, parseBskyUrl } from "@kuristina/services/social/bluesky";
 import { renderBskyPost } from "@kuristina/embeds/bluesky";
 
 async function tryRender(url: string): Promise<CreateMessageOptions | undefined> {
@@ -42,13 +46,13 @@ async function tryRender(url: string): Promise<CreateMessageOptions | undefined>
 		}
 	}
 
-	if (linkEmbeds.twitter && parseStatusUrl(url)) {
-		const tweet = await fetchTweet(url);
+	if (linkEmbeds.twitter && parseTwitterUrl(url)) {
+		const tweet = await fetchTwitter(url);
 		if (tweet.ok) return renderTweet(tweet.value);
 	}
 
 	if (linkEmbeds.bluesky && parseBskyUrl(url)) {
-		const tweet = await fetchBskyPost(url);
+		const tweet = await fetchBsky(url);
 		if (tweet.ok) return renderBskyPost(tweet.value);
 	}
 
