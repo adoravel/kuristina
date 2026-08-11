@@ -84,6 +84,7 @@ export const registeredIcons = {
 	calendar: { provider: "lucide", name: "calendar" },
 	waypoints: { provider: "lucide", name: "waypoints" },
 	scrollText: { provider: "lucide", name: "scroll-text" },
+	quote: { provider: "lucide", name: "quote" },
 } as const satisfies Record<string, IconRegistration>;
 
 export type RegisteredIconName = keyof typeof registeredIcons;
