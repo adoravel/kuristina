@@ -8,18 +8,25 @@ import { initialise, shutdown } from "@kuristina/discord-bot";
 import { initialiseClient } from "@kuristina/discord-client";
 
 if (import.meta.main) {
+	const client = initialiseClient();
+	let shuttingDown = false;
+
+	const onShutdown = (signal: string) => async () => {
+		if (shuttingDown) return;
+		shuttingDown = true;
+
+		logger.info(`received ${signal}, shutting down...`);
+		await shutdown();
+		await client?.shutdown();
+
+		Deno.exit(0);
+	};
+
+	Deno.addSignalListener("SIGINT", onShutdown("SIGINT"));
+	Deno.addSignalListener("SIGTERM", onShutdown("SIGTERM"));
+
 	const res = await initialise();
 	if (!res.ok) throw res.error;
 
-	const client = initialiseClient();
 	if (client) await client.start();
-
-	for (const signal of ["SIGINT", "SIGTERM"] as const) {
-		Deno.addSignalListener(signal, async () => {
-			logger.info(`\nreceived ${signal}, shutting down...`);
-			await shutdown();
-			await client?.shutdown();
-			Deno.exit(0);
-		});
-	}
 }

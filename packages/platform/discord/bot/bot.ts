@@ -224,7 +224,6 @@ export async function initialise(): Promise<Result<void, AppError>> {
 export async function shutdown(): Promise<void> {
 	closeDatabaseConnection();
 	await discord.shutdown();
-	logger.info("goodbye :3");
 }
 
 export default discord;
