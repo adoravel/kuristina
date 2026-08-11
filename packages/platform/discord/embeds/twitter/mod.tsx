@@ -4,10 +4,14 @@
  * SPDX-License-Identifier: AGPL-3.0-or-later
  */
 
-import type { QuotedTweet, TweetInfo } from "@kuristina/services/social/twitter";
+import type { TweetInfo } from "@kuristina/services/social/twitter";
 
 function truncateName(name: string): string {
-	return name.length > 30 ? `${name.slice(0, 29)}…` : name;
+	return name.length > 32 ? `${name.slice(0, 31)}…` : name;
+}
+
+function truncateText(text: string, max = 240): string {
+	return text.length > max ? `${text.slice(0, max - 1)}…` : text;
 }
 
 function MediaGallery(
@@ -21,14 +25,36 @@ function MediaGallery(
 	);
 }
 
-function QuotedBlock({ quoted, sensitive }: { quoted: QuotedTweet; sensitive: boolean }) {
+function QuotedBlock({ quoted, sensitive }: { quoted: TweetInfo; sensitive: boolean }) {
 	return (
-		<blockquote>
-			<strong>{truncateName(quoted.author)}</strong> (@{quoted.handle})
-			<br />
-			{quoted.text}
-			<MediaGallery media={quoted.mediaExtended} sensitive={sensitive} />
-		</blockquote>
+		<div>
+			<section>
+				<AuthorAvatar avatarUrl={quoted.authorAvatar} />
+				<h3>
+					<icon name="quote" />
+					{`  `}
+					<a href={quoted.url}>
+						{truncateName(quoted.author)} (@{quoted.handle})
+					</a>
+				</h3>
+				<TweetText
+					text={truncateText(quoted.text)}
+					sensitive={sensitive || quoted.possiblySensitive}
+				/>
+			</section>
+
+			<MediaGallery
+				media={quoted.mediaExtended}
+				sensitive={sensitive || quoted.possiblySensitive}
+			/>
+
+			<TweetFooter
+				likes={quoted.likes}
+				retweets={quoted.retweets}
+				replies={quoted.replies}
+				dateEpoch={quoted.dateEpoch}
+			/>
+		</div>
 	);
 }
 
@@ -85,22 +111,39 @@ function TweetFooter({
 	replies: number;
 	dateEpoch: number;
 }) {
+	const stats = [
+		{
+			icon: "heart" as const,
+			label: `like${likes > 1 ? "s" : ""}`,
+			value: likes,
+		},
+		{
+			icon: "repeat" as const,
+			label: `retweet${retweets > 1 ? "s" : ""}`,
+			value: retweets,
+		},
+		{
+			icon: "comment" as const,
+			label: `repl${replies > 1 ? "ies" : "y"}`,
+			value: replies,
+		},
+	].filter((s) => s.value > 0);
+
 	return (
 		<>
 			<hr />
 			<sub>
-				<icon name="heart" />
-				{`  `}
-				{likes}
-				{` `}like{`${likes > 1 ? "s" : ""}  ·  `}
-				<icon name="repeat" />
-				{`  `}
-				{retweets}
-				{` `}retweet{`${retweets > 1 ? "s" : ""}  ·  `}
-				<icon name="comment" />
-				{`  `}
-				{replies}
-				{` `}repl{`${replies > 1 ? "ies" : "y"}  ·  `}
+				{stats.map((s, i) => (
+					<>
+						{i > 0 && "  ·  "}
+						<icon name={s.icon} />
+						{`  `}
+						{s.value}
+						{` `}
+						{s.label}
+					</>
+				))}
+				{stats.length > 0 && "  ·  "}
 				{`<t:${Math.trunc(dateEpoch)}:F>`}
 			</sub>
 		</>
@@ -108,7 +151,8 @@ function TweetFooter({
 }
 
 export function renderTweet(tweet: TweetInfo) {
-	console.log(		<message root>
+	console.log(JSON.stringify(
+		<message root>
 			<div>
 				<section>
 					<AuthorAvatar avatarUrl={tweet.authorAvatar} />
@@ -125,14 +169,12 @@ export function renderTweet(tweet: TweetInfo) {
 					dateEpoch={tweet.dateEpoch}
 				/>
 			</div>
-			{tweet.quoted &&
-				(
-					<div>
-						<QuotedBlock quoted={tweet.quoted} sensitive={tweet.possiblySensitive} />
-					</div>
-				)}
+			{tweet.quoted && <QuotedBlock quoted={tweet.quoted} sensitive={tweet.possiblySensitive} />}
 			<CommunityNoteBlock note={tweet.communityNote} />
-		</message>)
+		</message>,
+		null,
+		4,
+	));
 	return (
 		<message root>
 			<div>
@@ -151,12 +193,7 @@ export function renderTweet(tweet: TweetInfo) {
 					dateEpoch={tweet.dateEpoch}
 				/>
 			</div>
-			{tweet.quoted &&
-				(
-					<div>
-						<QuotedBlock quoted={tweet.quoted} sensitive={tweet.possiblySensitive} />
-					</div>
-				)}
+			{tweet.quoted && <QuotedBlock quoted={tweet.quoted} sensitive={tweet.possiblySensitive} />}
 			<CommunityNoteBlock note={tweet.communityNote} />
 		</message>
 	);
