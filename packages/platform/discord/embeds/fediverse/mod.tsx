@@ -1,144 +1,75 @@
 /**
- * kuristina, a bathroom sink discord bot
+ * kuristina, a ~~kitchen~~ bathroom sink discord bot
  * Copyright (c) 2025-2026 kyu.re
  * SPDX-License-Identifier: AGPL-3.0-or-later
  */
 
 import { htmlToDiscordMarkdown } from "./markdown.tsx";
 import type { FediPostInfo } from "@kuristina/services/social/fediverse";
+import {
+	SocialAuthorAvatar,
+	SocialGallery,
+	SocialHeader,
+	type SocialPost,
+	SocialStatsFooter,
+} from "../social/mod.tsx";
 
-function truncateAuthor(name: string): string {
-	return name.length > 32 ? `${name.slice(0, 31)}…` : name;
-}
-
-function FediAvatar({ avatarUrl }: { avatarUrl?: string }) {
-	if (!avatarUrl) return null;
-	return (
-		<accessory>
-			<thumbnail url={avatarUrl} />
-		</accessory>
-	);
-}
-
-function FediHeader({ url, author, handle }: { url: string; author: string; handle: string }) {
-	return (
-		<h3>
-			<icon name="mastodon" />
-			<a href={url}>
-				{`  `}
-				{truncateAuthor(author)} (@{handle})
-			</a>
-		</h3>
-	);
-}
-
-function FediContent({
-	content,
-	sensitive,
-	spoilerText,
-}: {
-	content: string;
-	sensitive: boolean;
-	spoilerText?: string;
-}) {
-	return (
-		<p>
-			{sensitive && spoilerText && (
-				<>
-					<spoiler>
-						<strong>⚠️ {htmlToDiscordMarkdown(spoilerText)}</strong>
-					</spoiler>
-					<br />
-					<br />
-				</>
-			)}
-			{htmlToDiscordMarkdown(content)}
-		</p>
-	);
-}
-
-function FediGallery({ media }: { media: FediPostInfo["mediaAttachments"] }) {
-	if (!media || media.length === 0) return null;
-	return (
-		<gallery>
-			{media.map((m) => <gallery-item url={m.url} description={m.description} />)}
-		</gallery>
-	);
-}
-
-function FediFooter({
-	favourites,
-	boosts,
-	replies,
-	createdAt,
-	application,
-}: {
-	favourites: number;
-	boosts: number;
-	replies: number;
-	createdAt: number;
-	application?: string;
-}) {
-	const stats = [
-		{
-			icon: "star" as const,
-			label: `favourite${favourites > 1 ? "s" : ""}`,
-			value: favourites,
+function mapFediToSocial(post: FediPostInfo): SocialPost {
+	return {
+		url: post.url,
+		author: {
+			name: post.author,
+			handle: post.handle,
+			avatarUrl: post.authorAvatar,
 		},
-		{
-			icon: "repeat" as const,
-			label: `boost${boosts > 1 ? "s" : ""}`,
-			value: boosts,
+		text: htmlToDiscordMarkdown(post.content),
+		media: post.mediaAttachments.map((m) => ({
+			url: m.url,
+			altText: m.description,
+			type: m.type === "image" ? "image" : m.type === "video" ? "video" : undefined,
+		})),
+		stats: {
+			likes: post.favouritesCount,
+			reposts: post.reblogsCount,
+			replies: post.repliesCount,
 		},
-		{
-			icon: "comment" as const,
-			label: `repl${replies > 1 ? "ies" : "y"}`,
-			value: replies,
-		},
-	].filter((s) => s.value > 0);
-
-	return (
-		<>
-			<hr />
-			<sub>
-				{stats.map((s, i) => (
-					<>
-						{i > 0 && "  ·  "}
-						<icon name={s.icon} />
-						{`  `}
-						{s.value}
-						{` `}
-						{s.label}
-					</>
-				))}
-				{stats.length > 0 && "  ·  "}
-				{`<t:${Math.trunc(createdAt)}:F>`}
-				{application && `  ·  via ${application}`}
-			</sub>
-		</>
-	);
+		dateEpoch: post.createdAtEpoch,
+		sensitive: post.sensitive,
+	};
 }
 
 export function renderFediPost(post: FediPostInfo) {
+	const social = mapFediToSocial(post);
+
 	return (
 		<message>
 			<section>
-				<FediAvatar avatarUrl={post.authorAvatar} />
-				<FediHeader url={post.url} author={post.author} handle={post.handle} />
-				<FediContent
-					content={post.content}
-					sensitive={!!post.sensitive}
-					spoilerText={post.spoilerText}
-				/>
+				<SocialAuthorAvatar avatarUrl={social.author.avatarUrl} />
+				<SocialHeader icon="mastodon" url={social.url} author={social.author} />
+
+				{social.sensitive && post.spoilerText && (
+					<>
+						<spoiler>
+							<strong>⚠️ {htmlToDiscordMarkdown(post.spoilerText)}</strong>
+						</spoiler>
+						<br />
+						<br />
+					</>
+				)}
+
+				<p>{social.text}</p>
 			</section>
-			<FediGallery media={post.mediaAttachments} />
-			<FediFooter
-				favourites={post.favouritesCount}
-				boosts={post.reblogsCount}
-				replies={post.repliesCount}
-				createdAt={post.createdAtEpoch}
-				application={post.application}
-			/>
+
+			<SocialGallery media={social.media} sensitive={social.sensitive} />
+
+			<SocialStatsFooter stats={social.stats} dateEpoch={social.dateEpoch} />
+
+			{post.application && (
+				<sub>
+					<icon name="link" />
+					{`  via ${post.application}`}
+				</sub>
+			)}
 		</message>
 	);
 }
