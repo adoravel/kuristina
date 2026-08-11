@@ -5,5 +5,9 @@
  */
 
 export * from "./types.ts";
-export * from "./extractor.ts";
+export * from "./guard.ts";
+export * from "./mappers.ts";
 export * from "./client.ts";
+export * from "./extractors.ts";
+export * from "./twitter.ts";
+export * from "./bluesky.ts";
