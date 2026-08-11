@@ -8,7 +8,7 @@ import { htmlToDiscordMarkdown } from "./markdown.tsx";
 import type { FediPostInfo } from "@kuristina/services/social/fediverse";
 
 function truncateAuthor(name: string): string {
-	return name.length > 30 ? `${name.slice(0, 29)}…` : name;
+	return name.length > 32 ? `${name.slice(0, 31)}…` : name;
 }
 
 function FediAvatar({ avatarUrl }: { avatarUrl?: string }) {
@@ -79,13 +79,41 @@ function FediFooter({
 	createdAt: number;
 	application?: string;
 }) {
+	const stats = [
+		{
+			icon: "star" as const,
+			label: `favourite${favourites > 1 ? "s" : ""}`,
+			value: favourites,
+		},
+		{
+			icon: "repeat" as const,
+			label: `boost${boosts > 1 ? "s" : ""}`,
+			value: boosts,
+		},
+		{
+			icon: "comment" as const,
+			label: `repl${replies > 1 ? "ies" : "y"}`,
+			value: replies,
+		},
+	].filter((s) => s.value > 0);
+
 	return (
 		<>
 			<hr />
 			<sub>
-				<icon name="star" /> {favourites} favourites · <icon name="repeat" /> {boosts} boosts ·{" "}
-				<icon name="comment" /> {replies} replies · {`<t:${Math.trunc(createdAt)}:F>`}
-				{application && ` · via ${application}`}
+				{stats.map((s, i) => (
+					<>
+						{i > 0 && "  ·  "}
+						<icon name={s.icon} />
+						{`  `}
+						{s.value}
+						{` `}
+						{s.label}
+					</>
+				))}
+				{stats.length > 0 && "  ·  "}
+				{`<t:${Math.trunc(createdAt)}:F>`}
+				{application && `  ·  via ${application}`}
 			</sub>
 		</>
 	);
